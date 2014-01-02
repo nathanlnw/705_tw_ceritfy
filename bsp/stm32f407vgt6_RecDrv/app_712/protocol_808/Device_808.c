@@ -214,7 +214,7 @@ u8  MainPower_cut(void)
    return false;
 }
 
-u8  FarLight_StatusGet(void)
+u8  FarLight_StatusGet(void) 
 {
   //  --------------J1pin2		PE6 		近光灯
 	   return (!GPIO_ReadInputDataBit(FARLIGHT_IO_Group,FARLIGHT_Group_NUM));	// PE6
@@ -294,6 +294,25 @@ u8  Get_SensorStatus(void)
    D1  预留
    D0  预留
    */
+
+   
+   /*  
+	   -------------------------------------------------------------
+				F4	行车记录仪 TW703   管脚定义
+	   -------------------------------------------------------------
+	   遵循  GB10956 (2012)  Page26  表A.12  规定
+	  -------------------------------------------------------------
+	  | Bit  |		Note	   |  必备|   MCUpin  |   PCB pin  |   Colour | ADC
+	  ------------------------------------------------------------
+		  D7	  刹车			 *			  PE11			   9				棕
+		  D6	  左转灯	 *			   PE10 		   10				红
+		  D5	  右转灯	 *			   PC2				8				 白
+		  D4	  远光灯	 *			   PC0				4				 黑
+		  D3	  近光灯	 *			   PC3				5				 黄    (2013 12  19  改成绿线 PC3 华讯版本没有这根线了)
+		  D2	  雾灯			add 		 PC3			  7 			   绿	   *  没有了---
+		  D1	  车门			add 		 PA1			  6 			   灰	   *
+		  D0	  预留
+	 */
 
    //  --------------J1pin8 		   刹车灯
 		  if(BreakLight_StatusGet())  //PA8

@@ -2281,7 +2281,7 @@ void  IMSIcode_Get(void)
 			  else 
 			   {
 			  	   rt_hw_gsm_output(SIM_Check_Str);    // 先检查 SIM 卡的存在
-		                 rt_kprintf(SIM_Check_Str);    
+		                 rt_kprintf(SIM_Check_Str); 
 			   }
 		   	} 
 		}  

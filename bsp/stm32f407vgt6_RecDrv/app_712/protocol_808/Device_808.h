@@ -42,8 +42,8 @@
 #define SPEAKER_IO_Group          GPIOA             // À®°È
 #define SPEAKER_Group_NUM         GPIO_Pin_1
 
-#define LEFTLIGHT_IO_Group        GPIOC             // ×ó×ªµÆ
-#define LEFTLIGHT_Group_NUM       GPIO_Pin_3
+#define LEFTLIGHT_IO_Group        GPIOE             // ×ó×ªµÆ
+#define LEFTLIGHT_Group_NUM       GPIO_Pin_10
 
 #define DOORLIGHT_IO_Group          GPIOC             // ³µÃÅµÆ   Ô¤Áô
 #define DOORLIGHT_Group_NUM       GPIO_Pin_1
@@ -55,8 +55,8 @@
 #define BREAK_IO_Group            GPIOE             //  É²³µµÆ
 #define BREAK_Group_NUM           GPIO_Pin_11
 
-#define RAINBRUSH_IO_Group        GPIOE             //  ÓêË¢
-#define RAINBRUSH_Group_NUM       GPIO_Pin_10
+#define RAINBRUSH_IO_Group        GPIOC             //  ÓêË¢
+#define RAINBRUSH_Group_NUM       GPIO_Pin_3
 
 
 //------  out pins ---
