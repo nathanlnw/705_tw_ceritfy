@@ -15,6 +15,8 @@
 #include <finsh.h>
 
 
+
+
 extern  struct rt_device  Device_CAN2;
 
 extern void  CAN2_RxHandler(unsigned char rx_data);   

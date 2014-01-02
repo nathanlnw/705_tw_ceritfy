@@ -184,14 +184,15 @@ Crystal: 3.6864Mhz
                                                                    19                         1             4
                                                      */
 #define       PicStart_offset                          4096                          // Block 起始位置 图片存储区域(Current Save) 将来要放到TF卡中
-#define       PicStart_offset2                        4424                          // Block 起始位置 图片2区域 
-#define       PicStart_offset3                        4752                          // Block 起始位置 图片3区域 
-#define       PicStart_offset4                        5080                          // Block 起始位置 图片4区域  
+#define       PicStart_offset2                        4096//4424                          // Block 起始位置 图片2区域 
+#define       PicStart_offset3                        4096// 4752                          // Block 起始位置 图片3区域 
+#define       PicStart_offset4                        4096//5080                          // Block 起始位置 图片4区域  
+                                                                              //  为了guojian 写成一个样子
 
 
 
 // 14  Sound  Area
-#define       SoundStart_offdet                      5248      //4200                 32K 空间        // Block 起始位置 15s声音存储区域(Current Save) 将来要放到TF卡中
+#define       SoundStart_offdet                      4248      //4200                 32K 空间        // Block 起始位置 15s声音存储区域(Current Save) 将来要放到TF卡中
 			                                                                /*  
 			                                                                             filesize              filename 
 			                                                                                4  Bytes          5thstart   
@@ -199,28 +200,39 @@ Crystal: 3.6864Mhz
 #define       SoundFileMax_Sectors                   5                              //  5 sect=5*8 pages =20s data
 
 
+
+//-------------  盲区补报---区域------------------------------
+/*
+        28*10000/512=546.8     552 pages
+*/
+
+#define    StopComunicate_offset            6912               //        // Block 起始位置       54Sector
+
+
+
+
+//-------------------------------------------------------------------
+
 //  15 字库不在Dataflash 了可以用了
 
-//   16 .  RT   struct          from    7000    //  Block   起始位置
-#define    ConfigStart_offset                         7000        //   Block   起始位置  Conifg  Struct Save
+//   16 .  RT   struct          from    5000    //  Block   起始位置
+#define    ConfigStart_offset                         5000        //   Block   起始位置  Conifg  Struct Save
 
 
-#define    JT808Start_offset                          7100        //   Block   起始位置  Conifg  Struct Save
+#define    JT808Start_offset                          5100        //   Block   起始位置  Conifg  Struct Save
 
-#define    TiredCondifg_offset                       7200        //   Block   起始位置  Conifg  Struct Save
+#define    TiredCondifg_offset                       5200        //   Block   起始位置  Conifg  Struct Save 
 
 
 
 //----  补充
-#define    DF_Broadcast_offset                      7300       //  Block   起始位置  播报起始地址
-#define    DF_Route_Page                               7400      // 1304                           // Block 起始- 路线
-#define    DF_turnPoint_Page                         7500       //  拐点
- #define   DF_AskQuestion_Page                    7600       //  中心提问 
+#define    DF_Broadcast_offset                      4300       //  Block   起始位置  播报起始地址
+#define    DF_Route_Page                               4400      // 1304                           // Block 起始- 路线
+#define    DF_turnPoint_Page                         4500       //  拐点
+ #define   DF_AskQuestion_Page                    4600       //  中心提问 
 /*                Dataflash     <------------   End              */ 
 
-
-
-#define  DF_MP3_offset                         8000    // Block  起始位置 ，固有音频
+#define  DF_Record_Page                         6144 
 
 //-------------------------------------------------------
 //存储程序以及图片信息所需
@@ -245,6 +257,6 @@ extern void DF_WriteFlashSector(u16 page_counter,u16 page_offset,u8 *p,u16 lengt
 extern void DF_WriteFlashDirect(u16 page_counter,u32 page_offset,u8 *p,u16 length);
 extern void DF_Read_zk(u32 address,u8 *p,u16 length);//480 bytes 直接读取
 extern void DF_EraseAppFile_Area(void);
-extern void DF_init(void); 
+extern void DF_init(void);   
 
 #endif

@@ -19,31 +19,99 @@ u8   U3_Rx[100];
 u8   U3_content[100];
 u16   U3_content_len=0; 
 u8   U3_flag=0;
-u16   U3_rxCounter=0;
+u16   U3_rxCounter=0; 
+
 
 
 #ifdef RT_USING_DEVICE 
  struct rt_device  Device_CAN2;  
 #endif
 
+//     小板通信波特率  调整至   115200bps
+
+/*
+        1.CAN 相关
+
+         1    1       1       2    content                     ( IN  content   参考JT/T 808  北斗表12  Page 16)
+        7E  33   Type    ID      n             7E
+
+        Type:  01  <->  波特率设置   
+                                    内容 2 bytes   HL    单位 KB <=> ID    (没有ID  ，直接是波特率内容)
+                  02  <->  JT/T 808 北斗 ID   +  内容 
+
+        2.  透传
+        7E  34  01    content   7E
+*/
+
+u16  Protocol_808_Decode_Good(u8 *Instr ,u8* Outstr,u16  in_len);
+
+
+void  DeviceData_Encode_Send( u8 DeviceID, u8 CMD_TYPE, u8 *Srcstr, u16 inlen )
+{
+	u16 out_len = 0, wr = 0, i = 0;
+	u8	addFCS	= 0;
+	u8	Reg[100];
+	u8	reg2[100];
+
+	//  stuff orginal info
+	Reg[0]	= 0;                        // 留作校验
+	Reg[1]	= 0x00;                     // 版本编号
+	Reg[2]	= 0x01;
+	Reg[3]	= 0x01;                     // 厂商ID
+	Reg[4]	= 0x00;
+	Reg[5]	= DeviceID;                 // 外设类型
+	Reg[6]	= CMD_TYPE;                 // 命令类型
+	memcpy( Reg + 7, Srcstr, inlen );   //  信息内容
+	wr = 7 + inlen;
+
+	// caculate  add fcs
+	for( i = 3; i < wr; i++ )
+	{
+		Reg[0] += Reg[i];
+	}
+	rt_kprintf( "\r\n // Send  -------------------------" );
+	OutPrint_HEX( "原始信息", Reg, wr );
+	//  Encode 1       reg2 is  A.2.1  格式内容
+	memset( reg2, 0, 100 );
+	reg2[0]		= 0x7e;                                                 // head
+	i			= Protocol_808_Encode( reg2 + 1, Reg, wr );             // Encode content
+	reg2[i + 1] = 0x7e;                                                 // tail
+	OutPrint_HEX( "首次转义加头尾", reg2, i + 2 );
+	//  Packet again     需要再次填写，编码
+	memset( Reg, 0, 100 );
+	Reg[0]				= 0x7E;
+	Reg[1]				= 0x35;
+	Reg[2]				= 0x01;                                         // head
+	out_len				= Protocol_808_Encode( Reg + 3, reg2, i + 2 );  // Encode content
+	Reg[out_len + 3]	= 0x7e;                                         //tail
+	//  Encode 2
+	OutPrint_HEX( "发送的数据", Reg, out_len + 4 );
+	rt_device_write( &Device_CAN2, 0, ( const char*)Reg, out_len + 4 );
+	rt_kprintf( "// Send over -----------------------\r\n" );
+}
+
+
+
 void U3_RxProcess(void)  
 {
    u8  iRX;
-   
+	uint16_t	i,j, len;
+   uint8_t fcs;
+   uint8_t buf[32]; 
 	 
      if(U3_content[1]==0x33)  // CAN 2
      	{
-             if(U3_content[2]==0x03)  // CAN 数据接收
+		if( U3_content[2] == 0x03 ) // CAN 数据接收
              	{  
              	     //-------------------------------------------------
              	     //7e 33 03 08 00 00 00 00 00 20 00 04 00 08 30 31 32 33 34 35 36 07 00 7e
              	     memcpy(&RxMessageData,U3_content+3,20);   
 					 
              	     
-                    DataTrans.Data_Tx[DataTrans.Tx_Wr++]=(BD_EXT.CAN_2_ID>>24); //  BIT 7 can1  bit6 --1  CAN2 扩展 
-		      DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID>>16;
-		      DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID>>8;
-		      DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID;     
+                    //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=(BD_EXT.CAN_2_ID>>24); //  BIT 7 can1  bit6 --1  CAN2 扩展 
+		      //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID>>16;
+		      //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID>>8;
+		      //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID;     
 
 	  //  for(iRX=0;iRX<RxMessageData.DLC;iRX++)
 	      for(iRX=0;iRX<8;iRX++)
@@ -62,6 +130,155 @@ void U3_RxProcess(void)
              	}
 
      	}
+	else if ( U3_content[1] == 0x35 ) /*连接到扩展板的Usart3同IC读卡器连接，9600bps*/
+	{
+	
+		/*'5',1,<转义后的ic卡数据,以0x7e封包>*/
+		len=Protocol_808_Decode_Good( U3_content+3, U3_content,U3_content_len-4); 
+		rt_kprintf("\r\n******************\r\n");
+		   for(i=0;i<len;i++) rt_kprintf("%02x ",U3_content[i]); 
+		rt_kprintf("\r\n******************");
+
+		if(U3_content[0]!=0x7e) return;
+		if(U3_content[len-1]!=0x7e) return; 
+		/*计算累加和*/
+		fcs=0;
+		//for(i=4;i<len-1;i++)  fcs+=U3_content[i]; 
+		//if(fcs!=U3_content[1])
+		//{
+			//rt_kprintf("\r\n%s(line:%d)>",__func__,__LINE__);
+		//}
+		if(U3_content[6]!=0x0B) return; // IC 卡类型检查，不是则返回
+		
+		switch(U3_content[7])					
+		  {	 
+		      case         0x40:  // 首次插卡的信息
+							{    // 40H   
+							      switch(U3_content[8])
+							      	{
+					                           case 0x00:
+											  rt_kprintf("\r\n IC 卡读卡成功\r\n");
+											  IC_MOD.IC_Status=1;
+											  JT808Conf_struct.Driver_Info.BD_IC_rd_res=0x00;
+											  time_now=Get_RTC(); 
+											  Time2BCD(JT808Conf_struct.Driver_Info.BD_IC_inoutTime);  
+						
+						if( DataLink_Status( ) && ( TCP2_Connect ) )
+						{                                                       //  Online      Trans  64 Data  to  Centre  , wait for 1 or 25 byte result,
+							memset( IC_MOD.IC_Tx40H, 0, sizeof( IC_MOD.IC_Tx40H ) );
+							memcpy( IC_MOD.IC_Tx40H, U3_content + 9, 64 );  //获取64个字节的卡片信息
+							IC_MOD.Trans_0900Flag = 1;                      // 发送透传
+							rt_kprintf( "\r\n IC get 64 Bytes\r\n" );
+							return;
+						}else
+						{                                                       //Off line
+							buf[0] = 0x01;
+							DeviceData_Encode_Send( 0x0B, 0x40, buf, 1 );
+							TTS_Get_Data("尚未连到中心",12);
+							return;
+						}
+											  break;
+					case 0x01:  /*等待20分钟，使用0x43命令主动触发读取*/
+						rt_kprintf( "\r\n IC卡未插入\r\n" );
+
+						time_now									= Get_RTC( );
+											  Time2BCD(JT808Conf_struct.Driver_Info.BD_IC_inoutTime);  
+                                                                                //  send back
+											  buf[0]=0x03;
+											  DeviceData_Encode_Send(0x0B,0x40,buf,1);
+											  break;			  
+					                          case 0x02:
+						rt_kprintf( "\r\n IC卡读取失败\r\n" );
+											   //  send back
+											  buf[0]=0x03;
+											  DeviceData_Encode_Send(0x0B,0x40,buf,1);
+						TTS_Get_Data("IC卡读取失败",12);
+											  break;
+								     case 0x03:
+											  rt_kprintf("\r\n 非从业资格证卡\r\n");
+											   //  send back
+											  buf[0]=0x03;
+											  DeviceData_Encode_Send(0x0B,0x40,buf,1);
+						TTS_Get_Data("非从业资格证卡",14);
+											  break;		  
+								     case 0x04:
+						rt_kprintf( "\r\n IC卡被锁定\r\n" );
+  											  //  send back
+											  buf[0]=0x03; 
+											  DeviceData_Encode_Send(0x0B,0x40,buf,1); 
+						JT808Conf_struct.Driver_Info.BD_IC_rd_res	= 0x01;
+						SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
+
+						TTS_Get_Data("IC卡被锁定",10);
+						break;
+				}
+			}
+			break;
+			case    0x41:                                   //  IC 内驾驶员的信息
+			{
+				/*
+				7E 55 00 01 01 00 0B 41 00 
+				06 C2 DE B3 A4 C0 D6 
+				36 32 30 31 32 33 31 39 37 33 30 35 30 33 39 31 31 32 00 00 
+				14 C0 BC D6 DD CA D0 B9 AB C2 B7 D4 CB CA E4 B9 DC C0 ED B4 A6 
+				20 15 05 01 
+				7E 
+				*/
+
+				if( U3_content[8] == 0x00 )                 // 获取驾驶身份信息内容
+				{
+				
+					rt_kprintf( "\r\n 读取驾驶员身份信息成功\r\n" );
+					JT808Conf_struct.Driver_Info.BD_IC_status=0x01;
+					i=*(U3_content + 9);	/*姓名长度*/
+					JT808Conf_struct.Driver_Info.BD_DriveName_Len=i;	/*姓名长度*/
+					memcpy(JT808Conf_struct.Driver_Info.BD_DriveName,U3_content + 10,i);
+					JT808Conf_struct.Driver_Info.BD_DriveName[i]=0;
+					memcpy(JT808Conf_struct.Driver_Info.BD_Drv_CareerID,U3_content + 10+i,20);
+					j=*(U3_content + 30+i);	/*发证机关长度*/
+					JT808Conf_struct.Driver_Info.BD_Confirm_agentID_Len=j;
+					memcpy(JT808Conf_struct.Driver_Info.BD_Confirm_agentID,U3_content + 31+i,j);
+					JT808Conf_struct.Driver_Info.BD_Confirm_agentID[j]=0;
+					memcpy(JT808Conf_struct.Driver_Info.BD_ExpireDate,U3_content + 31+i+j,4);
+					
+					rt_kprintf("\r\n--姓名:%s",JT808Conf_struct.Driver_Info.BD_DriveName);
+					rt_kprintf("\r\n--证件号:%s",JT808Conf_struct.Driver_Info.BD_Drv_CareerID);
+					rt_kprintf("\r\n--发证机关:%s",JT808Conf_struct.Driver_Info.BD_Confirm_agentID);
+					memcpy(buf,JT808Conf_struct.Driver_Info.BD_ExpireDate,4);
+					rt_kprintf("\r\n--有效期至:%02x%02x-%02x-%02x",buf[0],buf[1],buf[2],buf[3]);
+					
+					memcpy( IC_MOD.IC_TX41H, U3_content + 9, len - 9 );
+					IC_MOD.IC_TX41H_len				= len - 9;
+					SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
+				}
+				else
+				{
+					rt_kprintf( "\r\n IC卡驾驶员信息读取失败\r\n" );
+					TTS_Get_Data("IC卡驾驶员信息读取失败",22);
+				}
+				//  send back
+				DeviceData_Encode_Send( 0x0B, 0x41, NULL, 0 );
+				return;
+			}
+			break;
+			case    0x42:                                   // 卡片拔出通知
+			{
+				time_now = Get_RTC( );
+				Time2BCD( JT808Conf_struct.Driver_Info.BD_IC_inoutTime );
+				IC_MOD.IC_Status = 0;
+				if( DataLink_Status( ) )
+				{
+					JT808Conf_struct.Driver_Info.BD_IC_rd_res	= 0x00;
+					SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
+				}
+				// send back
+				DeviceData_Encode_Send( 0x0B, 0x42, NULL, 0 );
+				return;
+			}
+	    }
+         
+	}
+
 
 }
 
@@ -109,7 +326,7 @@ else if(rx_data&0x04)
 else if(rx_data&0x08)
 	dayin_ErrorStatus=4;
 	*/
-    //      rt_kprintf("%c",rx_data);   
+      //    rt_kprintf("%c",rx_data);     //ADD for CAN 2 debug
     if(U3_flag)
     	{
            U3_Rx[U3_rxCounter++]=rx_data;
@@ -137,9 +354,18 @@ else if(rx_data&0x08)
 
 void CAN2_putc(char c)
 {
-	USART_SendData(USART3,  c); 
+	//USART_SendData(USART3,  c); 
 	while (!(USART3->SR & USART_FLAG_TXE));  
-	USART3->DR = (c & 0x1FF);   
+	USART3->DR = (c & 0x1FF);    
+	 //	USART_SendData( USART3, c );
+	//	while( USART_GetFlagStatus( USART3, USART_FLAG_TC ) == RESET )  
+	//	{
+	//	}   
+	//	while( USART_GetFlagStatus( USART3, USART_FLAG_TC )  == RESET )   
+		//{
+	//	}
+		//USART_SendData( USART3, c );
+
 }
 
 static rt_err_t   Device_CAN2_init( rt_device_t dev )
@@ -180,7 +406,7 @@ static rt_err_t   Device_CAN2_init( rt_device_t dev )
 
 	
     //   4.  uart  Initial
-       USART_InitStructure.USART_BaudRate = 9600;    //CAN2  
+       USART_InitStructure.USART_BaudRate = 115200;    //CAN2    
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -190,7 +416,9 @@ static rt_err_t   Device_CAN2_init( rt_device_t dev )
 
 	/* Enable USART */
 	USART_Cmd(USART3, ENABLE);
+	USART_ClearFlag( USART3, USART_FLAG_TC );     
 	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);           
+
 
 	return RT_EOK;
 }
@@ -216,7 +444,7 @@ static rt_size_t Device_CAN2_write( rt_device_t dev, rt_off_t pos, const void* b
 	 const char		*p	= (const char*)buff;
 	
 
-	Info_len485=(unsigned int)count;
+	Info_len485=(unsigned int)count; 
     	/* empty console output */
 		//--------  add by  nathanlnw ---------
   while (Info_len485)

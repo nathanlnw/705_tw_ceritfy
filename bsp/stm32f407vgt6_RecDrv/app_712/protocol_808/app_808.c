@@ -24,6 +24,7 @@
 
 
 
+
 //----- app_thread   rx     gsm_thread  data  related ----- 	
 ALIGN(RT_ALIGN_SIZE)
 static MSG_Q_TYPE  app_rx_gsm_infoStruct;  // app   接收从gsm  来的数据结构
@@ -61,8 +62,10 @@ u32   sec_num=2;
 u32       WarnTimer=0; 
 u16   ADC_ConvertedValue=0; //电池电压AD数值  
 u16   AD_Volte=0;
+u16   AD_2through[2]; //  另外2 路AD 的数值
 
 u8   OneSec_CounterApp=0;
+APP_QUE  AppQue; 
 
 
 
@@ -85,7 +88,7 @@ void Device_RegisterTimer(void)
       if(0==JT808Conf_struct.Regsiter_Status)    //注册   
           {
              DEV_regist.Sd_counter++;
-			 if(DEV_regist.Sd_counter>5)
+			 if(DEV_regist.Sd_counter>6)
 			 	{
                    DEV_regist.Sd_counter=0;
 				   DEV_regist.Enable_sd=1;  
@@ -93,16 +96,28 @@ void Device_RegisterTimer(void)
           }
 }
 
+
 void Device_LoginTimer(void)
 {  
-  if(1==DEV_Login.Operate_enable)
+  if((1==DEV_Login.Operate_enable)&&(DEV_Login.Max_sd_num<2))
   {
      DEV_Login.Sd_counter++;
-	 if(DEV_Login.Sd_counter>5)  
-	 {
-          DEV_Login.Sd_counter=0;
-	   DEV_Login.Enable_sd=1;
-	 }
+	if(DEV_Login.Max_sd_num==0)
+	{
+		 if(DEV_Login.Sd_counter>=20)   
+		 {
+	          DEV_Login.Sd_counter=0;
+		   DEV_Login.Enable_sd=1;
+		   DEV_Login.Max_sd_num++; 
+		 }
+	}
+	else
+	if(DEV_Login.Sd_counter>=44)      
+	{
+	          DEV_Login.Sd_counter=0;
+		   DEV_Login.Enable_sd=1;
+		   DEV_Login.Max_sd_num++; 
+	}
   }
 }
 
@@ -114,29 +129,6 @@ void  System_Reset(void)
 
 void   Reset_Saveconfig(void)
 {
-     #if  0
-               //---------  重启前存储单位小时 每分钟 平均度  --------
-            
-	        DF_WriteFlashSector(DF_FlowNum_Page,0,(u8*)&Flowing_ID,2);
-	        delay_ms(2);
-			Save_AvrgSpdPerMin(AvrgSpdPerMin_write);
-			AvrgSpdPerMin_write++;
-			if(AvrgSpdPerMin_write>=Max_SPDSperMin)
-			   AvrgSpdPerMin_write=0;					
-			DF_Write_RecordAdd(AvrgSpdPerMin_write,AvrgSpdPerMin_Read,TYPE_AvrgSpdAdd); 
-	  //-------存储单位分钟 每秒钟平均速度-------			
-			Save_SpdPerSecond(AvrgSpdPerSec_write);
-			AvrgSpdPerSec_write++;
-			if(AvrgSpdPerSec_write>=Max_SPDerSec)
-			   AvrgSpdPerSec_write=0;					
-			DF_Write_RecordAdd(AvrgSpdPerSec_write,AvrgSpdPerSec_Read,TYPE_AvrgSpdSecAdd);
-	   //   里程
-	   DF_WriteFlashSector(DF_Distance_Page,0,(u8*)&Distance_m_u32,4); 	   
-	   DF_Write_RecordAdd(Distance_m_u32,DayStartDistance_32,TYPE_DayDistancAdd); 
-	   //------------------------------------------------------	
-	   if(ISP_resetFlag==1)
-		  	ISP_resetFlag=2;
-   #endif
 
 }
 	
@@ -268,27 +260,16 @@ void  SensorPlus_caculateSpeed (void)
 	#if 1	 
 	  total_plus+=plus_reg; 
 
-            if(JT808Conf_struct.Speed_GetType)  // 通过速度传感器 获取速度
+
+           if(JT808Conf_struct.Speed_GetType)  // 通过速度传感器 获取速度
 	       	{ 
 	                 //  K_AdjustUseGPS(sp,sp_DISP);  //  调整K值  
 	                  GPS_speed=Speed_cacu;      
 	       	}  
-	     else
-	     	{
-		  if(Jia_GPS_spdFlag==0)
-		  	{
-		  	    if(UDP_dataPacket_flag==0x03)
-					 Speed_gps=0;
-		  	}		  	
-		 	 GPS_speed=Speed_gps; 
-	     	}  
 	  
-        if(Spd_senor_Null==0) 
-	  { 
-	         //   Speed_cacu=(Delta_1s_Plus*36000)/JT808Conf_struct.Vech_Character_Value;	// 计算的速度   
-	         if(Jia_GPS_spdFlag!=2)
-	               Speed_cacu=Delta_1s_Plus;	// 计算的速度     0.1km/h    400HZ==40KM/H    
-         }
+    if(Spd_senor_Null==0) 
+	     //   Speed_cacu=(Delta_1s_Plus*36000)/JT808Conf_struct.Vech_Character_Value;	// 计算的速度    
+	         Speed_cacu=Delta_1s_Plus;	// 计算的速度     0.1km/h    400HZ==40KM/H      
 	 else
 	 	{
 	 	  Speed_cacu=0;
@@ -297,17 +278,17 @@ void  SensorPlus_caculateSpeed (void)
 	 
 	 if(DispContent==4)  //  disp  显示   
 	 { 
-		 //   if(DF_K_adjustState)
-		 //	rt_kprintf("\r\n    自动校准完成!");
-		  // else
-		 	//rt_kprintf("\r\n    尚未自动校准校准!");
+	//   if(DF_K_adjustState)
+	 //	rt_kprintf("\r\n    自动校准完成!");
+	  // else
+	 	//rt_kprintf("\r\n    尚未自动校准校准!");
 	 
-		  // rt_kprintf("\r\n GPS速度=%d  , 传感器速度=%d  上报速度: %d \r\n",Speed_gps,Speed_cacu,GPS_speed);  
-		 //  rt_kprintf("\r\n GPS实际速度=%d km/h , 传感器实际速度=%d km/h 上报实际速度: %d km/h\r\n",Speed_gps/10,Speed_cacu/10,GPS_speed/10);   
-		   //rt_kprintf("\r\n TIM2->CNT=%d  \r\n",plus_reg);  
-	      rt_kprintf("\r\n Jia=%d,GPS=%d km/h , Sensor=%d km/h Actual=%d km/h J1 zhenGps=%d km/h  Plus=%d\r\n",Jia_GPS_spdFlag,Speed_gps/10,Speed_cacu/10,GPS_speed/10,Speed_gps_jiashi/10,Delta_1s_Plus/10);   
-	 }  
+	   rt_kprintf("\r\n GPS速度=%d  , 传感器速度=%d  上报速度: %d \r\n",Speed_gps,Speed_cacu,GPS_speed);  
+	   rt_kprintf("\r\n GPS实际速度=%d km/h , 传感器实际速度=%d km/h 上报实际速度: %d km/h\r\n",Speed_gps/10,Speed_cacu/10,GPS_speed/10);  
+	   rt_kprintf("\r\n TIM2->CNT=%d  \r\n",plus_reg); 
+	 } 
 #endif
+
 
 }
 
@@ -342,7 +323,6 @@ void  Emergence_Warn_Process(void)
 				 StatusReg_WARN_Enable(); // 修改报警状态位
 				 PositionSD_Enable();  
 				 Current_UDP_sd=1;   				 
-				 //TTS_play(" 紧急报警触发");  
 		 }
 	}
 
@@ -364,35 +344,61 @@ void  Emergence_Warn_Process(void)
 	   if(CameraState.camera_running==0)
 			CameraState.status=other;
   }   
-   
+
 }
 
+void  Recorder_sd_timer(void)
+{
+    // 行车记录仪数据发送
+    Recode_Obj.timer++;     
+    if((Recode_Obj.CountStep==2)&&(Recode_Obj.timer>=3))  
+       {    
+    	 Recode_Obj.CountStep=1; 
+ 		 Recode_Obj.timer=0;
+       } 
+}
 
 
 static void timeout_app(void *  parameter)
 {     //  100ms  =Dur 
     u8  SensorFlag=0,i=0;
 
+     //--------  CAN ID -------------------------
+   //  if(CAN_trans.can1_trans_dur>0) 
+    // {
+        //    CAN_trans.canid_ID_enableGet=1;	 
+     //} 	
+    App_mq_SendTimer(); 
+     //------------------------------------------	
       OneSec_CounterApp++;
      if(OneSec_CounterApp>=10)	 
 	{
-	    OneSec_CounterApp=0;
+           /*   if(CAN_trans.can1_trans_dur>0) 
+              {
+                 if((OneSec_CounterApp%5)==0)  
+                       CAN_trans.can1_enable_get=1;   
+              } 
+*/
+             OneSec_CounterApp=0; 
 	     //---------------------------------- 	
 	        if(DataLink_Status())
 		    {
 		          Device_RegisterTimer();
-		          Device_LoginTimer();	 
+		          Device_LoginTimer();	      // 鉴权只发送一次
 			   SendMode_ConterProcess(); 	  
 		    }	 
 		     SensorPlus_caculateSpeed();  	     
 		     IO_statusCheck(); 	 
 		     Emergence_Warn_Process();   
 		     Meida_Trans_Exception();	 
+		     Sensor_Keep_Process_Clear();	 
 		     local_time();	 
-		     RelinkTimer(); 
-		     	 
+	         SMS_Send_timer();		
+		     App_mq_NoAck_counter(); 	
+		     MangQu_Timer();	 
+			 Recorder_sd_timer(); 
 			   
-		            //车辆信号线状态指示  //刹车线//左转//右转//喇叭//远光灯//雨刷//车门//null
+		            //车辆信号线状态指示  //刹车线//左转//右转//远光//近光灯//雾灯//车门//null
 		     
 			SensorFlag=0x80;
 			for(i=1;i<8;i++)  
@@ -419,15 +425,15 @@ static void timeout_app(void *  parameter)
 		             Api_cycle_Update();	   
 			 }		
                   }	   
-		//  --- 超速报警  -----------
-		  SpeedWarnJudge();	// 速度报警判断    
-		  
 
 	        //====疲劳驾驶===========================
 		if(Car_Status[3]&0x01)	 // 疲劳驾驶是基于ACC开的情况下进行的 
-		        Tired_Check();     
+		       Tired_Check();     
 
-		  //-------------------------------------------------------		  
+		 //  --- 超速报警  -----------
+		  SpeedWarnJudge();	// 速度报警判断    
+		  //-------------------------------------------------------	
+		  
      	 }	
          //   Media 
            if(OneSec_CounterApp>>1)   //  除以2 为1	   
@@ -515,14 +521,20 @@ u8    Udisk_Find(void)
 	Power_485CH1_ON;  // 第一路485的电 		  开电工作
 }
 
-void  MainPower_Status_Check(void)
+void  Recorder_init(void)
 {
-    
-
-
+  Recode_Obj.Float_ID=0;     //  命令流水号
+  Recode_Obj.CMD=0;     //  数据采集 
+  Recode_Obj.SD_Data_Flag=0; //  发送返回数返回标志
+  Recode_Obj.CountStep=0;  //  发送数据需要一步一步发送 
+  Recode_Obj.timer=0;
+  //--------- add on  5-4 
+  Recode_Obj.Devide_Flag=0;//  需要分包上传标志位
+  Recode_Obj.Total_pkt_num=0;   // 分包总包数
+  Recode_Obj.Current_pkt_num=0; // 当前发送包数 从 1  开始
+  Recode_Obj.fcs=0;
 
 }
-
  ALIGN(RT_ALIGN_SIZE)
 char app808_thread_stack[4096];      
 struct rt_thread app808_thread;
@@ -532,14 +544,12 @@ static void App808_thread_entry(void* parameter)
     MSG_Q_TYPE  AppMsgQ_struct;  
     MSG_Q_TYPE  MsgQ_gsmCome;	 	
     u8   Dialstr[40];  	
-	u16  i=0,SevenE_counter=0,repeat_counter=0;
-	u16  Seven_place[10],j=0; //按照 10   连包处理
 //    u32  a=0;	
 
      //  finsh_init(&shell->parser);
 	  rt_kprintf("\r\n ---> app808 thread start !\r\n");  
   
-	  TIM2_Configuration();	  
+	  TIM2_Configuration();	   
        //  step 1:  Init Dataflash
          DF_init();
          ProductAttribute_init();  
@@ -550,8 +560,7 @@ static void App808_thread_entry(void* parameter)
           usbh_init();    
 	   APP_IOpinInit();
           Init_ADC(); 
-
-		  gps_io_init();
+		  
        //  	 tf_open();      // open device  
 	// pos=dfs_mount("spi_sd","/sd","elm",0,0);	
        //   if(pos)
@@ -559,73 +568,52 @@ static void App808_thread_entry(void* parameter)
 	//rt_kprintf("\r\n tf ok\r\n");  
 
 	   
-        /* watch dog init */
-	WatchDogInit();                     
-       GNSS_RawDataTrans_Init(0);
+        /* watch dog init */ 
+	WatchDogInit();                        
+    GNSS_RawDataTrans_Init(0);
+	CAN_struct_init();     
+	SMS_send_init(); 
+	Mangqu_Init();  
+	Recorder_init(); 
 
-	   Process_RMC("$GNRMC,063805.00,A,4006.034599,N,11611.639786,E,0.0,,120313,,,A*67\r\n"); 	 //第一包信息
-           GPS_getfirst=0;  	
+       AppQue.write_num=0;
+	AppQue.read_num=0;
+	AppQue.sd_enable_flag=0;  
+	AppQue.abnormal_counter=0;
+	AppQue.re_send_flag=0; 
+	AppQue.send_timer=0;
+	
 	while (1)
 	{
-  
+
+
                //  system reset  
          /*       if(rt_sem_take(&SysRst_sem,2)==RT_EOK)
               {
                        Close_DataLink();  
 			  //reset  	  	  
               }
-              */   
+              */     
 		//--------------------------------------------------	
-       #if 0
-               if (rt_sem_take(&app_rx_gsmdata_sem, 2) == RT_EOK) 
-               {
-                       memcpy( UDP_HEX_Rx,app_rx_gsm_infoStruct.info,app_rx_gsm_infoStruct.len);
+                if(Receive_DataFlag==1)
+		   {
+                        memcpy( UDP_HEX_Rx,app_rx_gsm_infoStruct.info,app_rx_gsm_infoStruct.len);
 			  UDP_hexRx_len=app_rx_gsm_infoStruct.len;	 
 			  if(app_rx_gsm_infoStruct.link_num)
-			  	   rt_kprintf("\r\n Linik 2 info \r\n");   
-                       TCP_RX_Process(app_rx_gsm_infoStruct.link_num);      
-                }	
-	#else
-           if(Receive_DataFlag==1)
-		   {
-               memcpy( UDP_HEX_Rx,app_rx_gsm_infoStruct.info,app_rx_gsm_infoStruct.len);
-			   UDP_hexRx_len=app_rx_gsm_infoStruct.len;	 
-			   OutPrint_HEX("Gsm 接收",UDP_HEX_Rx,UDP_hexRx_len);
-			  if(app_rx_gsm_infoStruct.link_num)
 			  	   rt_kprintf("\r\n Linik 2 info \r\n");    
-			  //  ----连包处理----
-			  j=0;
-			  SevenE_counter=0;
-			    for(i=0;i<UDP_hexRx_len;i++)
-			    	{
-			    	   if(UDP_HEX_Rx[i]==0x7e)
-					   	    SevenE_counter++; 
-					   if(SevenE_counter>>1)
-					   	 Seven_place[j++]=i;  //  把第奇数个 7e 的偏移量标记存储
-			    	}
-			  repeat_counter=(SevenE_counter>>1);
-			  if((repeat_counter)&&(repeat_counter<=10))  // 大于 0  且 小于 10
-			  {
-			       rt_kprintf("\r\n Process  Repeat : %d\r\n",repeat_counter);   
-                 for(i=0;i<repeat_counter;i++)
-                 	{ 
-                 	  // 拷贝剩下的内容到初始位置 
-                 	  memcpy(UDP_HEX_Rx,UDP_HEX_Rx+Seven_place[i],UDP_hexRx_len-Seven_place[i]);
-                      TCP_RX_Process(app_rx_gsm_infoStruct.link_num);    
-                 	}
-			  }
+                       TCP_RX_Process(app_rx_gsm_infoStruct.link_num);        
 			  Receive_DataFlag=0;	 	   
-            }	
-             
-	#endif 
+                }	
 			     
                 //    ISP  service  
-                ISP_Process();    				
 		  Api_CHK_ReadCycle_status();//   循环存储状态检测		
 		  //-------- 808   Send data   		
              	  if(DataLink_Status()&&(CallState==CallState_Idle)&&(VocREC.Sate!=VOICEREC_DataRXing))   
-		   {   
-		        Do_SendGPSReport_GPRS();   
+		   {   		
+		        //------- send
+		          // if(App_mq_Resend()==false)
+                            //      App_mq_Read_Process(); 
+		             Do_SendGPSReport_GPRS();   
 		   } 
                 else
 		   if(CallState==CallState_rdytoDialLis)
@@ -639,18 +627,11 @@ static void App808_thread_entry(void* parameter)
 				  rt_hw_gsm_output((const char *)Dialstr); 	 
 		  
 		  }   
-                   //-----------------  顺序存储 GPS  -------------------		    
-		if(GPS_getfirst)	 //------必须搜索到经纬度 
-		{
-			    if((Current_SD_Duration>10)&&(VocREC.running==0))// 间隔大于10s 存储顺序上报， 小于10 不存储上报 
-			    {                                                 //  拍照中暂不操作flash
-					   Save_GPS();       
-			    }
-		} 		 	   
 	     //============  状态检测 =======================
                 ACC_status_Check();
 	     //---------------------------------------------------------------------------------------------	  
-                rt_thread_delay(22);	  
+                rt_thread_delay(10);	
+		 		WatchDog_Feed();
 	}
 }
 
@@ -678,6 +659,7 @@ void Protocol_app_init(void)
 		App808_thread_entry, RT_NULL,
 		&app808_thread_stack[0], sizeof(app808_thread_stack),  
 		Prio_App808, 10); 
+	   
 
     if (result == RT_EOK)
     {

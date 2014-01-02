@@ -98,7 +98,7 @@ static void keypress(unsigned int key)
 
                             //车牌号
 				memset(JT808Conf_struct.Vechicle_Info.Vech_Num,0,sizeof(JT808Conf_struct.Vechicle_Info.Vech_Num));
-				memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,Menu_Car_license,strlen(Menu_Car_license));
+				memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,Menu_Car_license+1,strlen(Menu_Car_license)-1);
 				// 车辆类型
 				memset(JT808Conf_struct.Vechicle_Info.Vech_Type,0,sizeof(JT808Conf_struct.Vechicle_Info.Vech_Type));
 				memcpy(JT808Conf_struct.Vechicle_Info.Vech_Type,Menu_VechileType,strlen(Menu_VechileType));

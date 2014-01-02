@@ -18,13 +18,15 @@
 #include <dfs_posix.h>  
 #include <finsh.h>
 
-#define FileSize_mp3   5616 
+
 
 /*
                   拍照相关  
 */
  _MultiTake     MultiTake;	  //  多路拍照状态位 
  u8  SingleCamera_TakeRetry=0; // 单路摄像头拍照时，重拍次数计数
+ u8  SingleCamra_TakeResualt_BD=0;   // 单路拍照结果
+ u8  Camera_Take_not_trans=0;   //  拍照不上传
  Camera_state CameraState; 
  u8    TX_485const_Enable=0;   // 使能发送标志位  
  u8 	  last_package=0; // 拍照最后一包标识
@@ -34,12 +36,8 @@
 */
  VOICE_DEV Dev_Voice;  
 
-/*
-      写固有音频MP3
-*/
-WT_MP3  WriteMP3;  // 写固有音频
-u8    mp3_buf[512],mp3_read[512];
-int	 fd_mp3 = -1;
+
+
 
 
 
@@ -68,7 +66,7 @@ void End_Camera(void)
 }
 u8 Start_Camera(u8  CameraNum)
 {
-    if(1==ISP_running_Status())    // 远程更新过程中不许拍照
+    if(1==BD_ISP.ISP_running)    // 远程更新过程中不许拍照 
 		return false;
 		
         //----------------------------------------------------
@@ -210,8 +208,10 @@ void  Camra_Take_Exception(void)
                     SingleCamera_TakeRetry++;
 					if(SingleCamera_TakeRetry>=3)
 						{
-                             SingleCamera_TakeRetry=0;//clear
-							 rt_kprintf("\r\n     单路拍照超过最大次数!\r\n");  
+                                                   SingleCamera_TakeRetry=0;//clear
+							  rt_kprintf("\r\n     单路拍照超过最大次数!\r\n");  
+							  SingleCamra_TakeResualt_BD=1;  // 单路拍照失败
+							   SD_ACKflag.f_BD_CentreTakeAck_0805H=1;  //  发送中心拍照命令应答
 						}
 					else
 					   	{    // continue operate this  camera 
@@ -532,136 +532,8 @@ int str2ipport(char *buf, u8 *ip, u16 *port)
 }
 
 
-void  mp3write(void)
-{
-       	if( rt_device_find( "udisk" ) == RT_NULL ) /*没有找到*/
-		{
-		       rt_kprintf("\r\n 没有找到udisk\r\n");	  
-			rt_thread_delay( RT_TICK_PER_SECOND );
-		}else
-		{
-			rt_kprintf("\r\n 找到udisk，ch12.mp3 ok\r\n");
-			WriteMP3.write_flag=1;
-			WriteMP3.run_step=1;
-			WriteMP3.Page_count=0;
-			WriteMP3.File_size=FileSize_mp3;  //固定文件大小 
-		}   
-}
-FINSH_FUNCTION_EXPORT(mp3write,mp3write ); 
 //-------------------------------------------------------------------------
-void enalemp3(void)
-{
-       WriteMP3.Trans_mp3=1;
-     rt_kprintf("\r\nEnable 上传固有音频\r\n");	 
-}
-FINSH_FUNCTION_EXPORT(enalemp3,enalemp3 ); 
 
-void transmp3(void)
-{
-     WriteMP3.Trans_mp3=1;
-     MP3_send_start();
-     rt_kprintf("\r\n Start 上传固有音频\r\n"); 	 
-}
-FINSH_FUNCTION_EXPORT(transmp3,transmp3 ); 
-
-void Mp3_run(void)
-{
-    rt_err_t	res;
-    u16            read_size,lastpacket=0,i=0;	
-
-     switch(WriteMP3.run_step)
-     	{
-     	       case  1:    Api_DFdirectory_Delete(mp3);   //clear  mp3  DF  area 
-     	                        WriteMP3.run_step=2;
-     	                        break;
-               case 2:
-			   	   	fd_mp3= open( "/udisk/ch12.mp3", O_RDONLY, 0 );
-					if( fd_mp3 >= 0 )
-					{	 
-					      WriteMP3.run_step=3;
-                                          rt_kprintf("\r\n 读取ch12.mp3文件\r\n");
-					}
-					else
-					{
-						       WriteMP3.write_flag=0;
-							WriteMP3.run_step=0;
-							WriteMP3.File_size=0; 
-							 WriteMP3.Page_count=0;
-							rt_kprintf("\r\n ch12.mp3文件不存在");
-							return;
-					}
-			   	    break;
-		case  3:  //--------------------------------------------------
-                            rt_thread_delay(RT_TICK_PER_SECOND/2);
-				res=0;
-				if((WriteMP3.File_size-WriteMP3.File_left)>=512)
-					         read_size=512;
-				else	         
-					{      
-					           read_size=WriteMP3.File_size-WriteMP3.File_left;
-                                              lastpacket=1; 
-					}
-				
-			      res = read( fd_mp3, mp3_buf,read_size );
-				if(res<0)
-					{
-					             WriteMP3.write_flag=0;
-							WriteMP3.run_step=0;
-							WriteMP3.File_size=0; 
-							WriteMP3.Page_count=0;
-							rt_kprintf("\r\n ch12.mp3文件读取错误");
-							return;
-					}
-				else           /*判断是否为最后一包*/
-					{
-                                           WriteMP3.File_left+=read_size;
-                                           OutPrint_HEX("udisk数据",mp3_buf,read_size);
-										   
-                                           // -----------
-					        WatchDog_Feed();
-
-						 WriteMP3.Page_count++;				   
-						 DF_WriteFlashDirect(DF_MP3_offset+WriteMP3.Page_count,0,mp3_buf,read_size);
-						 DF_ReadFlash(DF_MP3_offset+WriteMP3.Page_count,0,mp3_read,read_size);
-						// OutPrint_HEX(" DF read数据",mp3_read,read_size);
-						 for(i=0;i<read_size;i++)
-				              {
-							if(mp3_buf[i]!=mp3_read[i])
-								{
-								      rt_kprintf("\r\n  error at page=%d,i=%d,write=%X,read=%X",WriteMP3.Page_count,i,mp3_buf[i],mp3_read[i]);
-								       WriteMP3.write_flag=0;
-									WriteMP3.run_step=0;
-									WriteMP3.File_size=0; 
-									WriteMP3.Page_count=0;
-									rt_kprintf("\r\n ch12.mp3文件读取错误");
-							return; 
-								}
-						}
-
-
-						 if(1==lastpacket)
-						  {	   
-						       DF_WriteFlashDirect(DF_MP3_offset,0,"mp3",3); //  写标志
-						       WriteMP3.write_flag=0;
-							WriteMP3.run_step=0;
-							WriteMP3.File_size=0; 
-							WriteMP3.Page_count=0;
-							rt_kprintf("\r\n ch12.mp3写入完毕!");
-						 }
-					}	 
-                            //--------------------------------------------------
-			          break;
-		   default: 
-		   	           WriteMP3.write_flag=0;
-				    WriteMP3.run_step=0;
-				    WriteMP3.File_size=0; 
-				    WriteMP3.Page_count=0;
-				    break;			
-
-
-     	}
-
-}
 
 
 

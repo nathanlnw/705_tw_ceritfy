@@ -129,11 +129,11 @@ else
 	lcd_bitmap(72,2,&BMP_link_off, LCD_MODE_SET);
 
 //车辆载重标志
-if(JT808Conf_struct.LOAD_STATE==1)
+if(JT808Conf_struct.LOAD_STATE==0)
 	lcd_bitmap(95,2,&BMP_empty, LCD_MODE_SET);
-else if(JT808Conf_struct.LOAD_STATE==2)
+else if(JT808Conf_struct.LOAD_STATE==1)
 	lcd_bitmap(95,2,&BMP_full_0, LCD_MODE_SET);
-else if(JT808Conf_struct.LOAD_STATE==3)
+else if(JT808Conf_struct.LOAD_STATE==2)
 	lcd_bitmap(95,2,&BMP_full_1, LCD_MODE_SET);
 
 //电源标志
@@ -232,7 +232,20 @@ u8 i=0;
 	lcd_text12(0,10,(char *)Dis_date,20,LCD_MODE_SET);
 	lcd_text12(0,20,(char *)Dis_speDer,18,LCD_MODE_SET);
 	lcd_bitmap(0,3,&BMP_gsm_g, LCD_MODE_SET);
-	lcd_bitmap(8,3,&BMP_gsm_3, LCD_MODE_SET);
+
+	// ---------- GSM 信号--------
+	if(ModuleSQ>26)     //31/4	
+	     lcd_bitmap(8,3,&BMP_gsm_3, LCD_MODE_SET);
+	else
+       if(ModuleSQ>18)	  
+	    lcd_bitmap(8,3,&BMP_gsm_2, LCD_MODE_SET);	
+	else   
+	 if(ModuleSQ>9)	  
+	    lcd_bitmap(8,3,&BMP_gsm_1, LCD_MODE_SET);	   
+	else 
+	     lcd_bitmap(8,3,&BMP_gsm_0, LCD_MODE_SET); 	   	
+	   	
+		
 	GPSGPRS_Status();
 	
 	lcd_update_all();
@@ -335,25 +348,16 @@ else if((reset_firstset>=7)&&(reset_firstset<=1207))//50ms一次,,60s
 	}
 else
 	{
-	//主电源掉电
-	if(Warn_Status[1]&0x01)  
-		{
-		BuzzerFlag=11;
-		lcd_fill(0);
-		lcd_text12(30,10,"主电源掉电",10,LCD_MODE_SET); 
-		lcd_update_all();
-		}
+	if(Antenna_open_flag)
+		return;
 	//循环显示待机界面
 	tickcount++;
 	if(tickcount>=10) 
 		{
-		tickcount=0;
+		tickcount=0;	
 	    Disp_Idle();
 		}
 	}
-    
-Cent_To_Disp();
-
 }
 
 ALIGN(RT_ALIGN_SIZE)

@@ -16,7 +16,7 @@
 #define      M66_GSM      0
 #define     M50_GSM       1
 
-#define      APN_initSTR_LEN     19
+      #define    APN_initSTR_LEN     19
 
 
 #define flash const    
@@ -26,7 +26,8 @@ typedef enum DialStage {Dial_DialInit0, Dial_DialInit1, Dial_DialInit2, Dial_Dia
 
 
 
-//#define MULTI_LINK
+
+#define MULTI_LINK
 
 
 
@@ -81,7 +82,7 @@ typedef  struct
 	u8     Pre_Dial_flag;              //  准备拨号使能
 	u8     Pre_dial_counter;        //  准备拨号计时器
 	u8     start_dial_stateFLAG;  //从开始拨号时写为1 
-	u8     start_dial_counter;           //处于拨号状态标志位
+	u16     start_dial_counter;           //处于拨号状态标志位
        u8     Dial_GPRS_Flag;           // 开始登录GPRS 
 	u8     Dial_step;                         //拨号步骤计数器 
 
@@ -183,10 +184,13 @@ extern u8       TCP2_ready_dial;
 extern u16     Ready_dial_counter2;
 extern u16     TCP2_notconnect_counter;
 extern u8       TCP2_Connect;
-extern u8	      TCP2_sdFlag;		//定时发送GPS位置信息标志
+extern u8	      TCP2_IC_sdFlag;		//定时发送GPS位置信息标志
 extern u16     TCP2_sdDuration;
 extern u8       TCP2_Coutner;  // 定时器计数
 extern u8       TCP2_login;       // TCP 建立好连接后的标志位   
+  //----- handle jianquan flag
+extern u8       Hand_Login; // 手动鉴权标志位
+extern u8     Enable_IClink;  //  手动使能连接IC 卡中心 
 
 extern u8   Get_voicedata_delay;       
 extern u8   GEt_voice_Counter;    
@@ -200,7 +204,7 @@ extern void GSM_CSQ_timeout(void);
 extern void GSM_CSQ_Query(void);
 extern void  DataLink_MainSocket_set(u8 *IP, u16  PORT, u8 DebugOUT);
 extern void  DataLink_AuxSocket_set(u8 *IP, u16  PORT,u8 DebugOUT) ;
-extern void  DataLink_IspSocket_set(u8 *IP, u16  PORT,u8 DebugOUT); 
+extern void  DataLink_IC_Socket_set(u8 *IP, u16  PORT,u8 DebugOUT); 
 extern void  DataLink_APN_Set(u8* apn_str,u8 DebugOUT);
 extern void  DataLink_DNSR_Set(u8* Dns_str,u8 DebugOUT); 
 extern void  DataLink_DNSR2_Set(u8* Dns_str,u8 DebugOUT);
@@ -233,6 +237,8 @@ extern void    VOC_REC_Stop(u8 *instr)  ;
 extern  void   VOC_REC_Start(u8 value);     // 录音开始 
 extern void    VOC_REC_process(void); 
 extern void    VOC_REC_timer(void);
+extern u8  HexValue (u8 inchar); 
+
 extern void    VOC_REC_Init(void);    
 
 #endif 

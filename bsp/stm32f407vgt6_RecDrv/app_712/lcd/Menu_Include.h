@@ -116,6 +116,7 @@ extern unsigned char OneKeyCallFlag;
 extern unsigned char data_tirexps[120];
 extern u8 CarSet_0_counter;//记录设置车辆信息的设置内容1:车牌号2:类型3:颜色
 
+extern u8 Antenna_open_flag;
 
 ALIGN(RT_ALIGN_SIZE)extern  MENUITEM    *pMenuItem;
 ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_0_0_password;
@@ -164,6 +165,11 @@ ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_5_other;
 
 ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_6_RemoteUpdata;
 ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_7_CentreTextDisplay;
+
+ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_8_bd808new;
+ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_8_1_updataResult;
+ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_8_2_BDbatchTrans;
+ALIGN(RT_ALIGN_SIZE)extern  MENUITEM	Menu_8_3_electronicDisp;
 
 extern unsigned char SetVIN_NUM;//   1:设置车牌号码  2:设置VIN
 extern unsigned char OK_Counter;//记录在快捷菜单下ok键按下的次数

@@ -32,31 +32,45 @@
 
 
 
-#define FARLIGHT_IO_Group        GPIOC             // 远光灯
-#define FARLIGHT_Group_NUM       GPIO_Pin_0 
+//---- 报警状态  ------------------
+   /*  
+     -------------------------------------------------------------
+              F4  行车记录仪 TW703   管脚定义
+     -------------------------------------------------------------
+     遵循  GB10956 (2012)  Page26  表A.12  规定
+    -------------------------------------------------------------
+    | Bit  |      Note       |  必备|   MCUpin  |   PCB pin  |   Colour | ADC
+    ------------------------------------------------------------
+        D7      刹车           *            PE11             9                棕
+        D6      左转灯     *             PE10            10               红
+        D5      右转灯     *             PC2              8                白
+        D4      远光灯     *             PC0              4                黑
+        D3      近光灯     *             PC1              5                黄
+        D2      雾灯          add          PC3              7                绿      *
+        D1      车门          add          PA1              6                灰      *
+        D0      预留
+   */
 
+#define BREAK_IO_Group                GPIOE                 //  刹车灯
+#define BREAK_Group_NUM             GPIO_Pin_11
 
-//#define WARNLIGHT_IO_Group        GPIOD             // 报警灯
-//#define WARNLIGHT_Group_NUM       GPIO_Pin_9
+#define LEFTLIGHT_IO_Group         GPIOE                // 左转灯
+#define LEFTLIGHT_Group_NUM       GPIO_Pin_10
 
-#define SPEAKER_IO_Group          GPIOA             // 喇叭
-#define SPEAKER_Group_NUM         GPIO_Pin_1
-
-#define LEFTLIGHT_IO_Group        GPIOC             // 左转灯
-#define LEFTLIGHT_Group_NUM       GPIO_Pin_3
-
-#define DOORLIGHT_IO_Group          GPIOC             // 车门灯   预留
-#define DOORLIGHT_Group_NUM       GPIO_Pin_1
-
-
-#define RIGHTLIGHT_IO_Group       GPIOC             // 右转灯
+#define RIGHTLIGHT_IO_Group       GPIOC               // 右转灯
 #define RIGHTLIGHT_Group_NUM      GPIO_Pin_2
 
-#define BREAK_IO_Group            GPIOE             //  刹车灯
-#define BREAK_Group_NUM           GPIO_Pin_11
+#define FARLIGHT_IO_Group           GPIOC              // 远光灯
+#define FARLIGHT_Group_NUM        GPIO_Pin_0 
 
-#define RAINBRUSH_IO_Group        GPIOE             //  雨刷
-#define RAINBRUSH_Group_NUM       GPIO_Pin_10
+#define NEARLIGHT_IO_Group          GPIOC             // 近光灯
+#define NEARLIGHT_Group_NUM       GPIO_Pin_1 
+
+#define FOGLIGHT_IO_Group            GPIOC             //  雾灯
+#define FOGLIGHT_Group_NUM         GPIO_Pin_3    
+
+#define DOORLIGHT_IO_Group          GPIOA             // 车门灯   预留
+#define DOORLIGHT_Group_NUM       GPIO_Pin_1
 
 
 //------  out pins ---
@@ -68,13 +82,14 @@
 
 
 
-#define  timer1_dur         14111        // 168*84=1412      -1  =14111
+#define  timer_tim1counter         100  // 14111        // 168*84=1412      -1  =14111
 
 
 //-----  WachDog related----
 extern u8    wdg_reset_flag;    //  Task Idle Hook 相关
 extern u16    ADC_ConvertedValue; //电池电压AD数值    
 extern  u16   ADC_ConValue[3];   //   3  个通道ID      
+extern  u32   TIM1_Timer_Counter; //  测试定时器计数器 
 
 
 

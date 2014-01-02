@@ -19,6 +19,7 @@
 TestStatus TestRx;
 u8  CAN_initOver=0; 
 
+
 CanRxMsg RxMessageData;
 /**********************/
 u8  CANBuffer[CANBufSize];
@@ -27,6 +28,13 @@ u32 CANBuffer_rd=0;
 //u32 iout=0;
 u32 iCANRX = 0;
 /**********************/
+
+//--------- Debug ----------
+u32  Can_RXnum=0;
+u32  Can_sdnum=0;  
+u32  Can_same=0;
+u32  Can_loudiao=0;     
+u32  Can_notsame=0; 
 
 void CANGPIO_Configuration(void)
 {
@@ -54,6 +62,8 @@ void CAN_App_Init(void)
 {
     CAN_InitTypeDef 	   CAN_InitStructure;
     CAN_FilterInitTypeDef  CAN_FilterInitStructure;
+     NVIC_InitTypeDef NVIC_InitStructure;
+	
 
 
     CANGPIO_Configuration();
@@ -151,8 +161,16 @@ void CAN_App_Init(void)
     CAN_FilterInit(&CAN_FilterInitStructure);  
 
 
+    //-----------------------------
+      /* Enable CAN1 RX0 interrupt IRQ channel */
+    NVIC_InitStructure.NVIC_IRQChannel = CAN1_RX0_IRQn; 
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
 
-    //CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);  
+ 
+   CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);  
 }
 TestStatus CAN_TX(void)
 {
@@ -216,6 +234,52 @@ TestStatus CAN_RX(void)
 	else
 		return FAILED;
 }
+
+u8  CAN1_Rx_Process(void)
+{
+    //u8 iRX=0;
+    // rt_kprintf("    Nathan BDEXT_ID=%08X",RxMessageData.ExtId);	
+       if(CAN_trans.canid_2_NotGetID==RxMessageData.ExtId)     
+			{  Can_same++;	return PASSED;}     
+	   
+              // if(((CAN_trans.canid_1_Filter_ID==RxMessageData.ExtId)&& ( CAN_trans.canid_ID_enableGet==1) )\
+			 //	||(CAN_trans.canid_1_Filter_ID!=RxMessageData.ExtId))   
+		  //----- if(CAN_trans.canid_1_Filter_ID==RxMessageData.ExtId) 
+		  //if((CAN_trans.canid_1_Filter_ID==RxMessageData.ExtId)&& (CAN_trans.canid_ID_enableGet==1)) 
+	  if(CAN_trans.canid_1_Filter_ID==RxMessageData.ExtId)
+	  {
+	          if (CAN_trans.canid_ID_enableGet==1)
+                 {
+	                  CAN_trans.canid_1_ID_RxBUF[CAN_trans.canid_1_RxWr>>3]=RxMessageData.ExtId; 
+			    memcpy( CAN_trans.canid_1_Rxbuf+ CAN_trans.canid_1_RxWr,RxMessageData.Data,8); 
+			    CAN_trans.canid_1_RxWr+=8;   
+			    Can_RXnum++; 	 		
+			        // rt_kprintf("CAN1-RxData "); 
+			   // if(CAN_trans.can1_enable_get==1)         // 500ms 
+				   //	CAN_trans.can1_enable_get=0;     
+			    //  if (CAN_trans.canid_ID_enableGet==1)	      // 100ms    
+		     	           CAN_trans.canid_ID_enableGet=0; 	
+                  } 
+		   else
+		   	 Can_loudiao++;  
+	  } 
+/*	 else
+	 {
+	       if(CAN_trans.can1_enable_get==1)         // 500ms 
+		{		
+		     CAN_trans.can1_enable_get=0;    
+		     CAN_trans.canid_1_ID_RxBUF[CAN_trans.canid_1_RxWr>>3]=RxMessageData.ExtId; 
+		     memcpy( CAN_trans.canid_1_Rxbuf+ CAN_trans.canid_1_RxWr,RxMessageData.Data,8); 
+		     CAN_trans.canid_1_RxWr+=8;   
+		     Can_RXnum++; 	
+		     Can_notsame++;	  
+	       }     
+
+	 }
+	 */
+			return true;				
+}	    
+
 u8 TransmitMailbox=0;;
 u8 CANTXData(u8 *Instr,u8 len)//len=0~8
 {
@@ -297,6 +361,7 @@ u8 CANTXStr(u8 *Instr,u32 len)
 }
 
 
+#if   0
 u8 CANRXStr(void)
 {
     u8 res=0,iRX=0;//,iRDeley=0;
@@ -308,17 +373,52 @@ u8 CANRXStr(void)
 	}
 	else
 	{
-	    	DataTrans.Data_Tx[DataTrans.Tx_Wr++]=(BD_EXT.CAN_1_ID>>24); //  BIT 7 can1  bit6 扩展
-		DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_1_ID>>16;
-		DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_1_ID>>8;
-		DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_1_ID;    
+	    	//DataTrans.Data_Tx[DataTrans.Tx_Wr++]=(BD_EXT.CAN_1_ID>>24); //  BIT 7 can1  bit6 扩展
+		//DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_1_ID>>16;
+		//DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_1_ID>>8;
+		//DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_1_ID;    
 
 
               //----  nathan  add for debug
               rt_kprintf("\r\n Nathan CAN RxMessage=%X,%X,%X,%X,%X,%X,%X,%X",RxMessageData.Data[0],RxMessageData.Data[1],RxMessageData.Data[2],RxMessageData.Data[3],RxMessageData.Data[4],RxMessageData.Data[5],RxMessageData.Data[6],RxMessageData.Data[7]);
-              rt_kprintf("\r\n Nathan BDEXT_ID=%08X\r\n",BD_EXT.CAN_1_ID);	    
+              rt_kprintf("\r\n Nathan STDid_ID=%08X ",RxMessageData.StdId);	 
+	      rt_kprintf("    Nathan BDEXT_ID=%08X",RxMessageData.ExtId);	
+	    	rt_kprintf("\r\n IDE=%08X  RTR=%08X   DLC=%d \r\n",RxMessageData.IDE,RxMessageData.RTR,RxMessageData.DLC);	   
 
+              //---------- 指定ID 不采集 -------------------------- 
+		if(CAN_trans.canid_2_NotGetID==RxMessageData.ExtId)     
+			  	return PASSED;   
+              //-------------------------------------------------------------------
+            //  if(CAN_trans.canid_1_Filter_ID!=RxMessageData.ExtId)
+	     //	 { 	   rt_kprintf("\r\n  ----    Extend ID not compare\r\n");iRX=1; return PASSED;}			  
+		if((CAN_trans.canid_1_ext_state==1)&&(RxMessageData.IDE!=0x00000004)) 
+			  {        rt_kprintf("\r\n  ----   帧格式不对，要求扩展帧\r\n");iRX=2;return PASSED;} 
 
+             //------    符合条件的数据存储bak
+          //  if((CAN_trans.canid_ID_enableGet==1) || (CAN_trans.can1_enable_get==1)) 
+	     // if (CAN_trans.can1_enable_get==1)	   	 
+              {
+                   CAN_trans.canid_1_ID_RxBUF[CAN_trans.canid_1_RxWr>>3]=RxMessageData.ExtId;
+		     memcpy( CAN_trans.canid_1_Rxbuf+ CAN_trans.canid_1_RxWr,RxMessageData.Data,8);
+		    CAN_trans.canid_1_RxWr+=8;                          
+
+	         /*     if(CAN_trans.can1_enable_get==1)		
+		       { 
+		               CAN_trans.can1_enable_get=0;	 			  
+		           //   rt_kprintf("\r\n  CAN sample------\r\n"); 
+			    //   rt_kprintf("\r\n Nathan CAN RxMessage=%X,%X,%X,%X,%X,%X,%X,%X",RxMessageData.Data[0],RxMessageData.Data[1],RxMessageData.Data[2],RxMessageData.Data[3],RxMessageData.Data[4],RxMessageData.Data[5],RxMessageData.Data[6],RxMessageData.Data[7]);
+		           //   rt_kprintf("\r\n Nathan STDid_ID=%08X ",RxMessageData.StdId);	 
+			    //   rt_kprintf("    Nathan BDEXT_ID=%08X",RxMessageData.ExtId);	
+			    //	rt_kprintf("\r\n IDE=%08X  RTR=%08X   DLC=%d \r\n",RxMessageData.IDE,RxMessageData.RTR,RxMessageData.DLC);	   
+	  
+	          	}	
+		     if (CAN_trans.canid_ID_enableGet==1)	   
+		     	 CAN_trans.canid_ID_enableGet=0; 
+		   */
+		   
+              }
+		 //------------------------------------------------------
+      #if 0
 	  //  for(iRX=0;iRX<RxMessageData.DLC;iRX++)
 	      for(iRX=0;iRX<8;iRX++)
 	     {		
@@ -328,16 +428,20 @@ u8 CANRXStr(void)
 		 if( BD_EXT.CAN_1_TransDuration==0) 
 		  	return PASSED;
                DataTrans.Data_TxLen=DataTrans.Tx_Wr;   
-		 DataTrans.TYPE=0x01; //  类型	  
+		 DataTrans.TYPE=0x40000001; //  类型	    //bit 31  0 :CAN1  1:CAN2   
+		                                                                          //bit 30  0: 标准2:扩展
 
              if(DispContent!=1)
              	{
 		   rt_kprintf("\r\n CAN RxMessage=%X,%X,%X,%X,%X,%X,%X,%X",RxMessageData.Data[0],RxMessageData.Data[1],RxMessageData.Data[2],RxMessageData.Data[3],RxMessageData.Data[4],RxMessageData.Data[5],RxMessageData.Data[6],RxMessageData.Data[7]);
                  rt_kprintf("\r\n BDEXT_ID=%08X\r\n",BD_EXT.CAN_1_ID);	    
              	}
+	#endif		 
 		return PASSED;   
 	}
 }
+#endif  
+
 
 
 

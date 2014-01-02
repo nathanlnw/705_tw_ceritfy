@@ -20,7 +20,10 @@
  u16 ADC_ConValue[3];   //   3  个通道ID    0 : 电池 1: 灰线   2:  绿线
 
 //-----  WachDog related----
-u8    wdg_reset_flag=0;    //  Task Idle Hook 相关
+u8     wdg_reset_flag=0;    //  Task Idle Hook 相关
+u32   TIM1_Timer_Counter=0; //  测试定时器计数器
+
+
 
 void WatchDog_Feed(void)
 {
@@ -135,25 +138,20 @@ void  APP_IOpinInit(void)   //初始化 和功能相关的IO 管脚
    gpio_init.GPIO_Pin	 = GPIO_Pin_0;				//------PIN 4    远光灯
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
    GPIO_Init(GPIOC, &gpio_init); 
-    //------------- ----------------
-   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 5   预留  车门灯
+    //------------- PC1----------------
+   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 5    近光灯
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
    GPIO_Init(GPIOC, &gpio_init); 
-
-   
-#ifndef BD_IO_Pin6_7_A1C3     // 用作模拟量了
-	    //------------- PA1 --------------
-	   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 6   喇叭
-	   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-	   GPIO_Init(GPIOA, &gpio_init);
-	    //------------- PC3 --------------
-	   gpio_init.GPIO_Pin	 = GPIO_Pin_3;				//------PIN 7   左转灯 
-	   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-	   GPIO_Init(GPIOC, &gpio_init);
-#endif   
-
+    //------------- PA1 --------------
+   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 6   车门
+   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
+   GPIO_Init(GPIOA, &gpio_init);
+    //------------- PC3 --------------
+   gpio_init.GPIO_Pin	 = GPIO_Pin_3;				//------PIN 7   雾灯 (AD1)
+   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
+   GPIO_Init(GPIOC, &gpio_init);
     //------------- PC2 --------------   
-   gpio_init.GPIO_Pin	 = GPIO_Pin_2;				//------PIN 8   右转灯   
+   gpio_init.GPIO_Pin	 = GPIO_Pin_2;				//------PIN 8   右转灯(AD2)    
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
    GPIO_Init(GPIOC, &gpio_init);  
          
@@ -162,9 +160,23 @@ void  APP_IOpinInit(void)   //初始化 和功能相关的IO 管脚
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
    GPIO_Init(GPIOE, &gpio_init);
     //------------- PE10 --------------
-   gpio_init.GPIO_Pin	 = GPIO_Pin_10;				//------PIN 10  雨刷
-   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
+   gpio_init.GPIO_Pin	 = GPIO_Pin_10;				//------PIN 10  左转灯
+   gpio_init.GPIO_Mode  = GPIO_Mode_IN;  
    GPIO_Init(GPIOE, &gpio_init);  
+
+
+   #ifndef BD_IO_Pin6_7_A1C3     // 用作模拟量了
+	    //------------- PA1 --------------
+	   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 6   喇叭
+	   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
+	   GPIO_Init(GPIOA, &gpio_init);
+	    //------------- PC3 --------------
+	   gpio_init.GPIO_Pin	 = GPIO_Pin_3;				//------PIN 7   左转灯 
+	   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
+	   GPIO_Init(GPIOC, &gpio_init);
+ #endif        
+
+
  
    //-----------------------------------------------------------------
    
@@ -214,55 +226,53 @@ u8  MainPower_cut(void)
    return false;
 }
 
-u8  FarLight_StatusGet(void)
-{
-  //  --------------J1pin2		PE6 		近光灯
-	   return (!GPIO_ReadInputDataBit(FARLIGHT_IO_Group,FARLIGHT_Group_NUM));	// PE6
-	//		 接高  触发
-}	
-u8 WarnLight_StatusGet(void)
-{
-       //  --------------J1pin3	   PD9			报警灯
-	   //return (!(GPIO_ReadInputDataBit(WARNLIGHT_IO_Group,WARNLIGHT_Group_NUM));	// PD9
-	   return false;
+//-------------------------------------------------------------------------------------------------
+u8  BreakLight_StatusGet(void)
+{ 
+	//	--------------J1pin8	PE11	         刹车灯------> 棕
+	   return(!GPIO_ReadInputDataBit(BREAK_IO_Group,BREAK_Group_NUM));	//PE11
 			//		 接高  触发
-}		
-u8 Speaker_StatusGet(void)
-{
-   //  --------------J1pin4 	 PC6		喇叭 ---车门开关拍照
-	   return (!GPIO_ReadInputDataBit(SPEAKER_IO_Group,SPEAKER_Group_NUM));	// PC2 
-			//		 接高  触发
-}			
+}
 u8  LeftLight_StatusGet(void)
 {
-  //  --------------J1pin5	   PC7		   左转灯
-	   return (!GPIO_ReadInputDataBit(LEFTLIGHT_IO_Group,LEFTLIGHT_Group_NUM));	//	PC7 
+  //  --------------J1pin10	   PE10		   左转灯------>红
+	   return (!GPIO_ReadInputDataBit(LEFTLIGHT_IO_Group,LEFTLIGHT_Group_NUM));	//	PE10
+			//		 接高  触发
+}	
+u8  RightLight_StatusGet(void)
+{
+//	--------------J1pin8   PC2			  右转灯------>白
+		 return(!GPIO_ReadInputDataBit(RIGHTLIGHT_IO_Group,RIGHTLIGHT_Group_NUM));  //PC2 
+		     //	   接高  触发 
+}			
+
+u8  FarLight_StatusGet(void)
+{
+  //  --------------J1pin4		PC0	           远光灯-----> 黑
+	   return (!GPIO_ReadInputDataBit(FARLIGHT_IO_Group,FARLIGHT_Group_NUM));	// PC0
+	//		 接高  触发
+}	
+u8  NEARLight_StatusGet(void)
+{
+  //  --------------J1pin5		PC1	          近光灯------>  黄
+	   return (!GPIO_ReadInputDataBit(NEARLIGHT_IO_Group,NEARLIGHT_Group_NUM));	// PC1
+	//		 接高  触发
+}
+
+u8 FOGLight_StatusGet(void)
+{
+// --------------J1pin7    PC3			    雾灯     ------>   绿
+		return(!GPIO_ReadInputDataBit(FOGLIGHT_IO_Group,FOGLIGHT_Group_NUM));  //PC3 
 			//		 接高  触发
 }	
 u8  DoorLight_StatusGet(void)
 {
- //  --------------J1pin6	   PC1		  车门灯
-	   return (!GPIO_ReadInputDataBit(DOORLIGHT_IO_Group,DOORLIGHT_Group_NUM));	// PC1
+ //  --------------J1pin6	   PA1		   车门灯    ------>灰
+	   return (!GPIO_ReadInputDataBit(DOORLIGHT_IO_Group,DOORLIGHT_Group_NUM));	// PA1
 			//		 接高  触发
 }		
-u8  RightLight_StatusGet(void)
-{
-//	--------------J1pin7   PC9			  右转灯
-		 return(!GPIO_ReadInputDataBit(RIGHTLIGHT_IO_Group,RIGHTLIGHT_Group_NUM));  //PC9 
-		     //	   接高  触发 
-}			
-u8  BreakLight_StatusGet(void)
-{
-	//	--------------J1pin8	PE11	刹车灯
-	   return(!GPIO_ReadInputDataBit(BREAK_IO_Group,BREAK_Group_NUM));	//PE11
-			//		 接高  触发
-}
-u8 RainBrush_StatusGet(void)
-{
-// --------------J1pin9    PD8			 雨刷 
-		return(!GPIO_ReadInputDataBit(RAINBRUSH_IO_Group,RAINBRUSH_Group_NUM));  //PD8 
-			//		 接高  触发
-}	
+
+
 /*    
      -----------------------------
     2.  控制输出
@@ -284,84 +294,109 @@ u8  Get_SensorStatus(void)
 {        // 查询传感器状态
    u8  Sensorstatus=0;
    
-   /*       
-   D7  刹车      PE6
-   D6  左转灯    PA1
-   D5  右转灯    PC3
-   D4  喇叭      PC2
-   D3  远光灯    PC5
-   D2  雨刷      PE3
-   D1  预留
-   D0  预留
+   /*  
+     -------------------------------------------------------------
+              F4  行车记录仪 TW703   管脚定义
+     -------------------------------------------------------------
+     遵循  GB10956 (2012)  Page26  表A.12  规定
+    -------------------------------------------------------------
+    | Bit  |      Note       |  必备|   MCUpin  |   PCB pin  |   Colour | ADC
+    ------------------------------------------------------------
+        D7      刹车           *            PE11             9                棕
+        D6      左转灯     *             PE10            10               红
+        D5      右转灯     *             PC2              8                白
+        D4      远光灯     *             PC0              4                黑
+        D3      近光灯     *             PC1              5                黄
+        D2      雾灯          add          PC3              7                绿      *
+        D1      车门          add          PA1              6                灰      *
+        D0      预留
    */
 
-   //  --------------J1pin8 		   刹车灯
-		  if(BreakLight_StatusGet())  //PA8
+
+   //  1.   D7      刹车           *            PE11             J1 pin9                棕
+		  if(BreakLight_StatusGet())  //PE11  
 		   {   //		接高  触发
 			   Sensorstatus|=0x80;
-			    BD_EXT.FJ_IO_1 |=0x80;  //  bit7 
+			  BD_EXT.FJ_IO_1 |=0x80;  //  bit7 
+			  BD_EXT.Extent_IO_status |= 0x10;  // bit4 ---->刹车
+			   // rt_kprintf("\r\n 我是1"); 
 		   }
 		  else
 		   {  //   常态
 			   Sensorstatus&=~0x80;		
 			    BD_EXT.FJ_IO_1 &=~0x80;  //  bit7 
+			    BD_EXT.Extent_IO_status &= ~0x10; //bit4 ---->刹车
 		   } 
-	//	-------------- J1pin5			 左转灯
-		 if(LeftLight_StatusGet())	//	PC7 
+	// 2.  D6      左转灯     *             PE10            J1 pin10              红
+		 if(LeftLight_StatusGet())	//	PE10 
 		  {   //	   接高  触发
 			  Sensorstatus|=0x40;
 			   BD_EXT.FJ_IO_1 |=0x40;  //  bit6
+			   BD_EXT.Extent_IO_status |= 0x08;//bit3---->  左转灯
 		  }
 		 else
 		  {  //   常态
 			 Sensorstatus&=~0x40; 	
 			 BD_EXT.FJ_IO_1 &=~0x40;  //  bit6 
+			 BD_EXT.Extent_IO_status &= ~0x08; //bit3---->  左转灯
 		  }
-   //  -------------- J1pin7				右转灯
+   //  3.  D5      右转灯     *             PC2             J1  pin8                白
 	     if(RightLight_StatusGet())	//PC2 
-	     {	//		 接高  触发
+	     { //		 接高  触发
 				Sensorstatus|=0x20;
 				 BD_EXT.FJ_IO_1 |=0x20; //bit5
+				 BD_EXT.Extent_IO_status |= 0x04;// bit2----> 右转灯
 		}
             else
 		{  //	常态
 			   Sensorstatus&=~0x20;		
 		   BD_EXT.FJ_IO_1 &=~0x20; //bit5
+		   BD_EXT.Extent_IO_status &= ~0x04;//bit2----> 右转灯
 		} 
    
-   //  --------------J1pin4 			喇叭
-	   if(Speaker_StatusGet())	// PC6 
+   // 4.  D4      远光灯     *             PC0              J1 pin4                黑
+	   if(FarLight_StatusGet())	// PC0 
 		{	//		 接高  触发
 			Sensorstatus|=0x10;
-			
+			BD_EXT.Extent_IO_status |= 0x02; //bit 1  ----->  远光灯
+
 		}
 	   else
 		{  //	常态
 		   Sensorstatus&=~0x10;		
+		   BD_EXT.Extent_IO_status&= ~0x02;//bit 1  ----->  远光灯
+
 		}  
-    //  --------------J1pin2               远光灯
-   		 if(FarLight_StatusGet())  // PE6
+    //5.   D3      近光灯     *             PC1              J1 pin5                黄
+   		 if(NEARLight_StatusGet())  // PC1
 		  {   //       接高  触发
 		      Sensorstatus|=0x08;
 		       BD_EXT.FJ_IO_1 |=0x10; //bit4	  
+		       BD_EXT.Extent_IO_status |= 0x01; //bit 0  ----->  近光灯
+				 //rt_kprintf("\r\n 我是5"); 
 		  }
 		 else
 		  {  //	  常态
 			 Sensorstatus&=~0x08;		
-			  BD_EXT.FJ_IO_1 &=~0x10; //bit4	  
+			  BD_EXT.FJ_IO_1 &=~0x10; //bit4
+			   BD_EXT.Extent_IO_status &=~0x01; //bit 0  ----->  近光灯 
+			  
 		  } 
-  // --------------J1pin9             雨刷      --->改近光
-          if(RainBrush_StatusGet())  //PD8  
+  //  6.    D2      雾灯          add          PC3              7                绿      *
+          if(FOGLight_StatusGet())  //PC3  
 		  {   //	   接高  触发
 			  Sensorstatus|=0x04;
-			  BD_EXT.FJ_IO_1 |=0x08; //bit3	    
+			  BD_EXT.FJ_IO_1 |=0x08; //bit3	
+			  BD_EXT.Extent_IO_status |= 0x40;//  bit6 ----> 雾灯
+			 //  rt_kprintf("\r\n 我是6"); 
 		  }
 		 else
 		  {  //   常态
 			  Sensorstatus&=~0x04;
-			  BD_EXT.FJ_IO_1 &=~0x08; //bit3	  
+			  BD_EXT.FJ_IO_1 &=~0x08; //bit3
+			  BD_EXT.Extent_IO_status &= ~0x40;//  bit6 ----> 雾灯
 		  } 
-  //  --------------J1pin6			 车门灯
+  // 7.    D1      车门          add          PA1              6                灰      *
 	    if(DoorLight_StatusGet())  // PE3     
 		{	//		 接高  触发
 			Sensorstatus|=0x02;
@@ -369,21 +404,12 @@ u8  Get_SensorStatus(void)
 		}
 	   else
 		{  //	常态
-		   Sensorstatus&=~0x02;		
-		   BD_EXT.FJ_IO_2 |=0x01; //bit2	
+		       Sensorstatus&=~0x02;		
+		       BD_EXT.FJ_IO_2 |=0x01; //bit2 
 		}	
-			   
-   /*				     
-   //  --------------J1pin3 			  报警灯
-		 if(WarnLight_StatusGet())	// PD9
-		  {   //	   接高  触发
-			  Sensorstatus|=0x0002;    
-		  }
-		 else
-		  {   //   常态
-			 Sensorstatus&=~0x0002; 				
-		  }       
-  */   
+ 			   
+ //    8.  Reserved
+
 
    return Sensorstatus;
 }
@@ -425,6 +451,39 @@ void  ACC_status_Check(void)
     2.  应用相关
      ----------------------------- 
 */
+/*定时器配置*/
+void TIM3_Config( void )  
+{
+	NVIC_InitTypeDef		NVIC_InitStructure;
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+
+	/* TIM3 clock enable */
+	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM3, ENABLE );
+
+	/* Enable the TIM3 gloabal Interrupt */
+	NVIC_InitStructure.NVIC_IRQChannel						= TIM3_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority	= 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority			= 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd					= ENABLE;
+	NVIC_Init( &NVIC_InitStructure );
+
+/* Time base configuration */
+	TIM_TimeBaseStructure.TIM_Period		= 1000;             /* 1ms */
+	TIM_TimeBaseStructure.TIM_Prescaler		= ( 168 / 2 - 1 );  /* 1M*/
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode	= TIM_CounterMode_Up;
+	TIM_ARRPreloadConfig( TIM3, ENABLE );
+
+	TIM_TimeBaseInit( TIM3, &TIM_TimeBaseStructure );
+
+	TIM_ClearFlag( TIM3, TIM_FLAG_Update );
+/* TIM Interrupts enable */
+	TIM_ITConfig( TIM3, TIM_IT_Update, ENABLE );
+
+/* TIM3 enable counter */
+	TIM_Cmd( TIM3, ENABLE );
+}
+
  void TIM2_Configuration(void) //只用一个外部脉冲端口
  {
     TIM_TimeBaseInitTypeDef   TIM_TimeBaseStructure; 	
@@ -436,7 +495,7 @@ void  ACC_status_Check(void)
     TIM_DeInit(TIM2);
 
     TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler=0x0000;   //预分频71，即72分频，得1M   
+	TIM_TimeBaseStructure.TIM_Prescaler=0x0000;  
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0x0;  
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  
 
@@ -446,8 +505,12 @@ void  ACC_status_Check(void)
 	TIM_SetCounter(TIM2, 0); 
 	TIM_Cmd(TIM2, ENABLE);      
 
-  
+       //----------------------------------------------
+        TIM3_Config();
+	//----------------------------------------------   
 }
+
+
 
 void Init_ADC(void)
 {
@@ -599,6 +662,7 @@ void  sys_status(void)
                       rt_kprintf("      GPRS 状态:   Offline\r\n");  	   
 
    rt_kprintf("\r\nADV1=%d , 灰线ADV2=%d, 绿线ADV3=%d \r\n",ADC_ConValue[0],ADC_ConValue[1],ADC_ConValue[2]);
+   rt_kprintf("\r\nAD1  Voltage=%d.%d V, AD2  Voltage=%d.%d V   \r\n",AD_2through[0]/10,AD_2through[0]%10,AD_2through[1]/10,AD_2through[1]%10);
    
 }
 FINSH_FUNCTION_EXPORT(sys_status, Status);
@@ -643,6 +707,7 @@ void Socket_main_Set(u8* str)
 
         DataLink_MainSocket_set(RemoteIP_main,RemotePort_main,1);
 		 DataLink_EndFlag=1; //AT_End();  
+		   rt_kprintf("\r\n Datalink end =>socket main\r\n"); 
 			return ;
 	}
 
@@ -672,6 +737,7 @@ void Socket_aux_Set(u8* str)
 	 Api_Config_write(config,ID_CONF_SYS,(u8*)&SysConf_struct,sizeof(SysConf_struct));
         DataLink_AuxSocket_set(RemoteIP_aux,RemotePort_aux,1);  
  		 DataLink_EndFlag=1; //AT_End();   
+ 		    rt_kprintf("\r\n Datalink end =>aux socket\r\n"); 
  			return ;
 	}
 
@@ -779,7 +845,7 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 			DF_delay_ms(10); 		 
 			return true;	
      		   }
-         return;
+         return false;
 			
        }
  
@@ -1086,15 +1152,6 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 			  WatchDog_Feed(); 	 
 			  return true;			   
                }  
-                 if(strcmp((const char*)name,mp3)==0)
-		{
-		        WatchDog_Feed(); 
-                       SST25V_BlockErase_64KByte((DF_MP3_offset<<9));   
-		         DF_delay_ms(500);   
-			  WatchDog_Feed(); 	 
-			  return true;			   
-               } 
-		   
 		  return false; 
  	}
 	  
@@ -1105,8 +1162,8 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 //-------  固定位置 序号记录  -----------
   u8   Api_RecordNum_Write( u8 *name,u8 Rec_Num,u8 *buffer, u16 len)    //  Rec_Num<128  Len<128
 {
-          WatchDog_Feed();
-           if(strcmp((const char*)name,event_808)==0)
+           WatchDog_Feed();
+           if(strcmp((const char*)name,event_808)==0)  
            	{
                    DF_WriteFlash(DF_Event_Page+Rec_Num, 0,buffer, len);   
 		     return true;		   

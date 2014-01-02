@@ -230,6 +230,79 @@ void UART4_IRQHandler(void)
 #endif
 }
 
+
+void CAN1_RX0_IRQHandler(void)
+{
+		 
+   if(SET == CAN_GetITStatus(CAN1,CAN_IT_FF0))
+   {
+        CAN_ClearITPendingBit(CAN1,CAN_IT_FF0);
+   }
+   else if(SET == CAN_GetITStatus(CAN1,CAN_IT_FOV0))
+   {
+        CAN_ClearITPendingBit(CAN1,CAN_IT_FOV0);
+   }
+   else
+   {
+        CAN_Receive(CAN1, CAN_FIFO0, &RxMessageData); 
+        CAN1_Rx_Process(); 
+   }     
+
+}
+ 
+ //void TIM1_CC_IRQHandler(void)
+ void TIM1_TRG_COM_TIM11_IRQHandler(void)
+ {
+	 u16 capture;
+     
+	 if(TIM_GetITStatus(TIM1, TIM_IT_CC1) == SET)
+	 {
+			 TIM_ClearITPendingBit(TIM1, TIM_IT_CC1 );
+			 capture = TIM_GetCapture1(TIM1);
+			 TIM_SetCompare1(TIM1, capture + timer_tim1counter); 
+
+                       //---------------------Timer  Counter --------------------------
+                       // TIM1_Timer_Counter++;
+			  //------------------------------------------------------------
+	 }
+
+ }
+
+void TIM3_IRQHandler(void)
+{
+
+  
+
+   if ( TIM_GetITStatus(TIM3 , TIM_IT_Update) != RESET )
+  {
+                    TIM_ClearITPendingBit(TIM3 , TIM_FLAG_Update); 
+
+	        //---------------------Timer  Counter -------------------------- 
+	       CAN_Send_judge();    	//  1 ms	    
+            TIM1_Timer_Counter++;
+
+            if(TIM1_Timer_Counter==100)  //  100ms
+            	{
+                       	      //--------  CAN ID -------------------------
+	              if(CAN_trans.can1_trans_dur>0) 
+			     {
+			            CAN_trans.canid_ID_enableGet=1;	 
+			     } 
+		       TIM1_Timer_Counter=0; 		  
+            	}
+			
+ //------------------------------------------------------------
+
+	 			
+
+
+   }
+}
+
+
+
+
+ 
 /**
   * @}
   */

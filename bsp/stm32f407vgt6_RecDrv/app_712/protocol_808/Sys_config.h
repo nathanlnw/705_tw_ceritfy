@@ -112,11 +112,6 @@
 // 5. 录音 
 #define    voice                                                "voice"
 #define    voice_size                                         8
-
-//   6.  mp3 固有音频
-#define    mp3                                                  "mp3"
-#define    mp3_size                                            8
-
 /*   
          Directory  Name    &    Size (SectorNum)                 ---End
 */
@@ -130,8 +125,8 @@
 
 //------------------------------------------------------------------------------
 #define   SOFTWARE_VER     0x0001
-//#define   SYSID            0x0668    
-  /*        
+//#define   SYSID            0x037a     
+                                                      /*        
                                                         0x0000   -----   0x00FF  生产和研发用
                                                         0x0100   -----   0x0FFF  产品出货用
                                                         0x1000   -----   0xF000  远程升级用
@@ -314,7 +309,7 @@ extern void  RailPolygen_Init(void);
 extern void  RailPolygen_Read(void);
 extern void  RouteLine_Init(void);
 extern void  RouteLine_Read(void);  
-extern void  ProductAttribute_init(void);
+extern void ProductAttribute_init(void);
 
 
 

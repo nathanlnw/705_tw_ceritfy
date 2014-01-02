@@ -252,7 +252,7 @@ void thread_usbout_udisk( void* parameter )
 					Api_DFdirectory_Read(doubt_data,write_da+65,206,0,1);
 					len=271;//65+206
 					size = write( fd,write_da,len);
-					rt_kprintf("\r\n 导出疑点数据记录sizeof= %d ",size);
+					rt_kprintf("\r\n 导出疑点数据记录sizeof= %d ",size); 
 					data_fetch_comp=1;
 					msg("I数据导出完成");
 			    	}

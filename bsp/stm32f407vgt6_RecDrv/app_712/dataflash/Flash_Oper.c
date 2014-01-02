@@ -35,9 +35,7 @@ u8 SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen)
     u32  pageoffset=0;   //Page 偏移
     u32  InPageoffset;   //页内Record偏移
     u16  InPageAddr=0;   //页内 地址偏移 
-//	u8   reg[1]={0};
-	u8   rd_back[40];
-	u16  i=0,retry=0;
+	u8   reg[1]={0};
 
   //----------------------------------------------------------------------------------------------
   //   1. Judge  Whether  needs to Erase page 
@@ -47,44 +45,43 @@ u8 SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen)
      InPageAddr=(u16)(InPageoffset<<5);           // 计算出页内 字节   乘以 32 (每个记录32个字节)
      if(((pageoffset%8)==0)&&(InPageoffset==0))  // 判断是否需要擦除Sector  被移除到下一个Sector  1Sector=8Page  
      {
-        WatchDog_Feed();
+              WatchDog_Feed();
 		SST25V_SectorErase_4KByte((pageoffset+CycleStart_offset)*PageSIZE);      // erase Sector		
 		DF_delay_ms(20); 
 	    rt_kprintf("\r\n Erase Cycle Sector : %d\r\n",(pageoffset>>3));       
 	 }
-  //	   2. write  and read back    
-  SV_RTRY:
-      if(retry>=2)
-	  	  return false;
-	   delay_ms(5);
-	   WatchDog_Feed(); 
-	   DF_WriteFlashDirect(pageoffset+CycleStart_offset,InPageAddr,content,saveLen);  //   写入信息
-	   DF_delay_us(30);   
-       DF_ReadFlash(pageoffset+CycleStart_offset,InPageAddr,rd_back,saveLen);  //   读取信息
-  //  compare 
-       for(i=0;i<saveLen;i++)
-       	{
-             if(content[i]!=rd_back[i])
-			 {
-			     cycle_write++;		  
-		         if(cycle_write>=Max_CycleNum)
-			       cycle_write=0; 
-				 if(retry==0)
-				 {
-				     retry++;
-			         goto SV_RTRY;
-				 }
-				 else
-				 {
-				   //---------------------------
-				  PositionSD_Enable(); 
-				  Current_State=1; // 使能即时上报 		
-				  Current_UDP_sd=1;
-				  rt_kprintf("\r\n wrte error current\r\n");
-				    return false;
-				 }
-             }
-       	}
+  //	   2. Filter write  area    
+       DF_ReadFlash(pageoffset+CycleStart_offset,InPageAddr,reg,1); 
+	   if(reg[0]!=0xff)  // 如果要写入的区域 dirty  ，则地址增然后从新开始寻找直到找到为止
+	   	{
+              //  cyclewr++;
+		  cycle_write++;		  
+		  if(cycle_write>=Max_CycleNum)
+			   cycle_write=0;  
+		  rt_kprintf("\r\n    *******   写区域 Write area : %d   is   Dirity! --EraseAgain \r\n",cycle_write);   
+                //  Exception process
+		    cycle_writeAbnormal_counter++;
+		    if(cycle_writeAbnormal_counter>3)
+		    	{
+                            WatchDog_Feed();
+				SST25V_SectorErase_4KByte((pageoffset+CycleStart_offset)*PageSIZE);      // erase current Sector		
+				DF_delay_ms(20); 
+			       rt_kprintf("\r\n write error exceed 3 ,Erase current Cycle Sector : %d\r\n",(pageoffset>>3));    
+				//----------------------------   
+                           cycle_writeAbnormal_counter=0;  
+		    	}				
+		  //---------------------------
+		  PositionSD_Enable(); 
+		  Current_State=1; // 使能即时上报 		 		 
+		  return false;		  		 
+	   	}       
+  //   3. Write Record Content  
+       WatchDog_Feed(); 
+        Current_State=0;   //clear state  
+        cycle_writeAbnormal_counter=0;  // normal sate  clear
+        DF_WriteFlashDirect(pageoffset+CycleStart_offset,InPageAddr,content,saveLen);  //   写入信息
+        DF_delay_ms(2);  
+	// rt_kprintf("\r\n SaveGPS Starpageoffset=%d  PageOffset= %d ,  InPageAddr= %d \r\n",CycleStart_offset,pageoffset,InPageoffset); 
 		return true;  
   //-------------------------------------------------------------------------------------------- 
 }  
@@ -114,14 +111,13 @@ u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
      DF_delay_us(20);
     // DF_delay_ms(10); 
 	// rt_kprintf("\r\n  ReadGPS Starpageoffset=%d  PageOffset= %d ,  InPageAddr= %d  \r\n",CycleStart_offset,pageoffset,InPageoffset);  
-/*  if(DispContent)
+  if(DispContent)
   {
      rt_kprintf("\r\n  读取CycleGPS 内容为 :\r\n ");   
 	  for(i=0;i<ReadLen;i++)
 	  	rt_kprintf("%2X ",content[i]);  
 	 rt_kprintf("\r\n"); 
-  }	
-  */
+  }	 
   //  3. Judge FCS	
 	//--------------- 过滤已经发送过的信息 -------
 	  FCS = 0;
@@ -181,7 +177,7 @@ u8 Save_DrvRecoder(u32 In_write,u8 *content ,u16 saveLen)
      if(((pageoffset%8)==0)&&(InPageoffset==0))  // 判断是否需要擦除Block  被移除到下一个Sector  1Sector=8 Page  
      {
         SST25V_SectorErase_4KByte((pageoffset+VehicleRecStart_offset)*PageSIZE);      // erase Sector	
-        DF_delay_ms(70);
+        DF_delay_ms(10);
 		// rt_kprintf("\r\n Erase Cycle Block : %d\r\n",(pageoffset>>6));   
 	 }
   //	   2. Filter write  area    

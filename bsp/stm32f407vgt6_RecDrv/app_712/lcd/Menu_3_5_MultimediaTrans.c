@@ -64,7 +64,6 @@ KeyValue=0;
 
 static void timetick(unsigned int systick)
 {
-
 	CounterBack++;
 	if(CounterBack!=MaxBankIdleTime)
 		return;

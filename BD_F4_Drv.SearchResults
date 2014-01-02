@@ -1,21 +1,9 @@
----- GPIO_Pin_4 Matches (20 in 8 files) ----
-Device_485.c (bsp\stm32f407vgt6_recdrv\app_712\u4_485):	 GPIO_InitStructure.GPIO_Pin  =GPIO_Pin_4;				 //--------- 485const	收发控制线 
-Device_485.h (bsp\stm32f407vgt6_recdrv\app_712\u4_485):#define  RX_485const         GPIO_ResetBits(GPIOC,GPIO_Pin_4)
-Device_485.h (bsp\stm32f407vgt6_recdrv\app_712\u4_485):#define  TX_485const         GPIO_SetBits(GPIOC,GPIO_Pin_4)  
-Device_printer.c (bsp\stm32f407vgt6_recdrv\app_712\printer):#define  STB4_6_PIN		GPIO_Pin_4
-Device_printer.c (bsp\stm32f407vgt6_recdrv\app_712\printer):#define PRINTER_POWER_PIN_3V3	GPIO_Pin_4
-Device_printer.c (bsp\stm32f407vgt6_recdrv\app_712\printer):	GPIO_PinAFConfig( GPIOB, GPIO_Pin_4, 1 );
-Gps.c (bsp\stm32f407vgt6_recdrv\app_712\gps):			if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4))//开路检测	1:天线开路
-Gps.c (bsp\stm32f407vgt6_recdrv\app_712\gps):  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;    //GPS 天线开路 
-Mma8451.c (bsp\stm32f407vgt6_recdrv\app_712\shakesensor):#define SDA_H		( GPIOB->BSRRL = GPIO_Pin_4 )
-Mma8451.c (bsp\stm32f407vgt6_recdrv\app_712\shakesensor):#define SDA_L		( GPIOB->BSRRH = GPIO_Pin_4 )
-Mma8451.c (bsp\stm32f407vgt6_recdrv\app_712\shakesensor):#define SDA_read	( GPIOB->IDR & GPIO_Pin_4 )
-Mma8451.c (bsp\stm32f407vgt6_recdrv\app_712\shakesensor):	GPIO_PinAFConfig( GPIOB, GPIO_Pin_4, 1 );
-Mma8451.c (bsp\stm32f407vgt6_recdrv\app_712\shakesensor):	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;   /*SDA*/
-Spi_sd.c (bsp\stm32f407vgt6_recdrv\drivers\spi_tf):	GPIO_InitStructure.GPIO_Pin		= GPIO_Pin_4;
-Spi_sd.c (bsp\stm32f407vgt6_recdrv\drivers\spi_tf):#define CS_PIN		GPIO_Pin_4
-Spi_sd.c (bsp\stm32f407vgt6_recdrv\drivers\spi_tf):	GPIO_InitStructure.GPIO_Pin		= GPIO_Pin_4;
-Spi_sd.h (bsp\stm32f407vgt6_recdrv\drivers\spi_tf):#define _card_enable()      			GPIOA->BSRRH = GPIO_Pin_4
-Spi_sd.h (bsp\stm32f407vgt6_recdrv\drivers\spi_tf):#define _card_disable()     			GPIOA->BSRRL = GPIO_Pin_4
-Stm32f4xx_gpio.h (bsp\stm32f407vgt6_recdrv\libraries\stm32f4xx_stdperiph_driver\inc):#define GPIO_Pin_4                 ((uint16_t)0x0010)  /* Pin 4 selected */
-Stm32f4xx_gpio.h (bsp\stm32f407vgt6_recdrv\libraries\stm32f4xx_stdperiph_driver\inc):                              ((PIN) == GPIO_Pin_4) || \
+---- DF_ClearUpdate_Area Matches (9 in 3 files) ----
+DF_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):void DF_ClearUpdate_Area(void)   // 清除远程升级区域 
+DF_Oper.h (bsp\stm32f407vgt6_recdrv\app_712\dataflash):extern void DF_ClearUpdate_Area(void);    // 清除远程升级升级区域 
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<P><STRONG><a name="[27e]"></a>DF_ClearUpdate_Area</STRONG> (Thumb, 32 bytes, Stack size 8 bytes, df_oper.o(i.DF_ClearUpdate_Area))
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 164<LI>Call Chain = DF_ClearUpdate_Area &rArr; DF_EraseAppFile_Area &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR>[Called By]<UL><LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area

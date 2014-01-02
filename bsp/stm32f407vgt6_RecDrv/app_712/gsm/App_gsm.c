@@ -16,7 +16,6 @@
 #include "App_gsm.h"
 
 
-
 /* gsm thread */
 
 ALIGN(RT_ALIGN_SIZE)
@@ -35,7 +34,6 @@ struct rt_semaphore gsmRx_sem;
 
 
 //-----  GSM  消息邮箱------
- static MSG_Q_TYPE msgq_gsm;
  u8  GSM_HEX[1024];  
 u16  GSM_HEX_len=0; 
 
@@ -51,6 +49,10 @@ ALIGN(RT_ALIGN_SIZE)
 
 
 
+u8  app_que_enable=0;
+u8  stop_current=0;  // 停止上报
+u8  stopNormal=0; // 暂停发送心跳和一般数据 
+u32 gps_sd_coutner=0;
 /*
     应用相关  
 */
@@ -85,10 +87,11 @@ u8   Receive_DataFlag=0;// 接收数据
 
 void   DialLink_TimeOut_Process(void)
 {
-           if( DataDial.start_dial_stateFLAG==1) 
+           if(( DataDial.start_dial_stateFLAG==1) &&(JT808Conf_struct.Close_CommunicateFlag==0)) 
 	   {
 					  DataDial.start_dial_counter++;  
-					  if(DataDial.start_dial_counter>300)   	 
+					  //if(DataDial.start_dial_counter>300)    	 
+					  if(DataDial.start_dial_counter>3000)    	 	
 					  {
 						 DataDial.start_dial_counter=0; 
 						 //----------  存储休眠定时器 -----------
@@ -132,7 +135,10 @@ u8   DataLink_Status(void)
 
 	 //  Connect_counter=0;      // clear  清除登陆前重拨最大允许次数  
 	 #ifdef  MULTI_LINK
-	          TCP2_ready_dial=1;	 
+	 if((Hand_Login==0)&&(Enable_IClink==1))
+	     {      TCP2_ready_dial=1; Enable_IClink=0;} // 手动鉴权不再连接IC卡中心
+	 else
+	 	    Hand_Login=0;  // clear 
 	 #endif
 	 if(GNSS_rawdata.WorkEnable==1)
 	 	GNSS_RawDataTrans_Init(enable);  
@@ -170,7 +176,7 @@ u8   PositionSD_Status(void)
 
 u8   Stop_Communicate(void)
 {
-     Datalink_close=1;  //挂断后不再登陆
+          Datalink_close=1;  //挂断后不再登陆  
 	  return true;
 }
 
@@ -266,7 +272,7 @@ static rt_err_t Device_GSM_control( rt_device_t dev, rt_uint8_t cmd, void *arg )
                                  DataLink_AuxSocket_set(reg_socket.ip,reg_socket.port,1);
                                  break;
 	        case isp_socket://               0x04
-	                          DataLink_IspSocket_set(reg_socket.ip,reg_socket.port,1);  
+	                          DataLink_IC_Socket_set(reg_socket.ip,reg_socket.port,1);   
 	                          break;
 	        case DNSR1 ://                   0x05              
 	                          DataLink_DNSR_Set((u8*)arg,1); 
@@ -306,10 +312,10 @@ static rt_err_t Device_GSM_control( rt_device_t dev, rt_uint8_t cmd, void *arg )
 
 
 
-
 static void gsm_thread_entry(void* parameter)  
 {
     rt_size_t  res=RT_ERROR;
+    u8  linkNum=0;	
         //     finsh_init(&shell->parser);
 	rt_kprintf("\r\n ---> gsm thread start !\r\n");
 	 //	  	 
@@ -323,33 +329,42 @@ static void gsm_thread_entry(void* parameter)
               GSM_Module_TotalInitial();  
             // 3. Receivce & Process   Communication  Module   data ----
 	       GSM_Buffer_Read_Process(); 
-	       DataLink_Process();		
-             //------------------------------------------------
-		    if (Send_DataFlag== 1) 
-               {
-			   //  rt_kprintf("\r\n  gsm rx  app msgQue:   rxlen=%d  rx_content=%s\r\n",msgq_gsm.len,msgq_gsm.info); 	 
-                        //  Data_Send(GPRS_info,GPRS_infoWr_Tx); 
-			   res=rt_device_control(&Device_GSM, query_online, NULL);
-			    if(res==RT_EOK)
-			             rt_device_write(&Device_GSM, 0,( const void *)GPRS_info,(rt_size_t) GPRS_infoWr_Tx); 
-			    Send_DataFlag=0;          
-	
-	         }    
-		//---------  Step timer
-		  Dial_step_Single_10ms_timer();    
-		  	  //   TTS	
-                TTS_Data_Play();		  
+	           
+             if(!SMS_send_stateQuery())
+             	{
+		       DataLink_Process();		
+	             //------------------------------------------------
+			    if (Send_DataFlag== 1) 
+	               {
+				   //  rt_kprintf("\r\n  gsm rx  app msgQue:   rxlen=%d  rx_content=%s\r\n",msgq_gsm.len,msgq_gsm.info); 	 
+	                        //  Data_Send(GPRS_info,GPRS_infoWr_Tx); 
+				   res=rt_device_control(&Device_GSM, query_online, NULL);
+				    if(res==RT_EOK)
+				     { 
+				          linkNum=gsm_rx_app_infoStruct.link_num;  // IC  link  ==1  
+				          rt_device_write(&Device_GSM, linkNum,( const void *)GPRS_info,(rt_size_t) GPRS_infoWr_Tx); 
+				    }		  
+				    Send_DataFlag=0;          
+		
+		         }    
+			//---------  Step timer
+			  Dial_step_Single_10ms_timer();    
+			  	  //   TTS	
+	                TTS_Data_Play(); 
+			 
+	                //   Get  CSQ value
+		        // GSM_CSQ_Query();	 			  //   SMS Send
+             	}
+		else
+			SMS_send_process();     //  相关短信处理
 		 
                 //   Get  CSQ value
 	         GSM_CSQ_Query();	 
-
               
 			  //	  Voice Record
 			   VOC_REC_process();
 
 			
-			  			
-
 	         rt_thread_delay(20);  	     
 			   
 	}
@@ -363,8 +378,16 @@ static void timeout_gsm(void *  parameter)
    GPRS_GSM_PowerON(); 
   //   Comm AT related 
    if((CommAT.Total_initial==1)) 
-   	      CommAT.Execute_enable=1;      //  enable send   periodic  
+   	{
+   	     CommAT.Execute_couter++;
+	     if(CommAT.Execute_couter>=2)
+	     	{
+                     CommAT.Execute_couter=0;
+			 CommAT.Execute_enable=1;      //  enable send   periodic   	 	 
+	     	}
 
+   	}
+   //old--CommAT.Execute_enable=1;      //  enable send   periodic  
   //---  Data Link END  --------
    End_Datalink(); 
   //       ISP timer
@@ -393,21 +416,20 @@ void _gsm_startup(void)
        //    二. RT  相关初始化
 		//-------------   sem  init  ---------------------------------
 		//rt_sem_init(&gsmRx_sem, "gsm", 0, 0);        
-	  rt_sem_init(&gsmSd_Appdata_sem, "Sd_data", 0, 0);   
+	  rt_sem_init(&gsmSd_Appdata_sem, "Sd_data", 0, 0);    
 	  rt_mq_init( &mq_GSM, "mq_GSM", &GSM_rawinfo[0], 1400 - sizeof( void* ), GSM_RAWINFO_SIZE, RT_IPC_FLAG_FIFO );
-
+          
        //---------  timer_gsm ----------
 	         // 1. create  timer     100ms=Dur
-	      timer_gsm=rt_timer_create("tim_gsm",timeout_gsm,RT_NULL,100,RT_TIMER_FLAG_PERIODIC);//| RT_TIMER_FLAG_SOFT_TIMER);  
+	      timer_gsm=rt_timer_create("tim_gsm",timeout_gsm,RT_NULL,100,RT_TIMER_FLAG_PERIODIC);  //| RT_TIMER_FLAG_SOFT_TIMER);  
 	        //  2. start timer
-	      if(timer_gsm!=RT_NULL)
-	           rt_timer_start(timer_gsm);  
+	      if(timer_gsm!=RT_NULL)  
+	             rt_timer_start(timer_gsm);          
  
- 
-	result=rt_thread_init(&gsm_thread,
+	       result=rt_thread_init(&gsm_thread,  
 		"GsmThrd",
 		gsm_thread_entry, RT_NULL,
-		&gsm_thread_stack[0], sizeof(gsm_thread_stack),   
+		&gsm_thread_stack[0], sizeof(gsm_thread_stack),         
 		Prio_GSM, 10);  
 
     if (result == RT_EOK)

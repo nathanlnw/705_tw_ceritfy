@@ -502,6 +502,35 @@ uint8_t				PL_BF_ZCOMP_REG_value	= 0xc7;
 uint8_t				PL_P_L_THS_REG_vlaue	= 0xcf;
 
 u32    shaker_continueCounter=0;  // 连续振动状态指示计数器
+u32    Sensor_status_timer=0;
+
+SENSOR   ShakeSenor; 
+
+void   Sensor_Keep_Process_Clear(void)
+{
+           if(Warn_Status[0]&0x20)     //  碰撞
+           {
+                 ShakeSenor.Collision_Keeping++;
+		  if(ShakeSenor.Collision_Keeping>5)
+		  	{
+                         Warn_Status[0]&=~0x20;
+                         ShakeSenor.Collision_Keeping=0;  
+			      rt_kprintf("\r\n  碰撞触发--清除!\r\n");  			 
+		  	}
+
+           }	   
+           if(Warn_Status[0]&0x40)      //  侧翻
+           {
+                  ShakeSenor.Layingdown_Keeping++;
+		  if(ShakeSenor.Layingdown_Keeping>5)
+		  	{
+                         Warn_Status[0]&=~0x40;
+                         ShakeSenor.Layingdown_Keeping=0;  
+			     rt_kprintf("\r\n  侧翻触发--清除!\r\n");  			 			 
+		  	}
+           }	   
+}
+
 
 /*
 读取
@@ -517,29 +546,48 @@ void EXTI9_5_IRQHandler( void )
 		//rt_kprintf("\nINT=%02x %02x %02x\n",value1,value2,value3); 
 		//                                                          trigger  type    grade
              /*
-                        Shake Trigger    
+                         Shake Trigger     
              */
-             //--------------Process  -----------
-              if((Warn_Status[0]&0x20)==0x00)    // 如果没报警那么就让他报警
-	      {
-	         shaker_continueCounter++;
-		  if(shaker_continueCounter>100)  //200
-		  {
-		           shaker_continueCounter=0; 
-		          //----------------------------------------
-		           if(firstrun==1)
+             //-----------   碰撞判断--------------
+             if(value3>0)
+             	{
+             	      ShakeSenor.Collision_Keeping=0;   // clear
+		      ShakeSenor.Layingdown_Keeping=0; // clear  		     
+		      if(firstrun==1)
 	                              firstrun=0;      //上电 第一次触发不上报
-			    else	   
-	                   {     Warn_Status[0]|=0x20; //bit29 	
-	                       PositionSD_Enable();  // 使能发送 
+		      else	   
+	              {       
+	                       Warn_Status[0]|=0x20; //bit29 	
+	                       PositionSD_Enable();  
 	                       Current_UDP_sd=1; 
-	                       rt_kprintf("\r\n  碰撞侧翻触发!\r\n");  
-		             }
-			   //------------------------------------------	
-		  }		
-		}
+	                       rt_kprintf("\r\n  碰撞触发!\r\n");  
+		        }
+             	}
+             //----------    侧翻判断 --------------
+             if((value2>0)&&(value3==0))
+             	{    
+             	       ShakeSenor.LayingdownCounter++;
+		       if(ShakeSenor.LayingdownCounter>100) 
+		       {
+                          ShakeSenor.LayingdownCounter=0; // clear 
+                          if(firstrun==1)
+	                              firstrun=0;      //上电 第一次触发不上报
+			      else	   
+		              {       
+		                     if((Warn_Status[0]&0x40)==0x00)   
+		                      { 
+		                          PositionSD_Enable();  
+		                          Current_UDP_sd=1; 
+					     rt_kprintf("\r\n  侧翻触发!\r\n");  		 			  
+		                       }		
+					   Warn_Status[0]|=0x40; //bit29 	   
+					    ShakeSenor.Layingdown_Keeping=0; 
+		   
+			        }
+		       }  
+             	}		
 	      // ---------------- Process ---------	
-		EXTI_ClearITPendingBit( EXTI_Line5 );
+		EXTI_ClearITPendingBit( EXTI_Line5 ); 
 	}
 	else
 		shaker_continueCounter=0; 

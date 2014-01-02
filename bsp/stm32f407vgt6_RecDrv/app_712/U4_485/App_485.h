@@ -82,17 +82,6 @@ typedef struct  _VOICE_DEV
 }VOICE_DEV;
 
 
-typedef  struct _WT_MP3
-{
-     u8    write_flag; //  开始写flag =1 ，擦除flag=2 ，写完了就是0   
-     u8    run_step; // 执行状态  0 开始
-     u8    Page_count; // 计数器
-     u32   File_size;  //  write file size
-     u32   File_left;
-     u8     Trans_mp3; // 发送固有音频标志位 	 
-}WT_MP3;
-
-extern WT_MP3  WriteMP3;  // 写固有音频
 
 
 extern  VOICE_DEV Dev_Voice;  
@@ -101,10 +90,12 @@ extern  VOICE_DEV Dev_Voice;
 */
  extern  _MultiTake     MultiTake;	  //  多路拍照状态位 
  extern u8  SingleCamera_TakeRetry; // 单路摄像头拍照时，重拍次数计数
+ extern u8  SingleCamra_TakeResualt_BD; // 单路拍照结果
+ extern  u8  Camera_Take_not_trans;   //  拍照不上传
  extern Camera_state CameraState; 
- extern u8    TX_485const_Enable;   // 使能发送标志位  
+ extern u8        TX_485const_Enable;   // 使能发送标志位  
  extern u8 	  last_package; // 拍照最后一包标识
-extern  Camera_state CameraState;  
+ extern  Camera_state   CameraState;  
 
 
 
@@ -130,8 +121,6 @@ extern  void  Voice_Dev_Rxprocess(void);
 extern  void  Voice_Dev_Txprocess(void);  
 extern  void  Camra_Take_Exception(void);
 extern int str2ipport(char *buf, u8 *ip, u16 *port); 
-extern void Mp3_run(void); 
-extern u8  MP3_send_start(void); 
 
 
 

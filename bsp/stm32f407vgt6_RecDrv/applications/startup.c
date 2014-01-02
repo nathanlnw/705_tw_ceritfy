@@ -97,7 +97,7 @@ void rtthread_startup(void)
  
 	 
     #endif 	 
-         rt_kprintf("\n\r   TCB 北斗车载终端 认证版本TW705-BD--13-1-24 - Version 1.0 !\r\n ");    
+         rt_kprintf("\n\r   TCB 北斗车载终端 认证版本TW703-BD--13-1-24 - Version 1.0 !\r\n ");    
 	/* show version */
 	rt_show_version();
 
@@ -141,26 +141,27 @@ void rtthread_startup(void)
   #ifdef GPS_UART
       // gps_app_init(); 
       // gps_set_device(GPS_DEVICE);  // mount on
-	gps_init();     
+	   gps_init();     
        mma8451_driver_init(); 
   #endif
 
      printer_driver_init();   
 
    //---  RTC  device Register---------------
-    if( rt_hw_rtc_init()==1)
+  //
+      if( rt_hw_rtc_init()==1)
 	{
 	    RTC_Demo_init();   // Debug  Test  use  
-	    rt_kprintf("\n\r   RTC -first conifg\r\n "); 
+	    rt_kprintf("\n\r   RTC -first conifg\r\n ");  
     	}
-  //---------------App Thread    -----------------------
+  //---------------App Thread    ---------------------------
   #ifdef HMI
-        HMI_app_init();
+        HMI_app_init();  
   #endif
-     
+  
 
-	/* init application_ demo */
-	rt_application_init();
+	  /* init application_ demo */
+	  rt_application_init(); 
 
       #ifdef APP808
        Protocol_app_init();

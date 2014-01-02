@@ -21,8 +21,8 @@ static rt_device_t _usbhost_device = RT_NULL;
 
 /* app_usbhost thread */
 struct rt_thread usbhost_thread;
-char usbhost_thread_stack[1024];
-struct rt_semaphore usbhost_sem;
+char usbhost_thread_stack[1024]; 
+struct rt_semaphore usbhost_sem; 
 
 #ifdef RT_USING_DEVICE
 rt_device_t usbhost_device;

@@ -129,7 +129,6 @@ void DF_ReadFlash(u16 page_counter,u16 page_offset,u8 *p,u16 length)
 	u16 i=0;
 	u32 ReadAddr=((u32)page_counter*PageSIZE)+(u32)page_offset;
    
-	//------ Byte Read-------
 	#if 0
 	for(i=0;i<length;i++)
 	{
@@ -187,6 +186,7 @@ void DF_WriteFlashSector(u16 page_counter,u16 page_offset,u8 *p,u16 length) //51
 	DF_delay_ms(5); 
 	
 }
+
 void DF_EraseAppFile_Area(void)
 {
     u16 i=0;
@@ -227,6 +227,7 @@ void DF_EraseAppFile_Area(void)
 
 }
 
+
 void DF_WriteFlashDirect(u16 page_counter,u32 page_offset,u8 *p,u16 length)//512bytes ֱ�Ӵ洢
 {
     u16 i=0;
@@ -239,4 +240,5 @@ void DF_WriteFlashDirect(u16 page_counter,u32 page_offset,u8 *p,u16 length)//512
 	}
 	DF_delay_ms(5);  
 }
+
 

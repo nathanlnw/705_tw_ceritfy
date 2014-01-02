@@ -49,10 +49,20 @@ typedef struct  _SOCKET
 
 
 
-#define GSM_RAWINFO_SIZE 18000
+#define GSM_RAWINFO_SIZE     18000
+#define APP_RAWINFO_SIZE     18     //12288    //  12*1024    28    438          
+
 ALIGN(RT_ALIGN_SIZE)
 extern  uint8_t					GSM_rawinfo[GSM_RAWINFO_SIZE];
-extern struct rt_messagequeue	mq_GSM; 
+extern struct rt_messagequeue	      mq_GSM; 
+
+
+
+extern   u8     app_que_enable; 
+extern   u8	stop_current;  // 停止上报
+extern   u8     stopNormal; // 暂停发送心跳和一般数据
+extern   u32   gps_sd_coutner; 
+
 
 
 extern u8 	ModuleStatus;   //网络状态 

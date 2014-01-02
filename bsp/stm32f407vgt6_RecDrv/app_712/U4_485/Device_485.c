@@ -302,14 +302,20 @@ void  DwinLCD_Data_Process(void)
             switch(ADD_ID)
             	{
                   case 0x3000:// 车牌号输入   AA 55 0E 83 30 00 05 BD F2 41 37 37 38 38 FF FF 00
-                                    /* 
+                                      /* 
+                                            输入津A67823输出如下：
+                                                         AA 55 0E 83 30 00 05 BD F2 41 36 37 38 32 33 FF FF
+                                      */
+                                      
+                                 /*   
                                        //------------------------------------------------------------ 
-					    memset((u8*)&JT808Conf_struct.Vechicle_Info.Vech_Num,0,sizeof(JT808Conf_struct.Vechicle_Info.Vech_Num));	//clear	
-					   memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,dwin_reg,strlen(dwin_reg));
+					   memset((u8*)&JT808Conf_struct.Vechicle_Info.Vech_Num,0,sizeof(JT808Conf_struct.Vechicle_Info.Vech_Num));	//clear	
+					  // memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,dwin_reg,strlen(dwin_reg));
+					   memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,dwin_reg,7); // 国标规定车牌长度7个字节
 					   Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));    
 					    //------------------------------------------------------------				   
-                                       rt_kprintf("\r\n Dwin设置车牌号:%s",dwin_reg);
-					   */ 				   
+                                       rt_kprintf("\r\n Dwin设置车牌号:%12s",JT808Conf_struct.Vechicle_Info.Vech_Num); 
+					  */  				   
 						
 				         break;
 		    case 0x3200: // APN        AA 55 14 83 32 00 08 77 77 77 2E 62 61 69 64 75 2E 63 6F 6D FF FF 00
@@ -343,12 +349,108 @@ void  DwinLCD_Data_Process(void)
 
                                     break;
 		    case  0x0999:// 拍照  AA 55 06 83 09 99 01 00 03
-
+                                   //   DEV_regist.Enable_sd=1; // set 发送注册标志位
+                                     // rt_kprintf("\r\n 5 寸屏手动发送注册\r\n");
 					 break;
 		    case  0x0004://车辆信息 AA 55 06 83 00 04 01 00 02
 		                         //                       AA 55 06 83 00 04 01 00 02 
-                                     DwinLCD.Type=LCD_VechInfo; 
+                                     DwinLCD.Type=LCD_VechInfo;  
 			               break;
+		    case   0x3600:  //一键拨号
+                                          Speak_ON;
+						 rt_kprintf("\r\n   5 寸屏 一键拨号");  
+					
+	 					  memset(JT808Conf_struct.LISTEN_Num,0,sizeof(JT808Conf_struct.LISTEN_Num));
+	 					  memcpy(JT808Conf_struct.LISTEN_Num,"13051953513",11);  										  
+                                            Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));   
+                                            CallState=CallState_rdytoDialLis;  // 准备开始拨打监听号码 
+
+				    
+				       break;
+		     //---------------    Add  later --------------------------------------------			   
+		     case   0x4100:  //   入网ID 
+		                              //AA 55 12 83 41 00 07 30 31 33 36 30 32 30 35 39 31 39 31 FF FF 
+                              
+				      break;
+		    case    0x4114:  //  车辆类型  ---货运
+		                             //   AA 55 06 83 41 14 01 00 06 
+                                           				// 车辆类型
+				      rt_kprintf("\r\n 5 寸屏手动  车辆类型:货运\r\n");
+
+			             break;
+		     case    0x4118:  //  车辆类型  ---危险
+		                              // AA 55 06 83 41 18 01 00 07
+                                            rt_kprintf("\r\n 5 寸屏手动  车辆类型:危险\r\n");
+			             break;	
+                   case    0x4120:  //  车辆类型  ---客运
+                                            // AA 55 06 83 41 20 01 00 08
+                                           rt_kprintf("\r\n 5 寸屏手动  车辆类型:客运\r\n");
+			             break;
+		     case    0x4122:  //  车辆类型  ---出租 
+		                              //  AA 55 06 83 41 22 01 00 09
+                                            rt_kprintf("\r\n 5 寸屏手动  车辆类型:出租\r\n");
+			             break;
+		      //-------------------------------------------				 
+		     case    0x4110:  //  速度类型  ---GPS
+		                              //  AA 55 06 83 41 10 01 00 04 
+                                            JT808Conf_struct.Speed_GetType=1; 
+					         JT808Conf_struct.DF_K_adjustState=1;		
+					         ModuleStatus|=Status_Pcheck;
+						  				//  存储
+				                 Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));
+	                                     rt_kprintf("\r\n 5 寸屏手动速度:GPS\r\n");
+			             break;				 
+		       case    0x4112:  //  速度类型  ---传感器
+		                                //AA 55 06 83 41 12 01 00 05 
+                                             JT808Conf_struct.Speed_GetType=0;  
+					          JT808Conf_struct.DF_K_adjustState=0;	
+					          ModuleStatus&=~Status_Pcheck;
+				                 //  存储
+				                 Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));
+                                              rt_kprintf("\r\n 5 寸屏手动速度:传感器\r\n");		  
+			             break;	
+			//-------------------------------------------	
+			case    0x4105:  //  颜色  ---黑
+			                         //  AA 55 06 83 41 05 01 00 01 
+			                         Menu_color_num=3;
+                                              JT808Conf_struct.Vechicle_Info.Dev_Color=Menu_color_num;
+						    Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));			 
+                                               rt_kprintf("\r\n 5 寸屏手动颜色: 黑\r\n");		
+						 break;
+			case    0x4107:  //  颜色---黄
+			                         //AA 55 06 83 41 07 01 00 02   
+			                         Menu_color_num=2;
+                                              JT808Conf_struct.Vechicle_Info.Dev_Color=Menu_color_num;
+						    Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));			 
+                                               rt_kprintf("\r\n 5 寸屏手动颜色: 黄\r\n");		
+
+			             break;	
+			case    0x4108:  //  颜色 ---蓝 
+			                         // AA 55 06 83 41 08 01 00 03
+			                         Menu_color_num=1;
+                                              JT808Conf_struct.Vechicle_Info.Dev_Color=Menu_color_num;
+						    Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));			 
+                                              rt_kprintf("\r\n 5 寸屏手动颜色: 蓝 \r\n");		 
+
+			             break;		
+			//----------------------------------------
+			case   0x4128://   鉴权
+			                      // AA 55 06 83 41 28 01 00 12
+                                            DEV_Login.Operate_enable=1;			   
+			                       DEV_Login.Enable_sd=1; 
+						    rt_kprintf("\r\n 5 寸屏手动发送鉴权\r\n");		   
+			             break;
+			case   0x4124://   注册
+			                      //  AA 55 06 83 41 24 01 00 00 
+                                           DEV_regist.Enable_sd=1; // set 发送注册标志位
+                                            rt_kprintf("\r\n 5 寸屏手动发送注册\r\n");
+						//  要发送短信	
+						 SMS_send_enable();
+			             break;
+			case   0x4126: // 清空鉴权			 
+                                            // AA 55 06 83 41 26 01 00 11
+							
+				     break;		 
 		    default:
 				        break;
 
@@ -698,6 +800,8 @@ void  Pic_Data_Process(void)
 	               DF_Write_RecordAdd(pic_write,pic_read,TYPE_PhotoAdd);  
 	               //--------------------------------------------------------------------------                  
 	               rt_kprintf("\r\n        PicSize: %d Bytes\r\n    Camera  %d   End\r\n",pic_size,Camera_Number); 
+			 SingleCamra_TakeResualt_BD=0;	    //  单路摄像头拍照
+			 SD_ACKflag.f_BD_CentreTakeAck_0805H=1;  //  发送中心拍照命令应答
 		        //----------  Normal process ---------------------
 			 End_Camera(); 
 
@@ -779,8 +883,11 @@ void  Pic_Data_Process(void)
 			                   else
 			                   	{
 							rt_kprintf("\r\n Single Camera !\r\n"); 
-						       Photo_send_start(Camera_Number);  //在不是多路拍照的情况下拍完就可以上传了
-			                   	}
+						      if(Camera_Take_not_trans==0)	
+						              Photo_send_start(Camera_Number);  //在不是多路拍照的情况下拍完就可以上传了
+                                                else
+ 								Camera_Take_not_trans=0;   					 
+ 						}
 				   	}	
 				    //  拍照结束  
 	    }
@@ -793,7 +900,7 @@ void  Pic_Data_Process(void)
 	  
 		  TX_485const_Enable=1;  // 发送485 命令
 		   _485_RXstatus._485_receiveflag=IDLE_485;   
-                 //rt_kprintf("\r\n  Head gsm_rx_infolen : %d\r\n",_485_content_wr); 
+                 //rt_kprintf("\r\n  Head info_len : %d\r\n",_485_content_wr); 
 		  memset(_485_content,0,sizeof(_485_content));
 		  _485_content_wr=0;			  
 		  //rt_kprintf("\r\n  One Packet Over!\r\n"); 	 
@@ -840,7 +947,7 @@ static rt_err_t   Device_485_init( rt_device_t dev )
 	
     //   4.  uart  Initial
        USART_InitStructure.USART_BaudRate = 57600;  //485
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b; 
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
@@ -875,7 +982,7 @@ static rt_err_t   Device_485_init( rt_device_t dev )
 	 GPIO_InitStructure.GPIO_Pin  =GPIO_Pin_4;				 //--------- 485const	收发控制线 
 	 GPIO_Init(GPIOC, &GPIO_InitStructure); 
 	 RX_485const;  
-	 return RT_EOK;
+	 return RT_EOK; 
 }
 
 static rt_err_t Device_485_open( rt_device_t dev, rt_uint16_t oflag )  
@@ -923,7 +1030,7 @@ static void timeout_485(void *  parameter)
        if(One_second_Counter_485>10)  
        {
             One_second_Counter_485=0;       
-	     Camra_Take_Exception();	 	
+	     Camra_Take_Exception();	 
        }	   
          DwinLCD_Timer();
 	  DwinLCD_DispTrigger();	 
@@ -951,21 +1058,9 @@ void _485_thread_entry(void* parameter)
     // 2.  Thread main body below
 	while (1)
 	{ 
-	   Mp3_run();
-        /*   res=rt_mq_recv(&_485_MsgQue, &rec_485,64, 3);
-	    if(res==RT_EOK)
-	    {
-	          memset(rec_info,0,sizeof(rec_info));     
-		   memcpy(rec_info,rec_485.info,rec_485.len);
-		   //----------   解析处理LCD 信息  ------------
-
-
-
-
-		   //------------------------------------------------ 
-	    }	*/		
-           //  Dwin  RxProcess
-           DwinLCD_Data_Process();
+	
+      //  Dwin  RxProcess
+       DwinLCD_Data_Process();
 		
 	   //--------------------- 拍照数据处理-----	
 	   if(_485_CameraData_Enable)	   

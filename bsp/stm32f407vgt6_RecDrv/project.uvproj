@@ -1406,6 +1406,36 @@
               <FileType>1</FileType>
               <FilePath>.\app_712\lcd\Menu_0_4_Colour.c</FilePath>
             </File>
+            <File>
+              <FileName>Menu_8_1_updataResult.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app_712\lcd\Menu_8_1_updataResult.c</FilePath>
+            </File>
+            <File>
+              <FileName>Menu_8_2_BDbatchTrans.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app_712\lcd\Menu_8_2_BDbatchTrans.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu_8_3_electronicDisp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app_712\lcd\menu_8_3_electronicDisp.c</FilePath>
+            </File>
+            <File>
+              <FileName>Menu_8_bd808.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app_712\lcd\Menu_8_bd808.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>DrvData</GroupName>
+          <Files>
+            <File>
+              <FileName>vdr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app_712\DrvData\vdr.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

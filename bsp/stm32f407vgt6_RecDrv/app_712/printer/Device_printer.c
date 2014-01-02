@@ -79,6 +79,9 @@
 #define  PHE_PORT	GPIOD
 #define  PHE_PIN	GPIO_Pin_8
 
+#define PRINTER_POWER_PORT_3V3	GPIOD
+#define PRINTER_POWER_PIN_3V3	GPIO_Pin_4
+
 #define PRINTER_POWER_PORT_5V	GPIOB
 #define PRINTER_POWER_PIN_5V	GPIO_Pin_7
 
@@ -205,7 +208,7 @@ static uint8_t fprinting = 0;     //是否正在打印
 * Return:         // 函数返回值的说明
 * Others:         // 其它说明
 ***********************************************************/
-void printer_port_init( void )
+static void printer_port_init( void )
 {
 	GPIO_InitTypeDef gpio_init;
 
@@ -259,6 +262,9 @@ void printer_port_init( void )
 	GPIO_Init( PRINTER_POWER_PORT_5V, &gpio_init );
 	GPIO_ResetBits( PRINTER_POWER_PORT_5V, PRINTER_POWER_PIN_5V);
 
+	gpio_init.GPIO_Pin = PRINTER_POWER_PIN_3V3;
+	GPIO_Init( PRINTER_POWER_PORT_3V3, &gpio_init );
+	GPIO_SetBits( PRINTER_POWER_PORT_3V3, PRINTER_POWER_PIN_3V3);
 
 
 	gpio_init.GPIO_Pin	= PHE_PIN;
@@ -467,7 +473,7 @@ void printer_print_glyph( unsigned char len )
 ***********************************************************/
 void printer_get_str_glyph( unsigned char *pstr, unsigned char len )
 {
-	unsigned long	addr=0;
+	unsigned long	addr;
 	unsigned char	charnum = len;
 	unsigned char	* p		= pstr;
 	unsigned char	msb, lsb;
@@ -717,7 +723,7 @@ static rt_err_t printer_init( rt_device_t dev )
 ***********************************************************/
 static rt_err_t printer_open( rt_device_t dev, rt_uint16_t oflag )
 {
-   	 print_power("1");
+	GPIO_SetBits( PRINTER_POWER_PORT_3V3, PRINTER_POWER_PIN_3V3 );
 	return RT_EOK;
 }
 
@@ -820,7 +826,7 @@ static rt_err_t printer_control( rt_device_t dev, rt_uint8_t cmd, void *arg )
 ***********************************************************/
 static rt_err_t printer_close( rt_device_t dev )
 {
-   	      print_power("0");  
+	GPIO_ResetBits( PRINTER_POWER_PORT_3V3, PRINTER_POWER_PIN_3V3 );
 	GPIO_ResetBits( PRINTER_POWER_PORT_5V, PRINTER_POWER_PIN_5V );
 	return RT_EOK;
 }

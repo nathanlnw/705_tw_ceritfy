@@ -75,7 +75,7 @@ void SST25V_DBSY(void)
         SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
         SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
         SPI_InitStructure.SPI_NSS  = SPI_NSS_Soft;
-        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;/* 72M/64=1.125M */  
+        SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;/* 72M/64=1.125M */
         SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
         SPI_InitStructure.SPI_CRCPolynomial = 7; 
 
@@ -150,6 +150,21 @@ void SST25V_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
   SST25V_CS_HIGH();
 }
 
+u8 SST25V_HighSpeedRead(u32 ReadAddr)
+{
+  u32 Temp = 0;
+  SST25V_CS_LOW();
+  SPI_Flash_SendByte(HighSpeedReadData);
+  SPI_Flash_SendByte((ReadAddr & 0xFF0000) >> 16);
+  SPI_Flash_SendByte((ReadAddr& 0xFF00) >> 8);
+  SPI_Flash_SendByte(ReadAddr & 0xFF);
+  SPI_Flash_SendByte(Dummy_Byte);
+  Temp = SPI_Flash_ReceiveByte();
+  SST25V_CS_HIGH();
+  return Temp;
+}
+
+
 // u8 SPI_Flash_SendByte(u8 byte)
 // {
 //   while(SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_TXE) == RESET);
@@ -165,12 +180,12 @@ void SST25V_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
 // }
 
 /************************************************************************/
-/* 名称: Byte_Program						*/
-/* 功能: 写一个字节数据,被写的地址必须被擦除及未被保护		*/				
-/* 输入:								*/
-/*		Dst:		(目标地址 000000H - 1FFFFFH)	*/
-/*		byte:		数据			*/
-/* 返回:								*/
+/* ~{C{3F~}: Byte_Program						*/
+/* ~{9&D\~}: ~{P4R;8vWV=ZJ}>]~},~{1;P45D5XV71XPk1;2A3}<0N41;1#;$~}		*/				
+/* ~{JdHk~}:								*/
+/*		Dst:		(~{D?1j5XV7~} 000000H - 1FFFFFH)	*/
+/*		byte:		~{J}>]~}			*/
+/* ~{75;X~}:								*/
 /*		Nothing							*/
 /************************************************************************/
 void SST25V_ByteWrite(u8 Byte, u32 WriteAddr)
@@ -198,7 +213,6 @@ void SST25V_BufferWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToRead)
   }
 }
 
-
 void SST25V_strWrite(u8 *p, u32 WriteAddr,u16 length)
 {
   SST25V_WriteEnable();
@@ -217,6 +231,54 @@ void SST25V_strWrite(u8 *p, u32 WriteAddr,u16 length)
   SST25V_CS_HIGH();  
   SST25V_WaitForWriteEnd(); 
 }
+
+
+
+void AutoAddressIncrement_WordProgramA(u8 Byte1, u8 Byte2, u32 Addr)
+{
+  SST25V_WriteEnable();
+  SST25V_CS_LOW();
+  SPI_Flash_SendByte(AAI_WordProgram);
+  SPI_Flash_SendByte((Addr & 0xFF0000) >> 16);
+  SPI_Flash_SendByte((Addr & 0xFF00) >> 8);
+  SPI_Flash_SendByte(Addr & 0xFF);   
+
+  SPI_Flash_SendByte(Byte1);
+  SPI_Flash_SendByte(Byte2);  
+
+  SST25V_CS_HIGH();
+  SST25V_Wait_Busy_AAI();
+  //SPI_FLASH_WaitForWriteEnd();
+}
+
+
+void AutoAddressIncrement_WordProgramB(u8 state,u8 Byte1, u8 Byte2) 
+{ 
+  SST25V_WriteEnable();
+  SST25V_CS_LOW();
+  SPI_Flash_SendByte(AAI_WordProgram);
+
+  SPI_Flash_SendByte(Byte1);
+  SPI_Flash_SendByte(Byte2);
+
+  SST25V_CS_HIGH();
+  SST25V_Wait_Busy_AAI();
+  
+  if(state==1)
+  {
+    SST25V_WriteDisable();
+  }
+  SST25V_Wait_Busy_AAI();
+}
+
+
+void SST25V_Wait_Busy_AAI(void) 
+{ 
+  while (SST25V_ReadStatusRegister() == 0x43) /* ~{5H4}?UOP~} */
+  SST25V_ReadStatusRegister(); 
+}
+
+
 void SST25V_SectorErase_4KByte(u32 Addr)
 {
   SST25V_WriteEnable();
@@ -252,6 +314,15 @@ void SST25V_BlockErase_64KByte(u32 Addr)
   SPI_Flash_SendByte((Addr & 0xFF00) >> 8);
   SPI_Flash_SendByte(Addr & 0xFF);
   
+  SST25V_CS_HIGH();
+  SST25V_WaitForWriteEnd();
+}
+
+void SST25V_ChipErase(void)
+{
+  SST25V_WriteEnable();
+  SST25V_CS_LOW();
+  SPI_Flash_SendByte(ChipErace);
   SST25V_CS_HIGH();
   SST25V_WaitForWriteEnd();
 }
@@ -310,6 +381,18 @@ void SST25V_WaitForWriteEnd(void)
   SST25V_CS_HIGH();
 }
 
+u32 SST25V_ReadJedecID(void)
+{
+  u32 JEDECID = 0, Temp0 = 0, Temp1 = 0, Temp2 = 0;
+  SST25V_CS_LOW();
+  SPI_Flash_SendByte(ReadJedec_ID);
+  Temp0 = SPI_Flash_ReceiveByte();
+  Temp1 = SPI_Flash_ReceiveByte();
+  Temp2 = SPI_Flash_ReceiveByte();
+  SST25V_CS_HIGH();  
+  JEDECID = (Temp0 << 16) | (Temp1 << 8) | Temp2;
+  return JEDECID;
+}
 
 u16 SST25V_ReadManuID_DeviceID(u32 ReadManu_DeviceID_Addr)
 {
@@ -348,12 +431,12 @@ u16 SST25V_ReadManuID_DeviceID(u32 ReadManu_DeviceID_Addr)
 
 
 /*
-      note:  使用前提是   addr+len 不允许超过  本扇区
+      note:  ~{J9SCG0LaJG~}   addr+len ~{2;TJPm3,9}~}  ~{1>IHGx~}
 */
 u8  SST25V_OneSector_Write(u8 *p,  u32  addr,  u32 len)
 { 
-   u32   SectorStartAddr=addr&0xFFFFFFFFFFFFF000,i=0;  //  获取起始扇区的起始地址
-   u32   insector_offset=addr&0xFFF; // 取扇区内偏移地址 
+   u32   SectorStartAddr=addr&0xFFFFFFFFFFFFF000,i=0;  //  ~{;qH!FpJ<IHGx5DFpJ<5XV7~}
+   u32   insector_offset=addr&0xFFF; // ~{H!IHGxDZF+RF5XV7~} 
 
 
     // rt_kprintf("\r\n addrin=0x%X  ,SectorAdd=0x%X \r\n",addr,SectorStartAddr);     
@@ -367,18 +450,18 @@ u8  SST25V_OneSector_Write(u8 *p,  u32  addr,  u32 len)
        WatchDog_Feed();
 	   
 	  // rt_kprintf("\r\n insector_offset=0x%X  \r\n",insector_offset);   
-	   //OutPrint_HEX("\r\n 读取前",OneSectorReg,4096);  
+	   //OutPrint_HEX("\r\n ~{6AH!G0~}",OneSectorReg,4096);  
        delay_ms(35);
        WatchDog_Feed();
 	  
-	  // 2. 把更新的内容给填进去
+	  // 2. ~{0Q8|PB5DDZH]8xLn=xH%~}
 	   memcpy(OneSectorReg+insector_offset,p,len);  
 
 	  // 3.  erase  Sector
 	  	 SST25V_SectorErase_4KByte(SectorStartAddr);	
 	     WatchDog_Feed();
 	     DF_delay_ms(130); 	 
-		// OutPrint_HEX("\r\n 擦完写前",OneSectorReg,4096);  
+		// OutPrint_HEX("\r\n ~{2AMjP4G0~}",OneSectorReg,4096);  
 	  // 4.  write  buf  to  DF
 	  // SST25V_strWrite(OneSectorReg,SectorStartAddr,4096);
 	   SST25V_BufferWrite(OneSectorReg,SectorStartAddr,4096); 
@@ -391,7 +474,7 @@ u8  SST25V_OneSector_Write(u8 *p,  u32  addr,  u32 len)
 		DF_delay_ms(50);    
       
 	     //  rt_thread_delay(2);	  
-		//   OutPrint_HEX("\r\n 读取后",OneSectorReg,4096);     
+		//   OutPrint_HEX("\r\n ~{6AH!:s~}",OneSectorReg,4096);     
 		   for(i=0;i<4096;i++)
 		   {
 		       if(OneSectorReg[i]!=reg_4096[i])

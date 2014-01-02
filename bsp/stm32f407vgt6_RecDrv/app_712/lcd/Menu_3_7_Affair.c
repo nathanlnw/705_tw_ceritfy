@@ -163,7 +163,7 @@ static void show(void)
 	{
 	Menu_Affair=0;
 	lcd_fill(0);
-	lcd_text12(36,3,"事件设置",8,LCD_MODE_SET);
+	lcd_text12(36,3,"事件信息",8,LCD_MODE_SET);
 	lcd_text12(24,18,"按确认键查看",12,LCD_MODE_SET);
 	lcd_update_all();
 	}

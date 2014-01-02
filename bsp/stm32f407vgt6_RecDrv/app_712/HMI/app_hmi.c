@@ -16,7 +16,7 @@
 #include "spi_sd.h"
 #include "Usbh_conf.h"
 #include <dfs_posix.h>
-
+#include "Menu_Include.h"
 
 #define                                      HMI_MsgQueStack_SIZE  512
 
@@ -38,12 +38,13 @@ unsigned char dayin_driver_card[40]={"¼ÝÊ»Ö¤´úÂë:000000000000000000\r\n"};
 unsigned char Dayin_TireExpsCard[32]={"1.000000000000000000\r\n"};
 unsigned char Dayin_TireExpsStartTime[32]={"S_T:XX/XX/XX XX:XX:XX\r\n"};//45 78 1011 1314 1617 1920
 unsigned char Dayin_TireExpsEndTime[32]=  {"E_T:XX/XX/XX XX:XX:XX\r\n"};
-unsigned char Dayin_TireExpsMaxSpeed[32]=  {"MaxSpeed:XXX km/h\r\n"};//9 10 11
+unsigned char Dayin_TireExpsMaxSpeed[32]=  {"MaxSpeed:XXX km/h\r\n"};//9 10 11    
 
 
 //ALIGN(RT_ALIGN_SIZE)
 //static uint8_t					HMI_MsgQueStack[HMI_MsgQueStack_SIZE];
 static struct rt_messagequeue	HMI_MsgQue; 
+
 
 HMI_COM    HMI_Comunicate; 
 
@@ -311,7 +312,9 @@ struct rt_thread HMI_thread;
 
 static void HMI_thread_entry(void* parameter)  
 {
-    u8 counter_printer=0;
+    u8 counter_printer=0,can_counter=0;
+    rt_size_t  res=RT_ERROR;   
+	
 
      //  finsh_init(&shell->parser);
 	rt_kprintf("\r\n ---> HMI thread start !\r\n");
@@ -333,6 +336,21 @@ static void HMI_thread_entry(void* parameter)
 		}
 	while (1)
 	{
+
+
+	      if(CAN_trans.can1_trans_dur>0) 
+              {
+                   can_counter++;
+		     if(can_counter>=5)
+		     	{
+                          CAN_trans.can1_enable_get=1;   
+                          can_counter=0; 
+		     	}		   
+              } 
+		//----------------------------------		 
+		#ifdef BITTER
+		Cent_To_Disp();
+		#endif
 	       KeyCheckFun();
               pMenuItem->timetick( 10 ); 
 	 	pMenuItem->keypress( 10 );  
@@ -392,7 +410,8 @@ static void HMI_thread_entry(void* parameter)
 		       pMenuItem->show();
 		}
 	 	//--------------------------------------------	   
-              rt_thread_delay(5);       
+              rt_thread_delay(5);     
+
      }  
 }
 

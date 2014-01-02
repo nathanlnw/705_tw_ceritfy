@@ -71,13 +71,17 @@ flash u8	Send_TCP[20]="AT+QISEND=1,%d\r\n";
 flash u8	Send_ISP[20]="AT+QISEND=2,%d\r\n";	
 static u8	DialStr_Link1_demo[90]="AT+QIOPEN=%d,\"%s\",\"%d.%d.%d.%d\",\"%d\"\r\n";   //"ATD*99***1#\r\n"; AT%IPOPENX=1,"UDP","117.11.126.248",7106
 static u8   DialStr_LinkAux_demo[90]="AT+QIOPEN=%d,\"%s\",\"%d.%d.%d.%d\",\"%d\"\r\n"; //"ATD*99***1#\r\n"; AT%IPOPENX=1,"UDP","117.11.126.248",7106
-static u8	DialStr_Link1[90];   //"ATD*99***1#\r\n"; AT%IPOPENX=1,"UDP","117.11.126.248",7106
-static u8   DialStr_LinkAux[90]; //"ATD*99***1#\r\n"; AT%IPOPENX=1,"UDP","117.11.126.248",7106  
+static u8   DialStr_IC_card_demo[90]="AT+QIOPEN=%d,\"%s\",\"%d.%d.%d.%d\",\"%d\"\r\n"; //"ATD*99***1#\r\n"; AT%IPOPENX=1,"UDP","117.11.126.248",7106
+
+static u8	DialStr_Link1[90];  
+static u8   DialStr_LinkAux[90]; 
+static u8   DialStr_IC_card[90];
+
 
 static u8	Dialinit_APN[40]="AT+CGDCONT=1,\"IP\",\"";		//CMNET\"\r\n"; 	 // oranges Access Point Name
 static char DialStr_ISP[50]="AT+QIOPEN=2,\"TCP\",\"60.28.50.210\",\"6071\"\r\n"; //  远程升级            
  
- 
+
 
 flash char  CutDataLnk_str1[]="ATQICLOSE=3\r\n";
 flash char  CutDataLnk_str2[]="ATQICLOSE=2\r\n";
@@ -134,7 +138,10 @@ u16   GSM_AsciiTx_len=0;
 //-----  1 s timer  related below   ------
 u16   one_second_couner=0;  
 u8     Enable_UDP_sdFlag=0;      
- 
+
+ //----- handle jianquan flag
+ u8   Hand_Login=0; // 手动鉴权标志位
+ u8   Enable_IClink=0;  //  手动使能连接IC 卡中心
 
 u8    Dial_jump_State=0;  // 拨号过程中  状态跳转标志， DialInit5  DialInit6 到 DialInit7 的跳转标记
 u8    Dnsr_state=0;  //  DNSR 状态   1: 表示在域名解析成功的前提下
@@ -150,7 +157,7 @@ u8     TCP2_ready_dial=0;
 u16    Ready_dial_counter2=0;
 u16    TCP2_notconnect_counter=0;
 u8     TCP2_Connect=0;
-u8	   TCP2_sdFlag=0;		//定时发送GPS位置信息标志
+u8	  TCP2_IC_sdFlag=0;		//定时发送GPS位置信息标志
 u16    TCP2_sdDuration=50; 
 u8      TCP2_Coutner=0;  // 定时器计数
 u8      TCP2_login=0;       // TCP 建立好连接后的标志位
@@ -185,7 +192,6 @@ void  VOC_REC_Init(void)
 
 }
 FINSH_FUNCTION_EXPORT(VOC_REC_Init, TTS VOC_REC_Init); 
-
 
 void VOC_REC_timer(void)
 { 
@@ -237,7 +243,7 @@ void VOC_REC_FileEndProcess(void)
 			 VocREC.file_write=0;   // clear  
                         DF_LOCK=disable; 
 
-			 //VocREC.running=0;            
+			
 			 //   开始准备上传 录音
 			 VocREC.rdytoTrans	=1;					 
 			 //--------------------------------------------------------------------------
@@ -594,9 +600,9 @@ u8    TTS_Data_Play(void)
 	    for(i=0;i<TTS_Len;i++)
 			 rt_kprintf("%c",AT_TTS[i]);   
 
-	     rt_hw_gsm_output_Data(AT_TTS,TTS_Len);	
+	   rt_hw_gsm_output_Data(AT_TTS,TTS_Len);	
 
-	     WatchDog_Feed();
+	  WatchDog_Feed();
          delay_ms(30); // rt_thread_delay(RT_TICK_PER_SECOND/8);	
  
            //---------------------
@@ -660,7 +666,7 @@ void GSM_CSQ_timeout(void)
 
 void GSM_CSQ_Query(void)
 {    
-    	    if((CSQ_flag==1)&&(MediaObj.Media_transmittingFlag==0)&&(Dev_Voice.CMD_Type!='1')&&(GSM_PWR.GSM_power_over==1))  
+    	    if((CSQ_flag==1)&&(MediaObj.Media_transmittingFlag==0)&&(GSM_PWR.GSM_power_over)&&(stopNormal==0)&&(VocREC.running==0))   
 	   { 
 		  CSQ_flag=0; 
 		  rt_hw_gsm_output("AT+CSQ\r\n");    //检查信号强度
@@ -694,22 +700,22 @@ void  DataLink_AuxSocket_set(u8 *IP, u16  PORT,u8 DebugOUT)
 	  
          if(DebugOUT)
 	 {
-	   rt_kprintf("\r\n  辅IP   DialString : ");  
+	   rt_kprintf("\r\n  辅IP   DialString : "); 
 	   rt_kprintf((char*)DialStr_LinkAux);          
 	 } 
 }
 
-void  DataLink_IspSocket_set(u8 *IP, u16  PORT,u8 DebugOUT) 
+void  DataLink_IC_Socket_set(u8 *IP, u16  PORT,u8 DebugOUT) 
 {
-         u8 * regstr[30];
-		 
-               memset((char *)regstr,0,sizeof(regstr));
-		  IP_Str((char *)regstr, *( u32 * ) IP);		 
-		  
-		  sprintf(( char*)regstr, IP);	 
 
-		if(DebugOUT)
-		    rt_kprintf("		  Aux Socket : %s\r\n",regstr);        
+      memset((char *)DialStr_IC_card,0,sizeof(DialStr_IC_card)); // clear	  
+	  sprintf((char*)DialStr_IC_card,DialStr_IC_card_demo,2,"TCP",IP[0],IP[1],IP[2],IP[3],PORT); 
+     if(DebugOUT)
+	 {
+	     rt_kprintf("\r\n IC  DialString : "); 
+	     rt_kprintf((char*)DialStr_IC_card);         
+	 } 	 
+		 
 }
 
 void  DataLink_APN_Set(u8* apn_str,u8 DebugOUT)
@@ -777,7 +783,7 @@ void  DataLink_DNSR2_Set(u8* Dns_str,u8 DebugOUT)
   DataLink_DNSR_Set(DomainNameStr,0);    // DNSR  MG323  没有 
   DataLink_DNSR2_Set(DomainNameStr_aux,0);  
   DataLink_MainSocket_set(RemoteIP_main, RemotePort_main,1); 
-//  DataLink_AuxSocket_set(RemoteIP_aux, RemotePort_aux,1);
+  DataLink_AuxSocket_set(RemoteIP_aux, RemotePort_aux,1);
 
  
   #if 0
@@ -959,7 +965,6 @@ void  GSM_RxHandler(u8 data)
 			GSM_INT_BUFF.gsm_content[GSM_INT_BUFF.gsm_wr++] = data;
 			if( GSM_INT_BUFF.gsm_wr < 1400 )
 			{
-			    
 				
 				  /* 在中断里判断并处理*/  
                 #ifdef M50_GSM
@@ -989,9 +994,10 @@ void  GSM_RxHandler(u8 data)
 			}
 			GSM_INT_BUFF.gsm_content[GSM_INT_BUFF.gsm_wr ]=0;  
 		}
-		
 		former_byte = data;
+
   
+	  
 }
 
 void  GSM_Buffer_Read_Process(void)
@@ -1048,7 +1054,7 @@ u8  HexValue (u8 inchar)
 		   case 'F':    
 		   	             return 0x0F;
 		   default :
-		   	           rt_kprintf("\r\n 转义有错误:%c \r\n",inchar);    
+		   	          // rt_kprintf("\r\n 转义有错误:%c \r\n",inchar);    
 				    return  0xFF;
      	}
 }
@@ -1206,12 +1212,17 @@ void End_Datalink(void)
 		DataLink_EndCounter=0; 
 		DataLink_EndFlag=0;
 		//-----------------------------
-               CommAT.Initial_step=0;  
-		 CommAT.Total_initial=0;  
-               Redial_Init(); 
-		 ModuleStatus &=~Status_GPRS;
-	        rt_kprintf(" Redial Start\r\n");   
-	      //-----------------------------
+	     if(JT808Conf_struct.Close_CommunicateFlag==0)
+	     	{
+	               CommAT.Initial_step=0;  
+			 CommAT.Total_initial=0;  
+	               Redial_Init(); 
+			 ModuleStatus &=~Status_GPRS;
+		        rt_kprintf(" Redial Start\r\n");   
+	     	}
+		else
+			rt_kprintf("\r\n 关闭通信状态 ，不重播\r\n");   
+		      //-----------------------------
 	  }
     }     
 
@@ -1227,23 +1238,24 @@ void  ISP_Timer(void)
                 	{
                          Ready_dial_counter2=0;
 			    //DataDial.Dial_step=Dial_ISP;    
-			    DataDial.Dial_ON=enable;
+			    DataDial.Dial_ON=enable;  //
 				
                          Dial_Stage(Dial_ISP);
 		       }  
        } 
 
                   //---------   ISP 心跳包发送 - ----
-              if(TCP2_Connect==1)
+      /*        if(TCP2_Connect==1)
              {
                    TCP2_Coutner++;
                     if(TCP2_Coutner>=TCP2_sdDuration)
                     	{
                            TCP2_Coutner=0; 
-			      TCP2_sdFlag=1;     
+			      TCP2_IC_sdFlag=1;     
                     	}
 
-             }	 
+             }	
+      */
 
 }
  
@@ -1440,21 +1452,30 @@ void GSM_Module_TotalInitial(void)
 					 rt_kprintf(CommAT_Str15);   
 					 CommAT.Initial_step++;
 					 break; 	
-			 case 15://  信号强度 /		
+			 case 15:
+			                rt_hw_gsm_output(Signal_Intensity_str); 
+					 rt_kprintf(Signal_Intensity_str);    
+					 break; 			 
+			 case 16://  信号强度 /		
 			                rt_hw_gsm_output(Signal_Intensity_str); 
 					 rt_kprintf(Signal_Intensity_str);    
 					 break;
-	               case 16:/*开始能拨号*/ 
+	               case 17:/*开始能拨号*/ 
+				     if(JT808Conf_struct.Close_CommunicateFlag==0)
+	                         {	
 					 rt_kprintf("AT_Start\r\n");   
 					 CommAT.Initial_step=0; 
 					 CommAT.Total_initial=0;   
 
 					 DataDial.Dial_ON=enable;  //  进入  Data   状态
 					 DataDial.Pre_Dial_flag=1;    // Convert to  DataDial State
-					 Dial_Stage(Dial_DialInit0);     		  			 
+					 Dial_Stage(Dial_DialInit0);     	
+				     	}
+				    //  else
+					 //   	 rt_kprintf("\r\n 关闭通信状态不dial\r\n");    
 					 break; 				 
 			 default:					  
-					break;
+					break; 
 	 
 		   }  
 	    CommAT.Execute_enable=0;
@@ -1644,7 +1665,7 @@ void DataLink_Process(void)
 		                       if( Dnsr_state==0)//表示DNSR 状态下拨号 	 
 		                       	{
 		                       	   rt_kprintf("\r\n Dial  orginal   Mainlink\r\n");  
-                                   DataLink_MainSocket_set(RemoteIP_main,RemotePort_main,1);
+                                            DataLink_MainSocket_set(RemoteIP_main,RemotePort_main,1);
 		                       	}
 							   
                                    DataDial.Dial_step_RetryTimer=1500; 
@@ -1682,15 +1703,15 @@ void DataLink_Process(void)
 		     case   Dial_ISP:
 				      DataDial.Dial_step_RetryTimer=Dial_max_Timeout;
 					DataDial.Dial_step_Retry++;
-					 len=strlen((const char*)DialStr_ISP); 
+					 len=strlen((const char*)DialStr_IC_card); 
 					 for(i=0;i<len;i++)										
 					   {
-					        rt_hw_gsm_putc (DialStr_ISP[i]);     
+					        rt_hw_gsm_putc (DialStr_IC_card[i]);     
 					   }	
-				      rt_kprintf("\r\n   ----- Link  Isp----\r\n");       
+				      rt_kprintf("\r\n   ----- Link  IC ----\r\n");       
 					for(i=0;i<len;i++)										
 					   {
-					        rt_kprintf("%c",DialStr_ISP[i]);     
+					        rt_kprintf("%c",DialStr_IC_card[i]);     
 					   }	
 					break;				
 		      default:
@@ -1715,8 +1736,8 @@ static void GSM_Process(u8 *instr, u16 len)
   // if(DispContent==2)	 
    memset(GSM_rx,0,sizeof((const char*)GSM_rx));
    memcpy(GSM_rx,instr,len);
-   if((ISP_running_state==0)&&(VocREC.Sate!=VOICEREC_DataRXing)) 
-  //if(ISP_running_state==0)
+  // if((ISP_running_state==0)&&(VocREC.Sate!=VOICEREC_DataRXing)) 
+  if(DispContent!=0) 
    {
       // rt_kprintf("\r\n");      
         for(i=0;i<len;i++)  
@@ -1732,8 +1753,17 @@ static void GSM_Process(u8 *instr, u16 len)
 		rt_kprintf("\r\n  GSM 模块启动\r\n");         			
 	}*/
 
-
-
+      //----------------判断短信状态------------------------	
+   /*      if((SMS_send.Msg_sdState==1)&&(SMS_send.Msg_step==2))
+         	{
+                   if(GSM_rx[0]=='>')
+                   	{  
+                   	      SMS_send.Msg_step=3;
+			      memset(GSM_rx, 0, sizeof(GSM_rx));
+	                    GSM_rx_Wr = 0; 			  
+			      return ;		  
+                   	}
+	}*/
 
     #ifdef  M50_GSM
      if(Voice_data_come==1)	 // 录音数据
@@ -1803,13 +1833,13 @@ static void GSM_Process(u8 *instr, u16 len)
     }
 	#endif
 	else
-    if(strncmp((char*)GSM_rx, "%IPCLOSE: 2",11) == 0)// ISP close
+       if(strncmp((char*)GSM_rx, "%IPCLOSE: 2",11) == 0)// ISP close
 	 {
 		
 		rt_kprintf("\r\n");
 		rt_kprintf("%s",GSM_rx); 
 		rt_kprintf("\r\n");
-         #ifdef MULTI_LINK
+              #ifdef MULTI_LINK
 		     TCP2_Connect=0;										   
 		     TCP2_ready_dial=0;  
 		     TCP2_login=0;  
@@ -1818,7 +1848,7 @@ static void GSM_Process(u8 *instr, u16 len)
 		     if(DataLink_Status())
 			 	  TCP2_ready_dial=1;         
 		 #endif	 
-     } 
+        } 
 	else
 	if(strncmp((char*)GSM_rx, "IPCLOSE",5) == 0)    
 	{
@@ -1841,7 +1871,9 @@ static void GSM_Process(u8 *instr, u16 len)
 		 {	
 		    rt_hw_gsm_output("ATH\r\n"); 		
 			DataLink_EndFlag=1; 
-			DEV_Login.Operate_enable=1;//重新鉴权
+		    rt_kprintf("\r\n Datalink end =>收到:%IPCLOSE\r\n"); 	
+			//注册不成功连接断开后不鉴权还注册。
+			//DEV_Login.Operate_enable=1;//重新鉴权     
 		 }
 		 
 	}	
@@ -1890,7 +1922,7 @@ static void GSM_Process(u8 *instr, u16 len)
 			   // 移动的
 				//memset(Dialinit_APN,0,sizeof(Dialinit_APN));
 				//strcat(Dialinit_APN, "AT+CGDCONT=1,\"IP\",\"CMNET\"\r\n");
-			}  
+			} 
 	  
 		   CommAT.Initial_step++; 
 		 //-------------------------------------------------------------------------   
@@ -1922,7 +1954,7 @@ static void GSM_Process(u8 *instr, u16 len)
 	if(strncmp((char*)GSM_rx, "OK",2) == 0)  
 		{				
 		    ok = true;
-		  if(DispContent)	
+		 // if(DispContent)	
 			   rt_kprintf(" OK\r\n");     			
                			 //------------------------------------  
 		   if(Send_Rdy4ok==1)
@@ -2026,7 +2058,7 @@ static void GSM_Process(u8 *instr, u16 len)
 	 	      //  You must   register on 
 	 		  if(CommAT.Total_initial==1)
 	 			{
-	                if(ModuleSQ>10)
+	                if(ModuleSQ>8)
 	 				{
 	 				  CommAT.Initial_step++;
 					  rt_kprintf("\r\n CSQ check Pass\r\n");     
@@ -2049,13 +2081,13 @@ static void GSM_Process(u8 *instr, u16 len)
 	  //---  add for Test  ----- 
 	// memcpy(GSM_rx,"460021022612645",15);     // 河北平台车123         
 	 //   memcpy(GSM_rx,"460013602069192",15);     // 河北平台车123   
-	 //memcpy(GSM_rx,"460012212469640",15);     // 天津运营平台渝000000  
+	// memcpy(GSM_rx,"460012212469640",15);     // 天津运营平台渝000000  
 	/*  memcpy(GSM_rx,"460018820130001",15);     // 认证用       
 	  rt_kprintf("\r\n获取IMSI 号码:%s \r\n",GSM_rx);       
 	  memcpy((char*)IMSI_CODE,(char*)GSM_rx,15);
 	  IMSI_Convert_SIMCODE(); //  translate */
 	  RTC_TimeShow();
-	  IMSIGet.imsi_error_count=0;	
+	  IMSIGet.imsi_error_count=0;	 
 	  IMSIGet.Get_state=1;
 	  GSM_PWR.GSM_power_over=2;     //  get imsi
 	  IMSIGet.Get_state=0;
@@ -2136,13 +2168,16 @@ static void GSM_Process(u8 *instr, u16 len)
 				         //-----------  Below add by Nathan  ----------------------------
                                      DataLink_AuxSocket_set(RemoteIP_aux, RemotePort_main,0);	 
 					 //-------------  End  need	process ---------------------------------------
-			               memset(GSM_rx, 0, sizeof(GSM_rx));    
+			               memset(GSM_rx, 0, sizeof(GSM_rx));         
  	                             GSM_rx_Wr = 0;  
  					  return;	   
 			    	}
 				 //--------------------------------
-				else
-				         DataLink_EndFlag=1; //AT_End();   
+				   else
+				   {     
+				        DataLink_EndFlag=1; //AT_End();   
+                                       rt_kprintf("\r\n Datalink end =>Errors 杂\r\n"); 
+				   	}
 	} 
 	else
 	if (strncmp((char*)GSM_rx, "ERROR",5) == 0) 
@@ -2153,8 +2188,8 @@ static void GSM_Process(u8 *instr, u16 len)
 	   if(TTS_ACK_Error_Process()==true)
                {     rt_kprintf("\r\n  TTS ack  error \r\n");  Speak_OFF; }
 	   else 
-	   if(DataLink_Status())        //   Online  state  Error    , End Link and Redial     
-	              DataLink_EndFlag=1; 
+	   if(DataLink_Status())        //   Online  state  Error    , End Link and Redial    
+	        {      DataLink_EndFlag=1;   rt_kprintf("\r\n Datalink end => 数据链路下收到错误\r\n");}  
 	   rt_kprintf("\r\n ERROR\r\n");      
 	}   
 	else
@@ -2188,11 +2223,13 @@ RXOVER:
 		case Dial_DialInit5	:	if (ok)  Dial_Stage(Dial_DialInit6);
 								break;
 		case Dial_DialInit6	:	if (ok)  
+			                                 /*     IC 卡过检验不需要DNSR
 			                                   #ifdef MULTI_LINK
 			                                         Dial_Stage(Dial_DNSR1);   // 多连接
 								#else
-								      Dial_Stage(Dial_MainLnk);
-		             #endif
+							    */	
+						        Dial_Stage(Dial_MainLnk);   
+		                                      // #endif
 								break;						
 		case Dial_DNSR1	:	if (ok)
 			                           {
@@ -2204,7 +2241,7 @@ RXOVER:
                                                           Dial_Stage(Dial_MainLnk); 
 			                           }   
 								break;							
-		    case Dial_MainLnk		:		
+		case Dial_MainLnk		:		
 	      	case Dial_AuxLnk	       :	if (failed || error)
 								{
 									DataDial.Dial_step_RetryTimer=Dial_Dial_Retry_Time;				// try again in 6 seconds
@@ -2220,8 +2257,12 @@ RXOVER:
 								 
 								            //   注册状态
 								            if(1==JT808Conf_struct.Regsiter_Status)  
-								                 DEV_Login.Operate_enable=1;   			 						
-									 
+								                {  
+								                   DEV_Login.Operate_enable=1;   	
+                                                                           DEV_Login.Enable_sd=1;//鉴权只发一次
+                                                                           DEV_Login.Sd_counter=0;
+                                                                           DEV_Login.Max_sd_num=0; 
+								            	}
 								   // connect = true;
 								         //  -----  Data  Dial Related ------
 									    if((DataDial.Dial_ON)&&(DataDial.Dial_step<Max_DIALSTEP)) 
@@ -2246,15 +2287,17 @@ RXOVER:
 									DataDial.Dial_step_RetryTimer=Dial_Dial_Retry_Time;
 									break;
 								}
-								 if (connect_2) 
+								 if (connect) 
 								{
 									 Dial_Stage(Dial_Idle); //	In EM310 Mode										
-									TCP2_Connect=1;		
-									TCP2_sdFlag=1;
-									TCP2_ready_dial=0;  
-									rt_kprintf("\r\n TCP 连接成功-ISP!\r\n");     
-									 DataDial.Dial_ON=0;  // 
-									  ISP_running_state=0;
+									 TCP2_Connect=1;		
+									 //TCP2_IC_sdFlag=1;
+									  TCP2_ready_dial=0;  
+									 rt_kprintf("\r\n //---------------------------------");
+									 rt_kprintf("\r\n     IC 卡TCP 连接成功!\r\n");     
+									  rt_kprintf("//---------------------------------\r\n "); 
+									  DataDial.Dial_ON=0;  // 
+									  BD_ISP.ISP_running=0;
 								}							 
 								break;		 						
 		default 			:	 Dial_Stage(Dial_Idle);
@@ -2305,6 +2348,51 @@ void AT(u8 *str)
 } 
 FINSH_FUNCTION_EXPORT(AT, gsm_ATcmd);
 
+void  redial(void)
+{
+      DataLink_EndFlag=1; //AT_End();   
+        rt_kprintf("\r\n Redial\r\n");      
+}
+FINSH_FUNCTION_EXPORT(redial, redial);
+
+
+void Rx_in(u8* instr)
+{
+    u16  inlen=0;
+
+      if(strncmp(instr,"can1",4)==0)
+      	{
+           Get_GSM_HexData("7E8103003B013601300001864F060000010004000001F40000010102000A0000010204000000000000010302000000000110080000000058FFD11700000111080000006458FFD017EA7E",148,0);
+           OutPrint_HEX("模拟1", GSM_HEX, GSM_HEX_len); 
+
+	 }
+        else
+      	{
+		     inlen=strlen((const char*)instr);
+		     Get_GSM_HexData(instr,inlen,0);  
+		      OutPrint_HEX("模拟", GSM_HEX, GSM_HEX_len); 
+      	}	 
+
+}
+FINSH_FUNCTION_EXPORT(Rx_in, Rx_in);
+
+void mang_qu(void)
+{
+   Get_GSM_HexData("7E860200180136013000046AEF01010000006640000262548106BC3E400238A9580717CBC09C7E",78,0);
+   OutPrint_HEX("盲区围栏", GSM_HEX, GSM_HEX_len); 
+}
+FINSH_FUNCTION_EXPORT(mang_qu, mang_qu);
+
+
+void canrxid(u8 * instr)
+{
+       u8  REG[4];
+      
+	GSM_AsciitoHEX_Convert(instr,8,REG); 
+       CAN_trans.canid_1_Filter_ID=((REG[0]&0x1F)<<24)+(REG[1]<<16)+(REG[2]<<8) +REG[3]; 
+       rt_kprintf("\r\n  Set Filter  ID =%08X\r\n", CAN_trans.canid_1_Filter_ID);        
+}
+FINSH_FUNCTION_EXPORT(canrxid, canrxid);
 
 
 void  rt_hw_gsm_init(void)

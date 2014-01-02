@@ -35,14 +35,6 @@
 static struct rt_device dev_gps;
 static uint32_t			gps_out_mode = GPS_OUTMODE_ALL;
 
-/*串口接收缓存区定义*/
-#define UART5_RX_SIZE 256
-
-typedef __packed struct
-{
-	uint16_t	wr;
-	uint8_t		body[UART5_RX_SIZE];
-}LENGTH_BUF;
 
 static LENGTH_BUF uart5_rxbuf;
 static LENGTH_BUF gps_rx;
@@ -220,6 +212,12 @@ u8 Process_RMC(u8* packet)
     //----------------- Initial Speed and Direction -----------------    
     GPRMC_Funs.Speed(tmpinfo, INIT, k);	
     GPRMC_Funs.Direction(tmpinfo, INIT, k);  	
+
+     if((stopNormal==1)||(line_warn_enable==1)) 
+	{ 
+	     memset(gps_log,0,sizeof(gps_log));
+            memcpy(gps_log,packet+17,30);
+     	}
     //-------------------------------------------------------------------	
  	while (*packet!=0){ 
 		if(*packet==','){
@@ -280,16 +278,6 @@ u8 Process_RMC(u8* packet)
 					GPRMC_Funs.Longitude_WE(tmpinfo);
 					break;
 				case 8://速率 
-				                if((JT808Conf_struct.Speed_GetType==0)&&( UDP_dataPacket_flag == 0x03 )&&(0==Jia_GPS_spdFlag) ) // 通过速度传感器 获取速度
-       	                              { 
-       	                                        Speed_gps=0;
-                                                      GPS_speed=Speed_gps;       
-				                }	
-						 else
-						 if(1==Jia_GPS_spdFlag)
-						 	{
-                                                       GPS_speed=Speed_gps;       
-						 	}
 						   for ( k = 0; k < iCount; k++ )
 							{
 									if ( tmpinfo[k] == '.' )
@@ -364,7 +352,7 @@ u8 Process_GSA(u8* packet)
 	   return true;
 }
 //------------------
-/*u8 Process_TXT(u8* packet) 
+u8 Process_TXT(u8* packet) 
 {
  // $GNTXT,01,01,01,ANTENNA SHORT*7D
 //$GNTXT,01,01,01,ANTENNA OK*2B
@@ -382,36 +370,41 @@ u8 Process_GSA(u8* packet)
 			switch(CommaCount){
 				case 5:
 						if(strncmp((char*)tmpinfo,"ANTENNA OPEN",12)==0)//开路检测	1:天线开路
-						{
-							 if(OutGPS_Flag==0)
-							 {
-								   if((Warn_Status[3]&0x20)==0)
+							{
+							if(OutGPS_Flag==0)
+								{
+								if((Warn_Status[3]&0x20)==0)
 									{
-									   rt_kprintf("\r\n	检测到	天线开路\r\n");
-									    GpsStatus.Antenna_Flag=1;
-								           PositionSD_Enable();   
-									    Current_UDP_sd=1;	   
-								   	}   
-								   Warn_Status[3]|=0x20;
-								   Warn_Status[3]&=~0x40;	
-								  
-							}  
-						}
+									Antenna_open_flag=1;
+									rt_kprintf("\r\n	检测到	天线开路");
+									GpsStatus.Antenna_Flag=1;
+									PositionSD_Enable();   
+									Current_UDP_sd=1;	
+									}   
+								Warn_Status[3]|=0x20;
+								Warn_Status[3]&=~0x40;	
+
+								}  
+							}
 						if(strncmp((char*)tmpinfo,"ANTENNA SHORT",13)==0)//短路检测  0:天线短路
-						{
-						   Warn_Status[3]&=~0x20;
-						   Warn_Status[3]|=0x40;
-						}
+							{
+							   Warn_Status[3]&=~0x20;
+							   Warn_Status[3]|=0x40;
+							}
 						else
 						if(strncmp((char*)tmpinfo,"ANTENNA OK",10)==0)	
 						{
 						  GpsStatus.Antenna_Flag=0;
 						  if(Warn_Status[3]&0x20)
 							{
-							    rt_kprintf("\r\n	检测到	天线恢复正常");
-						           PositionSD_Enable();    
-							    Current_UDP_sd=1;	   
-						  	}	
+							Antenna_open_flag=2;
+							rt_kprintf("\r\n	检测到	天线恢复正常");
+							PositionSD_Enable();    
+							Current_UDP_sd=1;
+							}	
+						  else
+						  	Antenna_open_flag=0;
+						  
 						   Warn_Status[3]&=~0x20;
 						   Warn_Status[3]&=~0x40;	  						   
 						}
@@ -430,8 +423,71 @@ u8 Process_GSA(u8* packet)
 	return CommaCount;
    
 }
-*/
 //---------------------
+
+u32 Str_2_u32( u8 *tmpinfo,u8  	H1_F) 
+{
+                          //-------------------------------------------------------------------
+             u8  str_buf[20], strInfolen=0;
+	     // u8  H1_F=0,H2_F=0;
+                         u32   H1intVlaue=0;
+	      u8   i=0,point_pos=0;  					 
+
+	       strInfolen=strlen(tmpinfo); 
+		 if(strInfolen) 
+	      	{
+	      	       memset(str_buf,0,sizeof(str_buf));
+                      if(tmpinfo[0]=='-')
+			{ 
+			    H1_F=1;
+			    memcpy(str_buf,tmpinfo+1,strInfolen-1);
+			    strInfolen=strInfolen-1;   	
+			}
+			else
+			   memcpy(str_buf,tmpinfo,strInfolen);	
+			
+                    rt_kprintf("\r\n seg=  %s  len=%d",str_buf,strInfolen);    
+                                //  find  point 
+			for(i=0;i<strInfolen;i++)
+			{
+                             if(str_buf[i]=='.')
+				 {       point_pos=i;     	
+                                                  break;
+                                       	 }
+			}
+                                 //    convert  according  to  pointpos
+			switch(i)
+			{
+					     case  1:  //9.1
+                                                               H1intVlaue=str_buf[0]*10+str_buf[2];
+							    break;
+                                                    case  2: //10.2
+                                                                H1intVlaue=str_buf[0]*100+str_buf[1]*10+str_buf[3];
+							    break;
+					     case  3: //100.2
+                                                               H1intVlaue=str_buf[0]*1000+str_buf[1]*100+str_buf[2]*10+str_buf[4];   
+							    break;	
+					      case  4: //1000.2
+                                                                H1intVlaue=str_buf[0]*10000+str_buf[1]*1000+str_buf[2]*100+str_buf[3]*10+str_buf[5]; 
+							    break;	
+					      default:
+						  	     H1intVlaue=0;
+						  	     break;
+
+		      }
+
+	      	}
+		else
+			H1intVlaue=0;
+	      
+                       //--------------------------------------------------------------------
+
+
+              return  H1intVlaue;
+
+}
+
+
 u8 Process_GGA(u8* packet)  
 {	//检查数据完整性,执行数据转换
 	u8 CommaCount=0,iCount=0;
@@ -468,8 +524,10 @@ u8 Process_GGA(u8* packet)
 				break;
 				case 12:// Geoid Separation
 					Hight2=atof((const char*)tmpinfo);
-					GPS_Hight=(u16)(Hight1+Hight2);  	 				
-					//printf("\r\n 当前海拔高度为:%f,  %f ,%d m\r\n",Hight1,Hight2,GPS_Hight); 
+					//GPS_Hight=(u16)(Hight1+Hight2);  	 	
+
+                                    //----jiade 
+					GPS_Hight=50+(CSQ_counter%5)-(Satelite_num%4);   
 					break;
 				default:
 					break;
@@ -486,103 +544,6 @@ u8 Process_GGA(u8* packet)
 
 
 }
-
-void  GPS_ANTENNA_status(void)     //  天线开短路状态检测 
-{
-    // 2013-4-20    更改PCB   用PD4 : GPS 天线开路      PB6 : GPS  天线短路
-   	if(GPIO_ReadOutputDataBit(GPS_PWR_PORT, GPS_PWR_PIN )) // 在GPS 有电时有效   
-		{
-			if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4))//开路检测	1:天线开路
-			{
-				 if(OutGPS_Flag==0)
-				 {
-					   if((Warn_Status[3]&0x20)==0)
-					         rt_kprintf("\r\n	检测到	天线开路"); 
-					   Warn_Status[3]|=0x20;
-					   Warn_Status[3]&=~0x40; 	 
-					   GpsStatus.Antenna_Flag=1;
-					   Gps_Exception.GPS_circuit_short_couter=0;
-			 	}  
-			}
-					#if 1
-			else if(!GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_6))//短路检测  0:天线短路 
-			{
-			         if(( Warn_Status[3]&0x40)==0)   
-				     {
-                        Gps_Exception.GPS_short_keepTimer++;
-						if( Gps_Exception.GPS_short_keepTimer>200)     
-					    {
-					       Gps_Exception.GPS_short_keepTimer=0;  // clear 
-					       rt_kprintf("\r\n	检测到	天线短路");     
-						   rt_kprintf("\r\n	发现短路，立即断开GPS电源");      
-						   GPIO_ResetBits( GPS_PWR_PORT, GPS_PWR_PIN ); 
-
-
-						      //------------------------------------------ 
-							  Gps_Exception.GPS_circuit_short_couter++;
-							  if(Gps_Exception.GPS_circuit_short_couter>=4)  
-							   {
-									Gps_Exception.GPS_short_checkFlag=2;
-									Gps_Exception.GPS_short_timer=0; // clear  
-									rt_kprintf("\r\n   短路检测大于3次 ，一直断开GPS 电源\r\n");   
-									
-									//	断开 GPS 电源后，得启动 本地定时 ，否则人家说丢包.NND
-									/*
-							  
-									   */ 
-							   }	
-							  else
-							   {
-									  Gps_Exception.GPS_short_checkFlag=1; 
-							   } 
-			                   //-----------------------------------------------------
-                             
-							   // set  flag 	
-							   Warn_Status[3]&=~0x20;
-							   Warn_Status[3]|=0x40;	 
-							   //------------------------------------------
-					     }
-			         } 		
-				   
-
-			}
-			#endif
-			else
-			{
-				 if(Warn_Status[3]&0x20)
-				  	      rt_kprintf("\r\n	检测到	天线恢复正常");   
-	              Warn_Status[3]&=~0x20;
-				  Warn_Status[3]&=~0x40;   
-				  GpsStatus.Antenna_Flag=0;
-				  Gps_Exception.GPS_circuit_short_couter=0;
-			} 
-			
-		}
-}
-
-void  GPS_short_judge_timer(void)
-{
-       if(Gps_Exception.GPS_short_checkFlag==1)
-       {
-        Gps_Exception.GPS_short_timer++; 
-		if(Gps_Exception.GPS_short_timer>100)
-		{   //   关电 后开启
-		     Gps_Exception.GPS_short_timer=0;  
-		     gps_onoff(1);
-		     rt_kprintf("\r\n	 再次开启GPS模块\r\n"); 
-			 //---------------期待模块正常-----------
-               Warn_Status[3]&=~0x20;
-			   Warn_Status[3]&=~0x40; 
-			 //----------------
-			 Gps_Exception.GPS_short_checkFlag=0; 
-		}	 
- 
-       }
-
-
-
-}
-
 //------------------------------------------------------------------
 void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen) 
 {    
@@ -594,14 +555,30 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 
 				if(GpsStatus.Raw_Output==1)		  
 		                   rt_kprintf((const char*)Gps_instr);        // rt_kprintf((const char*)Gps_str);         
-            
+
+	
 			   //----------------  Mode  Judge    ---------------------			 
 				if(strncmp((char*)Gps_instr,"$GNRMC,",7)==0)
-				{	GpsStatus.Position_Moule_Status=3;GPRMC_Enable=1;}
+				{	
+				     GpsStatus.Position_Moule_Status=3;
+				     GPRMC_Enable=1;
+				     Car_Status[1]&=~0x0C; // clear bit3 bit2 
+				     Car_Status[1]|=0x0C; // BD+GPS  mode	1100	 	 
+				}
 				if(strncmp((char*)Gps_instr,"$BDRMC,",7)==0)
-				{	GpsStatus.Position_Moule_Status=1;GPRMC_Enable=1;}
+				{	
+				       GpsStatus.Position_Moule_Status=1;
+				       GPRMC_Enable=1;
+					Car_Status[1]&=~0x0C; // clear bit3 bit2 
+					Car_Status[1]|=0x08; // BD mode	1000	   
+			        }
 				if(strncmp((char*)Gps_instr,"$GPRMC,",7)==0)    
-				{	GpsStatus.Position_Moule_Status=2;	GPRMC_Enable=1;}  	 	  
+				{	
+				       GpsStatus.Position_Moule_Status=2;	
+				       GPRMC_Enable=1;
+				       Car_Status[1]&=~0x0C; // clear bit3 bit2      1100 
+					Car_Status[1]|=0x04; // Gps mode   0100
+		               }  	 	  
 				
                   	    //-------------------------------------------------- 
                             //  GNSS RAW data 存储
@@ -634,9 +611,11 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
                             //----------- Pick up useful  --------------------------
 			      if(GPRMC_Enable==1) 
 			      	{
+					 
+					//-----------------------------------------
 			      	     if(GpsStatus.Raw_Output==2)	
-                                        rt_kprintf(" gps_thread tx :                   %s",Gps_instr);      
-					Process_RMC(Gps_instr); 	
+                                        rt_kprintf("%s",Gps_instr);       
+					Process_RMC(Gps_instr); 	 
 					Gps_Exception.current_datacou+=gps_strLen;
                                   return;
 			      	}
@@ -647,12 +626,12 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 					Process_GSA(Gps_instr);
 				      return;	
 			      }
-				/*if((strncmp((char*)Gps_instr,"$GNTXT,",7)==0)||(strncmp((char*)Gps_instr,"$GPTXT,",7)==0)||(strncmp((char*)Gps_instr,"$BDTXT,",7)==0)) 
+				if((strncmp((char*)Gps_instr,"$GNTXT,",7)==0)||(strncmp((char*)Gps_instr,"$GPTXT,",7)==0)||(strncmp((char*)Gps_instr,"$BDTXT,",7)==0)) 
 				{
 					  //rt_kprintf("%s",GPSRx);  
 					  Process_TXT(Gps_instr);  
 					   return;	
-				}*/
+				}
 			      if((strncmp((char*)Gps_instr,"$GPGGA,",7)==0)||(strncmp((char*)Gps_instr,"$GNGGA,",7)==0)||(strncmp((char*)Gps_instr,"$BDGGA,",7)==0))  
 			     {   
 					   //GNSS_Trans();
@@ -661,20 +640,6 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 		            }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 //================================================
@@ -773,31 +738,6 @@ void gps_baud( int baud )
 FINSH_FUNCTION_EXPORT( gps_baud, config gsp_baud );
 
 /*初始化*/
-
-void  gps_io_init(void)
-{
-  GPIO_InitTypeDef	GPIO_InitStructure;
-  RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_GPIOD, ENABLE );
-#if 1
-  //-------- 开短路检测  -------- 
-	 //#ifdef HC_595_CONTROL	  
-  // 2013-4-20		更改PCB   用PD4 : GPS 天线开路		PB6 : GPS  天线短路
-  GPIO_InitStructure.GPIO_OType   = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd	  = GPIO_PuPd_NOPULL;  
-  GPIO_InitStructure.GPIO_Speed   = GPIO_Speed_2MHz;	
-  //	 IN
-  //------------------- PD4 -----------------------------
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;    //GPS 天线开路 
-  GPIO_InitStructure.GPIO_Mode	= GPIO_Mode_IN; 
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
-  //------------------- PB6 -----------------------------
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;    //GPS 天线短路 
-  GPIO_InitStructure.GPIO_Mode	= GPIO_Mode_IN; 
-  GPIO_Init(GPIOB, &GPIO_InitStructure);	
-#endif
-
-}
-
 static rt_err_t dev_gps_init( rt_device_t dev )
 {
 	GPIO_InitTypeDef	GPIO_InitStructure;
@@ -816,8 +756,6 @@ static rt_err_t dev_gps_init( rt_device_t dev )
 	GPIO_Init( GPS_PWR_PORT, &GPIO_InitStructure );
 	GPIO_ResetBits( GPS_PWR_PORT, GPS_PWR_PIN );
 
-
-
 /*uart5 管脚设置*/
 
 	GPIO_InitStructure.GPIO_OType	= GPIO_OType_PP;
@@ -829,12 +767,9 @@ static rt_err_t dev_gps_init( rt_device_t dev )
 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
 	GPIO_Init( GPIOD, &GPIO_InitStructure );
-	
-	
-   //---------------------------------------------------------------
+
 	GPIO_PinAFConfig( GPIOC, GPIO_PinSource12, GPIO_AF_UART5 );
 	GPIO_PinAFConfig( GPIOD, GPIO_PinSource2, GPIO_AF_UART5 );
-	
 
 /*NVIC 设置*/
 	NVIC_InitStructure.NVIC_IRQChannel						= UART5_IRQn;
@@ -848,8 +783,6 @@ static rt_err_t dev_gps_init( rt_device_t dev )
 	USART_ITConfig( UART5, USART_IT_RXNE, ENABLE );
 
 	GPIO_SetBits( GPIOD, GPIO_Pin_10 );
-
-
 
 	return RT_EOK;
 }
@@ -987,7 +920,7 @@ static void rt_thread_entry_gps( void* parameter )
 				}
 			}
 		}
-		rt_thread_delay( RT_TICK_PER_SECOND / 10 );
+		rt_thread_delay( 10 ); 
 	}
 }
 
@@ -1018,7 +951,7 @@ void gps_init( void )
 }
 
 /*gps开关*/
-rt_err_t gps_onoff( uint8_t openflag ) 
+rt_err_t gps_onoff( uint8_t openflag )
 {
 	if( openflag == 0 )
 	{
@@ -1564,13 +1497,17 @@ void  gps_mode(u8 *str)
 			{
 			  dev_gps_write( &dev_gps, 0, BD_MODE, strlen(BD_MODE));
 			   GpsStatus.Position_Moule_Status=1;
+			   Car_Status[1]&=~0x0C; // clear bit3 bit2 
+			   Car_Status[1]|=0x08; // BD mode	1000	
 			//GPS_PutStr(BD_MODE);
 			 rt_kprintf ("\r\n    BD MODE\r\n"); 
 			}
 		else if(str[0]=='2')
 			{
-			 dev_gps_write( &dev_gps, 0, GPS_MODE, strlen(BD_MODE));
-			  GpsStatus.Position_Moule_Status=2;
+			   dev_gps_write( &dev_gps, 0, GPS_MODE, strlen(BD_MODE));
+			   GpsStatus.Position_Moule_Status=2;
+			   Car_Status[1]&=~0x0C; // clear bit3 bit2      1100
+			   Car_Status[1]|=0x04; // Gps mode   0100
 			//GPS_PutStr(GPS_MODE);
 			   rt_kprintf("\r\n    GPS MODE\r\n");
 			}
@@ -1578,6 +1515,8 @@ void  gps_mode(u8 *str)
 			{
 			   dev_gps_write( &dev_gps, 0, GPSBD_MODE, strlen(BD_MODE));    
 			   GpsStatus.Position_Moule_Status=3;
+			   Car_Status[1]&=~0x0C; // clear bit3 bit2 
+			   Car_Status[1]|=0x0C; // BD+GPS  mode	1100	
 			   rt_kprintf("\r\n   GPS&BD  MODEr\n");
 			}
 	 }
@@ -1599,7 +1538,8 @@ void  gps_raw(u8* str)
       else
      if(str[0]=='0') 
      	{
-           GpsStatus.Raw_Output=0;         
+           GpsStatus.Raw_Output=0;  
+	    GNSS_RawDataTrans_Init(disable);	    
      	}
        else  
 	 if(str[0]=='3')    //  add  for debug   

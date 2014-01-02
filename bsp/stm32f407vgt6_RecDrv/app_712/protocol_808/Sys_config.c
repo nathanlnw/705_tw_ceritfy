@@ -11,8 +11,8 @@
 #include "App_moduleConfig.h"
 #include "Device_808.h"
 
-#define   SYSID            0x0299     
 
+#define   SYSID            0x03235
 
 ALIGN(RT_ALIGN_SIZE) 
 SYS_CONF          SysConf_struct;   //  系统配置  
@@ -27,13 +27,14 @@ TIRED_CONF      TiredConf_struct;    //  疲劳驾驶相关配置
 
 
 //----------  Basic  Config---------------------------
-u8          RemoteIP_regDial[4]={60,28,50,210};//{60,28,50,210};  //  add for 北斗认证  124,207,144,178
-u8          RemoteIP_Dnsr[4]={255,255,255,255}; 
-u8		RemoteIP_main[4]={60,28,50,210};//{125,38,185,88};//{113,31,28,101 };//{113,31,92,200};//天津{60,28,50,210}; 河北天地通 113,31,28,100                        
-u16		RemotePort_main=7804;//9131;//天津9131;   河北天地通 8201              //test tianjin    
-u8		RemoteIP_aux[4]={60,28,50,210};    //{60,28,50,210} 
-u16		RemotePort_aux=7804; 
-u8           APN_String[30]="UNINET"; //"CMNET";   //  河北天地通  移动的卡
+u8          RemoteIP_regDial[4]={202,96,42,115};//{60,28,50,210};  //  add for 北斗认证
+u8          RemoteIP_Dnsr[4]={255,255,255,255};  
+u8		RemoteIP_main[4]={202,96,42,115};//{125,38,185,88};//{113,31,28,101 };//{113,31,92,200};//天津{60,28,50,210}; 河北天地通 113,31,28,100                        
+u16		RemotePort_main=9999; //8499;// 7804;//9131;//天津9131;   河北天地通 8201              //test tianjin    
+u8		RemoteIP_aux[4]={202,96,42,113};    //{60,28,50,210}  //IC 卡认证服务中心地址
+                                                                         //   202.96.42.113:11001 
+u16		RemotePort_aux=11001;  
+u8           APN_String[30]="CMNET"; //"CMNET";   //  河北天地通  移动的卡
 u8           DomainNameStr[50]="jt1.gghypt.net"; ;  // 域名  天地通up.gps960.com //jt1.gghypt.net
 u8           DomainNameStr_aux[50]="jt2.gghypt.net";     //"www.sina.com";//jt2.gghypt.net 
 u16         ACC_on_sd_Duration=30;    //  ACC 开启的时候 上报的时间间隔  
@@ -242,10 +243,17 @@ u8  SysConfig_init(void)
 			 
 	        //   主 IP   +  端口
 	        memcpy(SysConf_struct.IP_Main,(u8*)RemoteIP_main,4); 
-	                         SysConf_struct.Port_main=RemotePort_main;
+	        SysConf_struct.Port_main=RemotePort_main;
+			
 	       //   备用 IP   +  端口
-	             memcpy(SysConf_struct.IP_Aux,(u8*)RemoteIP_aux,4); 
-	                         SysConf_struct.Port_Aux=RemotePort_aux;	 				 
+	        memcpy(SysConf_struct.IP_Aux,(u8*)RemoteIP_aux,4); 
+	        SysConf_struct.Port_Aux=RemotePort_aux;	
+			
+              //   IC 卡中心IP   TCP 端口 UDP  端口
+               memcpy(SysConf_struct.BD_IC_main_IP,(u8*)RemoteIP_aux,4);
+		 SysConf_struct.BD_IC_TCP_port=RemotePort_aux; 	    
+		 SysConf_struct.BD_IC_UDP_port=29;
+			
 
 	       //  传感器触发上报状态
 	        SysConf_struct.TriggerSDsatus=TriggerSDsatus;
@@ -263,14 +271,14 @@ void SysConfig_Read(void)
                       rt_kprintf("\r\nConfig_ Read Error\r\n");   
 
 			
- 		memset((u8*)APN_String,0 ,sizeof(APN_String)); 
-		memcpy((u8*)APN_String,SysConf_struct.APN_str,strlen(SysConf_struct.APN_str));  
+ 		memset((u8*)APN_String,0 ,sizeof((const char*)APN_String)); 
+		memcpy((u8*)APN_String,SysConf_struct.APN_str,strlen((const char*)SysConf_struct.APN_str));  
 	                        //   域名
-		memset((u8*)DomainNameStr,0 ,sizeof(DomainNameStr));
-		memcpy((u8*)DomainNameStr,SysConf_struct.DNSR,strlen(SysConf_struct.DNSR)); 
+		memset((u8*)DomainNameStr,0 ,sizeof((const char*)DomainNameStr));
+		memcpy((u8*)DomainNameStr,SysConf_struct.DNSR,strlen((const char*)SysConf_struct.DNSR)); 
 	                        //   域名aux
-		memset((u8*)DomainNameStr_aux,0 ,sizeof(DomainNameStr_aux));
-		memcpy((u8*)DomainNameStr_aux,SysConf_struct.DNSR_Aux,strlen(SysConf_struct.DNSR_Aux)); 
+		memset((u8*)DomainNameStr_aux,0 ,sizeof((const char*)DomainNameStr_aux)); 
+		memcpy((u8*)DomainNameStr_aux,SysConf_struct.DNSR_Aux,strlen((const char*)SysConf_struct.DNSR_Aux)); 
 
 		
 			 
@@ -310,7 +318,6 @@ void JT808_DURATION_Init(void)
 	JT808Conf_struct.DURATION.Emegence_Dur=20;    //  紧急报警时上报时间间隔
 	JT808Conf_struct.DURATION.Default_Dur=20; //认证时用30 间隔--30;     //  缺省情况下上报的时间间隔
 	JT808Conf_struct.DURATION.SD_Delta_maxAngle=60; // 拐点补传的最大角度
-	JT808Conf_struct.DURATION.IllgleMovo_disttance=300; // 非法移动阈值  
 }
 
 void JT808_SendDistances_Init(void)
@@ -351,7 +358,7 @@ void  JT808_Vehicleinfo_Init(void)
 	memset((u8*)&JT808Conf_struct.Vechicle_Info,0,sizeof(JT808Conf_struct.Vechicle_Info));
 	//-----------------------------------------------------------------------
 	memcpy(JT808Conf_struct.Vechicle_Info.Vech_VIN,"00000000000000000",17);
-	memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,"津TST002",8);        
+	memcpy(JT808Conf_struct.Vechicle_Info.Vech_Num,"TST0004",7);  //      
 	memcpy(JT808Conf_struct.Vechicle_Info.Vech_Type,"未知型",6);       
 	JT808Conf_struct.Vechicle_Info.Dev_ProvinceID=12;  // 默认省ID   12(天津)      GB/T 2260 中规定的6位码中的前 2 位
 	JT808Conf_struct.Vechicle_Info.Dev_CityID=0;      // 默认市ID   0	 GB/T 2260 中规定的6位码中的后4位	
@@ -370,7 +377,7 @@ u8     JT808_Conf_init( void )
                          //  JT808Conf_struct.
                  JT808_SendDistances_Init();
 		   JT808_SendMode_Init();
-		   JT808Conf_struct.LOAD_STATE=1; //  负载状态
+		   JT808Conf_struct.LOAD_STATE=0; //  负载状态
 		   
 		   memset((u8*)JT808Conf_struct.ConfirmCode,0,sizeof(JT808Conf_struct.ConfirmCode));
 		   memcpy((u8*)JT808Conf_struct.ConfirmCode,"012345\x00",7); //  鉴权码
@@ -407,7 +414,8 @@ u8     JT808_Conf_init( void )
    	
                 JT808Conf_struct.OutGPS_Flag=1;     //  0  默认  1  接外部有源天线 
                 JT808Conf_struct.concuss_step=40;
-				JT808Conf_struct.password_flag=0;//初次为0，设置好后为1
+		  JT808Conf_struct.password_flag=0;//初次为0，设置好后为1
+		   JT808Conf_struct.Close_CommunicateFlag=0;  //  关闭通信falg		
 		   JT808_RealTimeLock_Init();   //  实时跟踪设置	
 
 		    		 
@@ -428,11 +436,20 @@ u8     JT808_Conf_init( void )
 		  JT808Conf_struct.Driver_Info.BD_Confirm_agentID_Len=16; 
 		  memcpy(JT808Conf_struct.Driver_Info.BD_Confirm_agentID,"000000000000000",16);
 		  memcpy(JT808Conf_struct.Driver_Info.BD_ExpireDate,"\x20\x13\x01\x01",4);  //YYYYMMDD
+		  memcpy(JT808Conf_struct.Driver_Info.DriverCard_ID,"123456789012345678",18);
 		  // 终端手机号  
-          memcpy(JT808Conf_struct.Vechicle_Info.Vech_sim,"012345678901",12);
+                 memcpy(JT808Conf_struct.Vechicle_Info.Vech_sim,"012345678901",12);
 							
-  	          JT808_Vehicleinfo_Init();
-       
+  	          JT808_Vehicleinfo_Init(); 
+		   //------------- BD add  -----------------	
+		   JT808Conf_struct.BD_CycleRadius_DoorValue=300;    //  电子围栏半径(非法移动阈值)，单位米
+		   JT808Conf_struct.BD_MaxSpd_preWarnValue=50;    //  超速报警预警差值，单位 1/10  Km/h
+		   JT808Conf_struct.BD_TiredDrv_preWarnValue=20;  // 疲劳驾驶预警差值，单位 秒
+		   JT808Conf_struct.BD_Collision_Setting=0x11;     // 碰撞参数报警设置    bit 7-bit 0   碰撞时间 单位 4ms   、 bit15-8 碰撞加速度 0.1g  0-79  默认10
+		   JT808Conf_struct.BD_Laydown_Setting=30;    // 侧翻报警参数设置     侧翻角度 单位 1 度 ，默认30度
+		    //------  摄像头 相关设置 ------------------------------
+		   JT808Conf_struct.BD_CameraTakeByTime_Settings=0;   // 摄像头定时拍照开关    0 不允许1 允许 表13
+		   JT808Conf_struct.BD_CameraTakeByDistance_Settings=0;  //  摄像头定距离拍照控制位       
 
        //    3. Operate
             return(Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct)));       
@@ -561,12 +578,13 @@ u8 len_write=8;
 
 void Event_Read(void) 
 {
-  u8 i=0,j=0;
-  u8 result=0,array[23];
+  u8 i=0;
   for(i=0;i<8;i++)
     {
 	memset((u8 *)&EventObj_8[i],0,sizeof((u8 *)&EventObj_8[i])); 
-	result=Api_RecordNum_Read(event_808, i+1, (u8*)&EventObj_8[i],sizeof(EventObj_8[i])); 
+	//delay_us(3);
+	Api_RecordNum_Read(event_808, i+1, (u8*)&EventObj_8[i],sizeof(EventObj_8[i])); 
+	//delay_us(10);
 	//rt_kprintf("\r\n (d)事件ID:%d  长度:%d  是否有效:%d(1显示0不显示) Info: %s",EventObj_8[i].Event_ID,EventObj_8[i].Event_Len,EventObj_8[i].Event_Effective,EventObj_8[i].Event_Str); 
 	}
   
@@ -704,14 +722,14 @@ void MSG_BroadCast_Init(u8  Intype)
 */
 	void PhoneBook_Read(void)
 {
-  u8 i=0,j=0;
+  u8 i=0;
 
   for(i=0;i<8;i++)
   {    
-        memset((u8*)&PhoneBook_8[i],0,35); 
-		delay_us(10);
+       memset((u8*)&PhoneBook_8[i],0,35); 
+	delay_us(10);
       	Api_RecordNum_Read(phonebook, i+1, (u8*)&PhoneBook_8[i],35); 
-        delay_us(10);
+       delay_us(10);
 	//rt_kprintf("\r\n 电话本 TYPE: %d   有效性(1有效)=%d  Numlen=%d  Num: %s   UserLen: %d  UserName:%s",PhoneBook_8[i].CALL_TYPE,PhoneBook_8[i].Effective_Flag,PhoneBook_8[i].NumLen,PhoneBook_8[i].NumberStr,PhoneBook_8[i].UserLen,PhoneBook_8[i].UserStr);  
   }
 } 
@@ -1071,11 +1089,11 @@ void TEXTMSG_Write_Init(void)
 void  BD_EXT_initial(void)
 {
       //    北斗设置
-    BD_EXT.BD_Mode=0x02;     //   双模
-    BD_EXT.BD_Baud=0x01;     //   9600
+    BD_EXT.GNSS_Mode=0x03;     //   双模  bit 0 GPS    bit  北斗
+    BD_EXT.GNSS_Baud=0x01;     //   9600
     BD_EXT.BD_OutputFreq=0x01;  // 1000ms
     BD_EXT.BD_SampleFrea=1; // 
-    BD_EXT.BD_Baud=0x01;  //  9600
+    BD_EXT.GNSS_Baud_Value=9600;  //  9600   
     //-----  车台相关 ----------------------
     BD_EXT.Termi_Type=0x0001;   //  终端类型
     BD_EXT.Software_Ver=0x0100; //  Ver  1.00
@@ -1248,7 +1266,7 @@ void  SendMode_ConterProcess(void)         //  定时发送处理程序
             JT808Conf_struct.DURATION.Heart_SDFlag=1; 
     	}
    //  2. 发送超时判断
-    if(1==JT808Conf_struct.DURATION.TCP_SD_state)
+/*    if(1==JT808Conf_struct.DURATION.TCP_SD_state)
     {
       JT808Conf_struct.DURATION.TCP_ACK_DurCnter++;
 	  if(JT808Conf_struct.DURATION.TCP_ACK_DurCnter>JT808Conf_struct.DURATION.TCP_ACK_Dur) //发送应答定时
@@ -1258,13 +1276,14 @@ void  SendMode_ConterProcess(void)         //  定时发送处理程序
 		  JT808Conf_struct.DURATION.TCP_ReSD_cnter++;
 		  if(JT808Conf_struct.DURATION.TCP_ReSD_cnter>JT808Conf_struct.DURATION.TCP_ReSD_Num)  //重新发送次数判断
 		  	{
-               JT808Conf_struct.DURATION.TCP_ReSD_cnter=0;
-			   Close_DataLink();   // AT_End();	   //挂断GPRS链接    
-
+                           JT808Conf_struct.DURATION.TCP_ReSD_cnter=0;
+			      Close_DataLink();   // AT_End();	   //挂断GPRS链接    
+                              rt_kprintf("\r\n Datalink end =>发送超时\r\n");  
 		  	}
 	  	}
  
-    }
+    }*/ 
+    
 }
 
 
@@ -1296,14 +1315,10 @@ void  FirstRun_Config_Write(void)
 //-----------------------------------------------------------------
 void SetConfig(void)
 {
-       u8  res=0;
-	u8 Reg_buf[22];	 
-	u8 i=0;//,len_write=0;
-//	u32 j=0;
 	
        rt_kprintf("\r\nSave Config\r\n");
 	// 1.  读取config 操作      0 :成功    1 :  失败
-	res=Api_Config_read(config,ID_CONF_SYS,(u8*)&SysConf_struct,sizeof(SysConf_struct));  
+	Api_Config_read(config,ID_CONF_SYS,(u8*)&SysConf_struct,sizeof(SysConf_struct));  
        //rt_kprintf("\r\nRead Save SYSID\r\n");
        //  2. 读取成功  ，判断  版本ID 
 	if(SysConf_struct.Version_ID!=SYSID)//SYSID)   //  check  wether need  update  or not 
@@ -1365,7 +1380,7 @@ void DefaultConfig(void)
   	   rt_kprintf("\r\n		   该终端被尚未被注册!\r\n");   
         // APN 设置
 	  rt_kprintf("\r\n		   APN 设置 :%s	 \r\n",APN_String); 
-         DataLink_APN_Set(APN_String,1); 
+         DataLink_APN_Set(APN_String,1);   
             //     域名
           memset(reg_str,0,sizeof(reg_str));
           memcpy(reg_str,DomainNameStr,strlen((char const*)DomainNameStr));
@@ -1380,6 +1395,10 @@ void DefaultConfig(void)
 	  DataLink_MainSocket_set(RemoteIP_main, RemotePort_main,0);
 	  rt_kprintf("\r\n		   备用IP: %d.%d.%d.%d : %d \r\n",RemoteIP_aux[0],RemoteIP_aux[1],RemoteIP_aux[2],RemoteIP_aux[3],RemotePort_aux);   
          DataLink_AuxSocket_set(RemoteIP_aux, RemotePort_main,0);	 
+         rt_kprintf("\r\n		  IC 卡IP: %d.%d.%d.%d  TCP: %d  UDP:%d\r\n",SysConf_struct.BD_IC_main_IP[0],SysConf_struct.BD_IC_main_IP[1],SysConf_struct.BD_IC_main_IP[2],SysConf_struct.BD_IC_main_IP[3],SysConf_struct.BD_IC_TCP_port,SysConf_struct.BD_IC_UDP_port);   
+         rt_kprintf("\r\n		  IC 卡备用IP: %d.%d.%d.%d \r\n",SysConf_struct.BD_IC_Aux_IP[0],SysConf_struct.BD_IC_Aux_IP[1],SysConf_struct.BD_IC_Aux_IP[2],SysConf_struct.BD_IC_Aux_IP[3]);   
+         DataLink_IC_Socket_set(SysConf_struct.BD_IC_main_IP,SysConf_struct.BD_IC_TCP_port,0); 
+
 	  //  ACC On 上报间隔(2Bytes)  ACC Off 上报间隔(2Bytes)
 	  rt_kprintf("\r\n		   ACC on 发送间隔为: %d S\r\n		   ACC Off 发送间隔为: %d S\r\n",ACC_on_sd_Duration,ACC_off_sd_Duration);
 					  
@@ -1448,7 +1467,7 @@ void DefaultConfig(void)
 
          rt_kprintf("\r\n\r\n        心跳包发送间隔 =	%d s   TCP应答超时Dur = %d s	 TCP重传次数=%d 	驾驶员未登录时上报间隔= %d s\r\n",JT808Conf_struct.DURATION.Heart_Dur,JT808Conf_struct.DURATION.TCP_ACK_Dur,JT808Conf_struct.DURATION.TCP_ReSD_Num,JT808Conf_struct.DURATION.NoDrvLogin_Dur); 
          rt_kprintf("\r\n\r\n                                 UDP应答超时Dur = %d s	 UDP重传次数=%d 	                             \r\n",JT808Conf_struct.DURATION.UDP_ACK_Dur,JT808Conf_struct.DURATION.UDP_ReSD_Num);  
-         rt_kprintf("\r\n        休眠时上报间隔 =	%d s   紧急报警时上报间隔 = %d s	缺省上报间隔=%d s	拐点上次角度= %d ° 非法移动阈值= %d m\r\n",JT808Conf_struct.DURATION.Sleep_Dur,JT808Conf_struct.DURATION.Emegence_Dur,JT808Conf_struct.DURATION.Default_Dur,JT808Conf_struct.DURATION.SD_Delta_maxAngle,JT808Conf_struct.DURATION.IllgleMovo_disttance); 
+         rt_kprintf("\r\n        休眠时上报间隔 =	%d s   紧急报警时上报间隔 = %d s	缺省上报间隔=%d s	拐点上次角度= %d ° 非法移动阈值= %d m\r\n",JT808Conf_struct.DURATION.Sleep_Dur,JT808Conf_struct.DURATION.Emegence_Dur,JT808Conf_struct.DURATION.Default_Dur,JT808Conf_struct.DURATION.SD_Delta_maxAngle,JT808Conf_struct.BD_CycleRadius_DoorValue); 
 
          rt_kprintf("\r\n\r\n		  缺省定距上报 =	 %d m	驾驶员未登录定距 = %d m	 休眠定距=%d m	 紧急报警定距= %d m \r\n",JT808Conf_struct.DISTANCE.Defalut_DistDelta,JT808Conf_struct.DISTANCE.NoDrvLogin_Dist,JT808Conf_struct.DISTANCE.Sleep_Dist,JT808Conf_struct.DISTANCE.Emergen_Dist); 
 
@@ -1458,31 +1477,36 @@ void DefaultConfig(void)
 
          rt_kprintf("\r\n\r\n	   临时位置跟踪状态= %d    跟踪间隔 = %d  	持续时间=%d  持续当前计数器=%d  \r\n",JT808Conf_struct.RT_LOCK.Lock_state,JT808Conf_struct.RT_LOCK.Lock_Dur,JT808Conf_struct.RT_LOCK.Lock_KeepDur,JT808Conf_struct.RT_LOCK.Lock_KeepCnter);  
          rt_kprintf("\r\n\r\n	  车辆负载状态: ");
-         switch(JT808Conf_struct.LOAD_STATE)
+
+				 Car_Status[2]&=~0x03;  
+    switch(JT808Conf_struct.LOAD_STATE)
 		{  
+		
 		case 1:
 		   rt_kprintf("空车\r\n"); 
+		   
 		  break;
 		case 2:
 		   rt_kprintf("半载\r\n"); 
+		   Car_Status[2]|=0x01;   //半载
 		  break;		  
 		case 3:
 		   rt_kprintf("满载\r\n"); 
+		   Car_Status[2]|=0x03;   //满载
 		  break;
 		default:
-		       JT808Conf_struct.LOAD_STATE=1;
+		       JT808Conf_struct.LOAD_STATE=0;
 		       Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));
 		   rt_kprintf("空车2\r\n");  
 		  break;
 		}
             rt_kprintf("\r\n\r\n  起始流水号: %d \r\n", JT808Conf_struct.Msg_Float_ID); 
-	     rt_kprintf("\r\n\r\n             cyc_read:   %d ,     cyc_write :%d\r\n  \r\n",cycle_read,cycle_write);     	
-
+	     rt_kprintf("\r\n\r\n             cyc_read:   %d ,     cyc_write :%d\r\n  \r\n",cycle_read,cycle_write);     		
+            //cycle_write=cycle_read;
+             rt_kprintf("\r\n\r\n 是否关闭通信: %d \r\n", JT808Conf_struct.Close_CommunicateFlag);  
 	      memset(reg_str,0,sizeof(reg_str));
 	      memcpy(reg_str,JT808Conf_struct.Vechicle_Info.Vech_sim,12);  
 	       rt_kprintf("\r\n	DeviceID=%s \r\n",reg_str);   
-		  
-
          //=====================================================================
          //API_List_Directories();
          //-----------  北斗模块相关  ---------

@@ -47,7 +47,7 @@ static void keypress(unsigned int key)
 switch(KeyValue)
 	{
 	case KeyValueMenu:
-		pMenuItem=&Menu_1_Idle;
+		pMenuItem=&Menu_8_bd808new;//
 		pMenuItem->show();
 		CounterBack=0;
 		break;

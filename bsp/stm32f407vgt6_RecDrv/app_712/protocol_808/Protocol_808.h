@@ -13,16 +13,18 @@
 #include "App_moduleConfig.h" 
 #include "gps.h"
 
-#define  BD_ENABLE
+#define   BD_ENABLE
+#define   NEW_8203      //    新北斗 人工确认报警下消息 
 
-
+#define   MANGQsize           480         // 盲区打包传大小 15 *(28+4)    
+#define   MQ_PacketNum     15         //  15    条一包
 
  // ----   Media  Trans state ---
 #define   MEDIA
-#define  enable                1
-#define  disable               0
-#define  other                  2
-#define  transfer             3 
+#define  enable                 1
+#define  disable                0
+#define  other                   2
+#define  transfer              3  
 
 
 
@@ -77,7 +79,7 @@
 #define   MSG_0x0002           0x0002      // 终端心跳 
 #define   MSG_0x0100           0x0100      // 终端注册
 #define   MSG_0x8100           0x8100      // 终端注册应答
-#define   MSG_0x0101           0x0101      // 终端注销
+#define   MSG_0x0003           0x0003      // 终端注销
 #define   MSG_0x0102           0x0102      // 终端鉴权
 #define   MSG_0x8103           0x8103      // 设置终端参数 
 #define   MSG_0x8104           0x8104      // 查询终端参数
@@ -117,6 +119,7 @@
 #define   MSG_0x8701           0x8701      // 行驶记录仪但是下传
 #define   MSG_0x0701           0x0701      // ---电子运单上报
 #define   MSG_0x0702           0x0702      // 驾驶员身份信息采集上报
+#define   MSG_0x0704           0x0704      //  定位数据批量上传  
 #define   MSG_0x0800           0x0800      // ---多媒体事件信息上传
 #define   MSG_0x0801           0x0801      // ---多媒体数据上传
 #define   MSG_0x8800           0x8800      // ---多媒体数据上传应答
@@ -209,6 +212,9 @@ u8  f_Worklist_SD_0701H; //   电子运单上传
 u8  f_BD_Extend_7F02H; // 北斗信息查询应答
 u8  f_BD_Extend_7F00H;// 扩展终端上发指令
 u8  f_BD_DeviceAttribute_8107; //  中心查找终端属性
+u8  f_BD_BatchTrans_0704H;   //  定位数据批量上传
+u8  f_BD_CentreTakeAck_0805H; // 中心拍照命令应答 
+u8  f_BD_ISPResualt_0108H;   //    终端升级结果  
 }TCP_ACKFlag;
  
 
@@ -277,9 +283,10 @@ typedef struct _BD_EXTEND
    u32     Device_Attribute;   //  终端属性  
 
   //  2.  北斗设置
-     u32   BD_Mode;     //  北斗模块通信模式
-     u32   BD_Baud;     //  北斗模块 通信波特率
-     u32   BD_OutputFreq;  // 北斗模块输出更新率设置 
+     u8   GNSS_Mode;     //  北斗模块通信模式
+     u8   GNSS_Baud;     //  北斗模块 通信波特率  表示
+     u32   GNSS_Baud_Value;//   北斗模块数值
+     u8     BD_OutputFreq;  // 北斗模块输出更新率设置 
      u32   BD_SampleFrea; //  北斗模块采集 NMEA  数据频率
              //-----  2013 BD add -------------
      u8     BD_OriginalDataTransMode;     //  GNSS 模块详细定位信息上传方式
@@ -311,6 +318,9 @@ typedef struct _BD_EXTEND
 	u16  AD_0;  //  2 Byte
 	u16  AD_1; //   2 Byte
 
+       u8  Extent_IO_status;  // 新北斗协议 IO 状态
+
+
  //    围栏相关判断
        u8    Close_CommunicateFlag;  //  进区域 关闭通信   
        u8    Trans_GNSS_Flag;    //  进区域采集GNSS
@@ -329,8 +339,10 @@ typedef struct _DevRegst
 typedef struct _DevLOGIN
 {
   u8  Operate_enable;  // 使能开始操作鉴权操作   1 :enable  0: idle
-  u8  Sd_counter;      // 定时发送计数器
+  u8  Sd_counter;      // 定时发送计时
+  u8  Max_sd_num;   // 最大发送鉴权次数 
   u8  Enable_sd;       // 使能发送鉴权信息
+  u8  Dur;  // 发送超时判断
 }DevLOGIN;
 //------- 超速报警 -------
 typedef struct SPDEXP
@@ -381,7 +393,6 @@ typedef struct _SEND_DUR
   
   u32  SD_Delta_maxAngle; // 拐点补传角度   < 180
 
-  u16  IllgleMovo_disttance; // 非法移动阈值   -- 补充协议要求添加
 }SEND_DUR;
 // ----------- 定距离上报相关  ---------
 typedef struct _SEND_DIST
@@ -481,6 +492,14 @@ typedef struct  _RECODER
   u16  Float_ID;     //  命令流水号
   u8   CMD;     //  数据采集 
   u8   SD_Data_Flag; //  发送返回数返回标志
+  u8   CountStep;  //  发送数据需要一步一步发送 
+  u32   timer;
+  //--------- add on  5-4 
+  u8   Devide_Flag;//  需要分包上传标志位
+  u16  Total_pkt_num;   // 分包总包数
+  u16  Current_pkt_num; // 当前发送包数 从 1  开始
+  u8	fcs;
+  
 }RECODER;
 //------  Camera  --------
 typedef struct _CAMERA
@@ -493,7 +512,7 @@ typedef struct _CAMERA
 typedef struct _MULTIMEDIA
 {
   u32  Media_ID;           //   多媒体数据ID
-  u8   Media_Type;         //   0:   图像    1 : 音频    2:  视频 
+  u8   Media_Type;         //   0:   图像    1 : 音频    2:  视频 3  行车记录仪  4  盲区批量上传 
   u8   Media_CodeType;     //   编码格式  0 : JPEG  1:TIF  2:MP3  3:WAV  4: WMV
   u8   Event_Code;         //   事件编码  0: 平台下发指令  1: 定时动作  2 : 抢劫报警触发 3: 碰撞侧翻报警触发 其他保留
   u8   Media_Channel;      //   通道ID
@@ -513,7 +532,7 @@ typedef struct _MULTIMEDIA
   u8   RSD_total;     //  重传选项数目  
   
    
-  u8	Media_ReSdList[10]; //  多媒体重传消息列表 
+  u16  Media_ReSdList[100]; //  多媒体重传消息列表 
 }MULTIMEDIA;   
 //------  Voice Record 录音相关 ----
 typedef struct _VOICE_RECODE
@@ -528,7 +547,7 @@ typedef struct _VOICE_RECODE
 //----------   DataTrans  数据透传  -----------
 typedef struct _DATATRANS
 {
-  u8 TYPE;             // 透传消息类型
+  u32 TYPE;             // 透传消息类型
   u8 Data_RxLen;       // 接收信息长度
   u8 Data_TxLen;       // 发送信息长度 
   u8 DataRx[10];      // 透传信息内容接收
@@ -542,6 +561,7 @@ typedef struct _INOUT
   u8  TYPE; //   1 圆形区域 2 矩形区域 3 多边形区域 4 路线
   u32 ID;   //    区域路线ID
   u8  InOutState; //  0 进  1  出   
+  u8  Keep_state;      // 0: idle    1: in   2:  out
 }INOUT;
 //-------  多媒体索引 -------------------
 typedef struct _MEDIA_INDEX
@@ -562,16 +582,21 @@ typedef struct _DoorCamra
   u8	  BakState;   // 存储状态
 } DOORCamera;
 
-//     ISP  Module
-typedef struct IspRSD
-{  
-  u8 	   ISP_ResendACK_state;  // Isp   重发机制
-  u16	   ISP_ResendACK_counter;// Isp  重发机制  
-  u8 	   ISP_ResendCounter; // ISP 重发次数 最大不超过3次
-}ISP_RSD;
-
-
-
+//  ISP_BD add
+typedef struct _ISP_BD
+{
+   u8     ISP_running;//  远程下载进行中
+   u16   Total_PacketNum;//  总包数
+   u16   CurrentPacket_Num;//  当前报数
+   u32   PacketRX_wr;//  接收数据累加长度
+   u8     Update_Type;  // 终端数据类型
+   u8  ProductID[5];// 制造商编号
+   u8  Version_len; // 版本号长度
+   u8  VersionStr[20];//  版本号
+   u32  Content_len;// 升级包长度
+   u8   ContentData[1024]; // 数据包内容
+   u8   ISP_resualt;  //升级结果
+}ISP_BD;
 typedef struct   TGPSInfo_GPRS
 {
    //---------------  河北天地通协议  ---------------------------
@@ -639,6 +664,9 @@ typedef struct  _SYSConfig           //  name:  config
     u32    BD_IC_TCP_port;     //  IC 卡认证主服务器TCP 端口
     u32    BD_IC_UDP_port;    //  IC 卡认证主服务器 UDP 端口
     u8      BD_IC_Aux_IP[4];   //  IC 卡备用服务器IP 地址，端口同主的一样   	
+    u8      BD_IC_DNSR[50];    //  DNSR 1  域名解析
+    u8      BD_IC_DNSR_Aux[50]; //   DNSR2   域名解析     
+
 
 	
 } SYS_CONF;
@@ -678,15 +706,16 @@ typedef struct  _JT808Config   //name:  jt808
     u16     BD_TiredDrv_preWarnValue;  // 疲劳驾驶预警差值，单位 秒
     u16     BD_Collision_Setting;     // 碰撞参数报警设置    bit 7-bit 0   碰撞时间 单位 4ms   、 bit15-8 碰撞加速度 0.1g  0-79  默认10
     u16     BD_Laydown_Setting;    // 侧翻报警参数设置     侧翻角度 单位 1 度 ，默认30度
-    u16     BD_PicTkTime_Ctrl;     //  定时拍照控制
-    u16     BD_PicTkDistance_Ctrl;  //定距离拍照控制
-    
+
+    u16     BD_GNSS;
 
     BD_EXTEND     BD_EXT;  //  北斗相关 CAN GNSS 设置
 
     //------  摄像头 相关设置 ------------------------------
     u32  BD_CameraTakeByTime_Settings;   // 摄像头定时拍照开关    0 不允许1 允许 表13
     u32  BD_CameraTakeByDistance_Settings;  //  摄像头定距离拍照控制位
+
+    u8    Close_CommunicateFlag;   // 关闭通信标志位	
 
      //--------  实时上报 ---------  
     REALTIME_LOCK    RT_LOCK;     // 实时跟踪      
@@ -876,6 +905,91 @@ typedef struct  _GNSS_RAW
 
 }GNSS_RAW;
 
+
+//------- IC 卡相关  ---------------
+typedef  struct _IC_MODULE
+{
+    u16    IC_Wr;// Tx_Wr
+    u8     IC_Tx40H[80]; // Tx Buffer  max 64
+    u8     IC_TX41H[80];  // 从IC 读取到的驾驶员信息
+    u8     IC_TX41H_len; //  驾驶员信息长度 	
+    u8     IC_DrvInfoFlag;// 是否获取到驾驶员信息标志   1: 获取到  0:  没有获取到
+    u16    IC_Rx_len; // Tx_Rx
+    u8     IC_Rx[50]; //  max 25
+    u8     Trans_0900Flag;//  发送标志位
+    u8     IC_Status;//  IC 卡状态，1:插入    0:  拔出 
+}IC_MODULE;
+
+
+//---------  CAN ---------------------------
+typedef struct _CAN_TRAN
+{
+    //-------  protocol variables
+     u32  can1_sample_dur;  // can1 采集间隔  ms
+     u32  can1_trans_dur;  // can1  上报间隔 s
+     u32  can1_enable_get;  // 使能接收
+
+
+     u32  can2_sample_dur;  // can2 采集间隔  ms
+     u32  can2_trans_dur;  // can2  上报间隔 s
+     
+     
+      u8      canid_1[8];// 原始设置
+      u32    canid_1_Filter_ID;  // 接收判断用
+      u32    canid_2_NotGetID;  //   不采集ID   
+      u8      canid_1_Rxbuf[1024]; // 接收buffer  
+      u32    canid_1_ID_RxBUF[128];  // 接收ID  
+      u8      canid_1_Sdbuf[1024]; // 发送用buffer 
+      u32    canid_1_ID_SdBUF[128];  // 接收ID    
+      u16    canid_1_SdWr; // 写buffer下标
+      u16    canid_1_RxWr; // 写buffer下标
+      u8      canid_1_ext_state; // 扩展帧状态
+      u32    canid_1_sample_dur;  //该ID 的采集间隔
+      u8      canid_ID_enableGet;//   使能该ID 采集
+
+      //------- system variables  
+      u16   canid_timer;  //定时器
+      u8     canid_0705_sdFlag;// 发送标志位	  
+      u8     nonew_CANdataflag;  //没有新数据来标志位
+      u8     nonew_CANdata_timer;  //  计时器
+       u32   BAK_WR;
+
+ }CAN_TRAN;
+
+//-------------- SMS 短信 -------------------
+typedef struct _SMS_SD
+{
+    u8  Msg_sdState;  //   发送短信标志位
+    u8  Msg_content[140]; //  短信
+    u8  Msg_step;  //  发送步骤，1:  先发号码，2:  等> , 3: 发送1A
+    u16 Msg_timer;//  计时器   从发送AT+CMGS 后等待>  ,如果超时则结束短信发送状态
+}SMS_SD;
+
+
+//--------------- 盲区补报 -------------------
+typedef struct  _MQU
+{
+
+    u16   PacketNum;           //   包计数器	
+    u32   Sd_timer;     //  发送计数器
+    u32   NoAck_timer;  //  无应答计数器
+    u8    Sd_flag;	     //  发送标志位   0   idle     1   enable    2   send over ready ack
+    u32   PacketSd_rd;   //  读取发送     
+    u8     Buffer[MANGQsize];     
+    u8     Enable_SD_state; //使能上报标志位
+
+}MQU;
+
+//--------------------------------------------------
+extern  MQU     MangQU;    
+
+//---------- SMS SD ------------------
+extern  SMS_SD  SMS_send;
+
+//   -------  CAN BD new  --------------
+extern CAN_TRAN     CAN_trans;
+
+
 //------- 北斗扩展协议  ------------
 extern GNSS_RAW     GNSS_rawdata; //  GNSS 详细数据上报
 extern BD_EXTEND     BD_EXT;     //  北斗扩展协议
@@ -888,6 +1002,9 @@ extern HUMAN_CONFIRM_WARN   HumanConfirmWarn;// 人工确认报警
 extern _Media_SD_state Photo_sdState;   //  图片发送状态
 extern _Media_SD_state Sound_sdState;	//声音发送  
 extern _Media_SD_state Video_sdState;	//视频发送
+extern _Media_SD_state DrvRecoder_sdState;	//行车记录仪发送状态
+extern _Media_SD_state BlindZone_sdState;	//视频发送
+
 //------ Photo -----
 extern  u32 PicFileSize; // 图片文件大小  
 extern  u8  PictureName[40];       
@@ -899,6 +1016,9 @@ extern  u8  PictureName[40];
 
 
 //------  video  --------
+extern  u8   line_warn_enable;     // 使能路线报警    
+
+
 
 
 
@@ -918,26 +1038,9 @@ extern 	u8		   save_sensorCounter,sensor_writeOverFlag;
 extern u16  Delta_1s_Plus;
 extern 	u32 	   total_plus; 
 
-
-
-extern u8		 fCentre_ACK; 			  // ---------判断中西你应答标志位－－
-extern u8		 ACK_timer;				   //---------	ACK timer 定时器--------------------- 
-extern u8        f_ISP_ACK;   // 远程升级应答	
-extern u8        ISP_FCS[2];    //  下发的校验 
-extern u16       ISP_total_packnum;  // ISP  总包数
-extern u16       ISP_current_packnum;// ISP  当前包数
-extern u32       ISP_content_fcs;    // ISP  的内容校验
-extern u8		 ISP_ack_resualt;    // ISP 响应
-extern u8		 ISP_rxCMD;		   // ISP 收到的命令
-extern u8		 f_ISP_88_ACK;	   // Isp  内容应答
-extern u8        ISP_running_state;  // Isp  程序运行状态
-extern u8        f_ISP_23_ACK;    //  Isp  返回 文件完成标识
-extern u16       ISP_running_counter;// Isp  运行状态寄存器 
-extern u8        ISP_RepeatCounter; //   ISP 单包发送重复次数 超过5次校验失败擦除区域 
-extern u8        ISP_NeedtoProcessFlag;   //   需要处理ISP 程序
-extern u8        ISP_Raw[600];                    //  属于ISP 但还未处理的字符 
-
-extern ISP_RSD   Isp_Resend;
+//---------- -----------------------------
+extern  ISP_BD  BD_ISP; //  BD   升级包  
+extern  IC_MODULE   IC_MOD;  //IC 模块
 
 extern u8 TextInforCounter;//文本信息条数
 extern DOORCamera   DoorOpen;    //  开关车门拍照
@@ -976,9 +1079,8 @@ extern NANDSVFlag   NandsaveFlg;
 extern A_AckFlag    Adata_ACKflag;
 extern TCP_ACKFlag  SD_ACKflag;  
 
-extern u8 tts_bro_tired_flag;
 
-extern u8           SubCMD_8103H;            //  02 H命令 设置记录仪安装参数回复 子命令 
+extern u32         SubCMD_8103H;            //  02 H命令 设置记录仪安装参数回复 子命令 
 extern u32         SubCMD_FF01H;            //  FF02 北斗信息扩展
 extern u32         SubCMD_FF03H;     //  FF03  设置扩展终端参数设置1
 
@@ -996,7 +1098,7 @@ extern u8          IP_change_counter;           //   中心修改IP 计数器
 extern u8		   Down_Elec_Flag;				 //   断油断电使能标志位 
 
 
-extern ALIGN(RT_ALIGN_SIZE) u8          GPRS_info[900]; 
+extern ALIGN(RT_ALIGN_SIZE) u8          GPRS_info[3000];  
 extern u16         GPRS_infoWr_Tx;
 
 
@@ -1034,7 +1136,7 @@ extern GPS_RMC  GPRMC;                   // GPMC格式
 extern 	u16 	        GPS_Hight;			   //	808协议-> 高程	 m 
 extern  u16		        Speed_gps;    // 通过GPS计算出来的速度 km/h   
 extern 	u16	            GPS_speed;								  //  GPS定位时候的速度 km/h
-extern  u16			    GPS_direction;							  //  GPS方向		 单位2度        
+extern  u16			    GPS_direction;							  //  GPS方向		 单位2度       
 
 //---------- 用GPS校准特征系数相关 ----------------------------
 extern u8		Speed_area; // 校验K值范围
@@ -1043,17 +1145,13 @@ extern u16 	    Spd_adjust_counter; // 确保匀速状态计数器
 extern u16      Former_DeltaPlus[K_adjust_Duration]; // 前几秒的脉冲数 
 extern u8       Former_gpsSpd[K_adjust_Duration];// 前几秒的速度        
 extern u8		DF_K_adjustState; // 特征系数自动校准状态说明
-extern u8       Jia_GPS_spdFlag;  //  假gps spd Flag   
-extern u16     Speed_gps_jiashi;   //  假时GPS 真速度
-
-
  //------- 车辆负载状态 ---------------
 extern u8      CarLoadState_Flag;//选中车辆状态的标志   1:空车   2:半空   3:重车
  //------- 多媒体信息类型---------------
 extern u8  Multimedia_Flag;//需要上传的多媒体信息类型	1:视频	 2:音频   3:图像
 extern u8  SpxBuf[SpxBuf_Size];  
 extern u16 Spx_Wr,Spx_Rd; 
-extern u8	Duomeiti_sdFlag; 
+extern u8	   Duomeiti_sdFlag; 
 
 //------- 录音开始或者结束---------------
 extern u8  Recor_Flag; //  1:录音开始   2:录音结束  
@@ -1114,10 +1212,16 @@ extern u8	 SleepCounter;
 extern u16   DebugSpd;	//调试用GPS速度      
 extern u8	 MMedia2_Flag;
 extern u8     Send_Rdy4ok;
+extern u8   gps_log[50]; //gps log 
+
+extern u32  Appringbuf_wr;   // 循环存储buffer
+extern u32  AppRingbuf_rd;    
+
 
 //---------74CH595  Q5   control Power----
 extern u8   Print_power_Q5_enable;     
 extern u8   Buzzer_on_Q7_enable; 
+
 
 //==================================================================================================
 // 第一部分 :   以下是GPS 解析转换相关函数 
@@ -1144,8 +1248,7 @@ extern void   GPS_Delta_DurPro(void);    //告GPS 触发上报处理函数
      ----------------------------- 
 */
 extern void IMSI_Convert_SIMCODE( void );
-extern u8 ISP_running_Status(void);
-extern int IP_Str(char *buf, u32 IP);
+extern int IP_Str(char *buf, u32 IP);  
 extern void strtrim(u8 *s, u8 c);
 extern int str2ip(char *buf, u8 *ip);
 /*    
@@ -1202,28 +1305,32 @@ extern u8    Stuff_RegisterPacket_0100H(u8  LinkNum);
 extern u8    Stuff_DeviceDeregister_0101H(void);      
 extern u8    Stuff_DeviceHeartPacket_0002H(void);
 extern u8    Stuff_DevLogin_0102H(void);      
-extern u8    Stuff_Normal_Data_0200H(void); 
+extern u8    Stuff_Normal_Data_0200H(u16 InNUM);   
 extern u8    Stuff_Current_Data_0200H(void);   //  发送即时数据不存储到存储器中 
 extern u8    Stuff_Current_Data_0201H(void);   //   位置信息查询回应
+extern u8  Stuff_AppMq_Data_0200H(u8 *instr);   
 extern u8    Stuff_SettingPram_0104H(u8 in);
 extern u8    Stuff_EventACK_0301H(void);   
 extern u8    Stuff_ASKACK_0302H(void);    
 extern u8	 Stuff_MSGACK_0303H(void);	  
 extern u8    Stuff_ControlACK_0500H(void);    //   车辆控制应答
-extern u8    Stuff_RecoderACK_0700H(void);   //   行车记录仪数据上传
+extern u8    Stuff_RecoderACK_0700H(u8 PaketType);  //   行车记录仪数据上传
 extern u8    Stuff_MultiMedia_InfoSD_0800H(void);      
 extern u8    Stuff_MultiMedia_Data_0801H(void);    
 extern u8    Stuff_MultiMedia_IndexAck_0802H(void);  
-extern u8    Stuff_DataTransTx_0900H(void);     
 extern u8    Stuff_DriverInfoSD_0702H(void);  
 extern u8    Stuff_Worklist_0701H(void); 
 extern u8    Stuff_DeviceAttribute_BD_0107H(void);
+extern u8    Stuff_ISP_Resualt_BD_0108H(void);
+extern u8    Stuff_BatchDataTrans_BD_0704H(void);     
+extern u8     Stuff_CANDataTrans_BD_0705H(void);
+extern u8    Stuff_CentreTakeACK_BD_0805H(void);
 extern u8    Stuff_GNSSRawData_0900H(u8*Instr , u16  len);          
-
-extern u8    Stuff_DataTrans_0900_ISP_ACK(u8  AckType);  
+extern u8    Stuff_DataTrans_0900_BD_ICinfo(void);
+extern u8    Stuff_MangQu_Packet_Send_0704H(void); 
 extern u8    Update_HardSoft_Version_Judge(u8 * instr);
 extern void  ISP_file_Check(void);
-extern void  ISP_Process(void);  
+extern  void  Mangqu_Init(void); 
 
 
 extern void delay_us(u16 j);
@@ -1251,12 +1358,35 @@ extern u8     Sound_send_start(void);
 extern void  TCP_RX_Process(u8  LinkNum);  
 extern u16    AsciiToGb(u8 *dec,u8 InstrLen,u8 *scr);
 extern void  Time2BCD(u8 *dest);     
+extern void   local_time(void);  
+extern void  CAN_struct_init(void);
+extern void  CAN_send_timer(void);
 
+
+extern u8     DrvRecoder_send_start(void);
+extern u8     BlindZoneData_send_start(void);
+extern void   DrvRecoder_send_end(void);
+extern void  BlindZoneData_send_end(void);
+extern  void DrvRecoder_Timer(void);
+extern  void BlindZone_Timer(void); 
+
+
+
+//----------  SMS  Send  Related  --------------
+extern void  SMS_send_init(void);
+extern void  SMS_send_process(void); 
+extern u8     SMS_send_stateQuery(void);
+extern void  SMS_send_enable(void);
+extern void  SMS_send_end(void);
+extern void  SMS_send_Step(u8  step); 
+extern void  SMS_Send_timer(void);
+//------------------------------------------
 
 
 extern void SpeedWarnJudge(void);
 extern void Process_GPRSIN_DeviceData(u8 *instr, u16  infolen);
 extern u8   Send_Device_Data(void);
+extern void SpeedSensorProcess(void);   // 通过汽车的速度传感器获得 速度 并计算里程 
 
 
 extern void  Sleep_Mode_ConfigEnter(void); 
@@ -1273,13 +1403,8 @@ extern void    MSG_BroadCast_Read(void);
 extern u8      Time_FastJudge(void);   
 //extern u8  RecordSerial_output_Str(const char *fmt,...); 
 extern void    Tired_Check(void);
-extern void     OutPrint_HEX(u8 * Descrip, u8 *instr, u16 inlen );\
-extern void     local_time(void);
-
-extern void tiredon(void);
-extern void tiredoff(void);
-extern void gpsspd(u8 *strin);   //  GPS 用假速度 
-extern void sensorspd(u8 *strin);   //  GPS 用假速度
+extern void  OutPrint_HEX(u8 * Descrip, u8 *instr, u16 inlen );
+extern void  DeviceData_Encode_Send(u8 DeviceID,u8 CMD_TYPE,u8 *Srcstr, u16 inlen);
 
 //==================================================================================================
 // 第四部分 :   808  相关存储处理  
@@ -1288,6 +1413,21 @@ extern void sensorspd(u8 *strin);   //  GPS 用假速度
 extern void  JT808_Related_Save_Process(void);
 extern void  Save_Status(u8 year,u8 mon,u8 day,u8 hour,u8 min,u8 sec);
 extern void  Spd_Exp_Wr(void);
+extern void  close_com(void);
+extern void  open_com(u8 *intstr);
+extern void  Exact_Test_time(void);      
+extern u8    Reg_save_gps(u8 *instr); 
+extern void  App_mq_Read_Process(void); 
+extern  void  RouteLineWarn_judge(u8* LatiStr,u8* LongiStr);   
+extern  void  App_mq_NoAck_counter(void);  
+extern  u8    App_mq_Resend(void);     // 启动Queue 重发
+extern  void  App_mq_SendTimer(void);
+extern  void  MangQU_save(u32  coutner, u8 *str, u32 length);
+extern  void  MangQU_read(u32  coutner, u8 *str, u32 length);
+extern  void  MangquSave_GPS(void);     
+extern  void  CAN_Send_judge(void); 
+extern  void  MangQu_Timer(void);
+
 
 
 //==================================================================================================
