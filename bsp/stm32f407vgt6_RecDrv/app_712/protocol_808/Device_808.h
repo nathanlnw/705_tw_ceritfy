@@ -90,7 +90,7 @@ extern u8    wdg_reset_flag;    //  Task Idle Hook 相关
 extern u16    ADC_ConvertedValue; //电池电压AD数值    
 extern  u16   ADC_ConValue[3];   //   3  个通道ID      
 extern  u32   TIM1_Timer_Counter; //  测试定时器计数器 
-
+extern 	u32   TIM3_Timer_10ms_counter; // 10ms timer   
 
 
 

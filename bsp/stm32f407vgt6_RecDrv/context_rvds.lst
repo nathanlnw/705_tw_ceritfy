@@ -281,8 +281,8 @@ ARM Macro Assembler    Page 5
               E000ED04 
               E000ED20 
 Command Line: --debug --xref --cpu=Cortex-M4.fp --apcs=interwork --depend=.\bui
-ld\context_rvds.d -o.\build\context_rvds.o -ID:\Keil\ARM\RV31\INC -ID:\Keil\ARM
-\CMSIS\Include -ID:\Keil\ARM\Inc\ST\STM32F4xx --predefine="__MICROLIB SETA 1" -
+ld\context_rvds.d -o.\build\context_rvds.o -Ie:\Keil\ARM\RV31\INC -Ie:\Keil\ARM
+\CMSIS\Include -Ie:\Keil\ARM\Inc\ST\STM32F4xx --predefine="__MICROLIB SETA 1" -
 -list=.\context_rvds.lst ..\..\libcpu\arm\cortex-m4\context_rvds.S
 
 

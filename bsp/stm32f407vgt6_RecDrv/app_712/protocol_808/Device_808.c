@@ -22,7 +22,7 @@
 //-----  WachDog related----
 u8     wdg_reset_flag=0;    //  Task Idle Hook 相关
 u32   TIM1_Timer_Counter=0; //  测试定时器计数器
-
+u32   TIM3_Timer_10ms_counter=0; // 10ms timer
 
 
 void WatchDog_Feed(void)
@@ -94,11 +94,7 @@ void  APP_IOpinInit(void)   //初始化 和功能相关的IO 管脚
 	//------------------- PE9 -----------------------------
 	gpio_init.GPIO_Pin	 = GPIO_Pin_9;				//------ACC  状态
 	gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-	GPIO_Init(GPIOE, &gpio_init);
-	//------------------- PE7 -----------------------------
-	gpio_init.GPIO_Pin	 = GPIO_Pin_7;				//------车门开关状态  0 有效  常态下为高   
-	gpio_init.GPIO_Mode  = GPIO_Mode_IN;   //如果只接刹车，那就用PE5当刹车监视 
-	GPIO_Init(GPIOE, &gpio_init); 
+	GPIO_Init(GPIOE, &gpio_init);  
  
    //	OUT
    

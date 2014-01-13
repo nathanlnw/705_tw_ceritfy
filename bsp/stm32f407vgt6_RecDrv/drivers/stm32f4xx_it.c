@@ -201,7 +201,7 @@ void USART3_IRQHandler(void)
 
     if (USART_GetITStatus(USART3, USART_IT_RXNE) != RESET) { 
         data = USART_ReceiveData(USART3) & 0xFF;
-	 CAN2_RxHandler(data);
+	 U3_RxHandler(data);
         USART_ClearITPendingBit(USART3, USART_IT_RXNE);                	
     }  
 
@@ -291,7 +291,16 @@ void TIM3_IRQHandler(void)
 		       TIM1_Timer_Counter=0; 		  
             	}
 			
- //------------------------------------------------------------
+            //-----------------------10ms--------------------
+              TIM3_Timer_10ms_counter++;
+              if(TIM1_Timer_Counter==10)  //  10ms
+              {
+                 U3_rx_timeout();
+                 TIM1_Timer_Counter=0;
+              }
+
+
+			//------------------------------------------------------------
 
 	 			
 

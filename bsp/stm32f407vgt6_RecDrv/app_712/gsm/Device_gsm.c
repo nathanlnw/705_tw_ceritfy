@@ -942,7 +942,10 @@ void  GSM_RxHandler(u8 data)
 								 gsm_rx_linknum=0;
 								 break;
 						   case  2:  // aux link
-
+						          memcpy(GSM_HEX, GSM_INT_BUFF.gsm_content,GSM_INT_BUFF.gsm_wr); 
+								 GSM_HEX_len=GSM_INT_BUFF.gsm_wr; 
+								 App_rxGsmData_SemRelease(GSM_HEX, GSM_HEX_len,gsm_rx_linknum-1); 
+								 gsm_rx_linknum=0; 
 							     break; 
 	                	}			  					
 				GSM_INT_BUFF.gsm_wr = 0; 
@@ -977,7 +980,9 @@ void  GSM_RxHandler(u8 data)
 						 gsm_rx_linknum  = 0;  
 						 gsm_rx_infolen= 0;
 					 }
-					 gsm_rdy_2_rxEnable=1;	 	 			
+					 gsm_rdy_2_rxEnable=1;	 
+
+					// rt_kprintf("\r\n  Gsmrx_linknum=%d \r\n",gsm_rx_linknum);
 				 }
 				else
                #endif
@@ -2242,7 +2247,7 @@ RXOVER:
 			                           }   
 								break;							
 		case Dial_MainLnk		:		
-	      	case Dial_AuxLnk	       :	if (failed || error)
+	    case Dial_AuxLnk	       :	if (failed || error)
 								{
 									DataDial.Dial_step_RetryTimer=Dial_Dial_Retry_Time;				// try again in 6 seconds
 									break;
@@ -2287,17 +2292,17 @@ RXOVER:
 									DataDial.Dial_step_RetryTimer=Dial_Dial_Retry_Time;
 									break;
 								}
-								 if (connect) 
+								 if (connect_2)  
 								{
 									 Dial_Stage(Dial_Idle); //	In EM310 Mode										
 									 TCP2_Connect=1;		
 									 //TCP2_IC_sdFlag=1;
 									  TCP2_ready_dial=0;  
-									 rt_kprintf("\r\n //---------------------------------");
-									 rt_kprintf("\r\n     IC 卡TCP 连接成功!\r\n");     
+									  rt_kprintf("\r\n //---------------------------------");
+									  rt_kprintf("\r\n     IC 卡 中心连接成功!\r\n");     
 									  rt_kprintf("//---------------------------------\r\n "); 
-									  DataDial.Dial_ON=0;  // 
-									  BD_ISP.ISP_running=0;
+									  DataDial.Dial_ON=0;  
+									  BD_ISP.ISP_running=0; 
 								}							 
 								break;		 						
 		default 			:	 Dial_Stage(Dial_Idle);

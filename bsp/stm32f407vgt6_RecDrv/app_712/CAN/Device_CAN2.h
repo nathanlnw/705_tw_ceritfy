@@ -19,9 +19,9 @@
 
 extern  struct rt_device  Device_CAN2;
 
-extern void  CAN2_RxHandler(unsigned char rx_data);   
+extern void  U3_RxHandler(unsigned char rx_data);   
 extern void  Device_CAN2_regist(void );    
-
+extern void  U3_rx_timeout(void);
 
 
 #endif 

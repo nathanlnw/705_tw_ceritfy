@@ -12,7 +12,7 @@
 #include "Device_808.h"
 
 
-#define   SYSID            0x03235
+#define   SYSID            0x03232
 
 ALIGN(RT_ALIGN_SIZE) 
 SYS_CONF          SysConf_struct;   //  œµÕ≥≈‰÷√  

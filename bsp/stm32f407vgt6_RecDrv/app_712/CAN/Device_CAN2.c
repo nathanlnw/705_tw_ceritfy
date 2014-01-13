@@ -20,6 +20,8 @@ u8   U3_content[100];
 u16   U3_content_len=0; 
 u8   U3_flag=0;
 u16   U3_rxCounter=0; 
+u16 U3_rx_timer=0;
+
 
 
 
@@ -76,18 +78,10 @@ void  DeviceData_Encode_Send( u8 DeviceID, u8 CMD_TYPE, u8 *Srcstr, u16 inlen )
 	reg2[0]		= 0x7e;                                                 // head
 	i			= Protocol_808_Encode( reg2 + 1, Reg, wr );             // Encode content
 	reg2[i + 1] = 0x7e;                                                 // tail
-	OutPrint_HEX( "首次转义加头尾", reg2, i + 2 );
-	//  Packet again     需要再次填写，编码
-	memset( Reg, 0, 100 );
-	Reg[0]				= 0x7E;
-	Reg[1]				= 0x35;
-	Reg[2]				= 0x01;                                         // head
-	out_len				= Protocol_808_Encode( Reg + 3, reg2, i + 2 );  // Encode content
-	Reg[out_len + 3]	= 0x7e;                                         //tail
-	//  Encode 2
-	OutPrint_HEX( "发送的数据", Reg, out_len + 4 );
-	rt_device_write( &Device_CAN2, 0, ( const char*)Reg, out_len + 4 );
+	OutPrint_HEX( "u3发送信息", reg2, i + 2 );
+	rt_device_write( &Device_CAN2, 0, ( const char*)reg2, i + 2  );
 	rt_kprintf( "// Send over -----------------------\r\n" );
+
 }
 
 
@@ -98,187 +92,160 @@ void U3_RxProcess(void)
 	uint16_t	i,j, len;
    uint8_t fcs;
    uint8_t buf[32]; 
-	 
-     if(U3_content[1]==0x33)  // CAN 2
-     	{
-		if( U3_content[2] == 0x03 ) // CAN 数据接收
-             	{  
-             	     //-------------------------------------------------
-             	     //7e 33 03 08 00 00 00 00 00 20 00 04 00 08 30 31 32 33 34 35 36 07 00 7e
-             	     memcpy(&RxMessageData,U3_content+3,20);   
-					 
-             	     
-                    //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=(BD_EXT.CAN_2_ID>>24); //  BIT 7 can1  bit6 --1  CAN2 扩展 
-		      //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID>>16;
-		      //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID>>8;
-		      //DataTrans.Data_Tx[DataTrans.Tx_Wr++]=BD_EXT.CAN_2_ID;     
 
-	  //  for(iRX=0;iRX<RxMessageData.DLC;iRX++)
-	      for(iRX=0;iRX<8;iRX++)
-	     {		
-	        DataTrans.Data_Tx[DataTrans.Tx_Wr++]=RxMessageData.Data[iRX]; 
-	     }
-
-               DataTrans.Data_TxLen=DataTrans.Tx_Wr;   
-		 DataTrans.TYPE=0x01; //  类型	
-			//--------------------------------------------------	
-	    //if(DispContent!=1)		
-		{
-		  rt_kprintf("\r\n BDEXT_ID=%08X\r\n",BD_EXT.CAN_2_ID);	   
-                rt_kprintf("\r\n CAN2 RxMessage=%2X,%2X,%2X,%2X,%2X,%2X,%2X,%2X",RxMessageData.Data[0],RxMessageData.Data[1],RxMessageData.Data[2],RxMessageData.Data[3],RxMessageData.Data[4],RxMessageData.Data[5],RxMessageData.Data[6],RxMessageData.Data[7]);
-	    	}
-             	}
-
-     	}
-	else if ( U3_content[1] == 0x35 ) /*连接到扩展板的Usart3同IC读卡器连接，9600bps*/
-	{
-	
-		/*'5',1,<转义后的ic卡数据,以0x7e封包>*/
-		len=Protocol_808_Decode_Good( U3_content+3, U3_content,U3_content_len-4); 
-		rt_kprintf("\r\n******************\r\n");
-		   for(i=0;i<len;i++) rt_kprintf("%02x ",U3_content[i]); 
-		rt_kprintf("\r\n******************");
-
-		if(U3_content[0]!=0x7e) return;
-		if(U3_content[len-1]!=0x7e) return; 
-		/*计算累加和*/
-		fcs=0;
-		//for(i=4;i<len-1;i++)  fcs+=U3_content[i]; 
-		//if(fcs!=U3_content[1])
-		//{
-			//rt_kprintf("\r\n%s(line:%d)>",__func__,__LINE__);
-		//}
-		if(U3_content[6]!=0x0B) return; // IC 卡类型检查，不是则返回
-		
-		switch(U3_content[7])					
-		  {	 
-		      case         0x40:  // 首次插卡的信息
-							{    // 40H   
-							      switch(U3_content[8])
-							      	{
-					                           case 0x00:
-											  rt_kprintf("\r\n IC 卡读卡成功\r\n");
-											  IC_MOD.IC_Status=1;
-											  JT808Conf_struct.Driver_Info.BD_IC_rd_res=0x00;
-											  time_now=Get_RTC(); 
-											  Time2BCD(JT808Conf_struct.Driver_Info.BD_IC_inoutTime);  
-						
-						if( DataLink_Status( ) && ( TCP2_Connect ) )
-						{                                                       //  Online      Trans  64 Data  to  Centre  , wait for 1 or 25 byte result,
-							memset( IC_MOD.IC_Tx40H, 0, sizeof( IC_MOD.IC_Tx40H ) );
-							memcpy( IC_MOD.IC_Tx40H, U3_content + 9, 64 );  //获取64个字节的卡片信息
-							IC_MOD.Trans_0900Flag = 1;                      // 发送透传
-							rt_kprintf( "\r\n IC get 64 Bytes\r\n" );
-							return;
-						}else
-						{                                                       //Off line
-							buf[0] = 0x01;
-							DeviceData_Encode_Send( 0x0B, 0x40, buf, 1 );
-							TTS_Get_Data("尚未连到中心",12);
-							return;
-						}
-											  break;
-					case 0x01:  /*等待20分钟，使用0x43命令主动触发读取*/
-						rt_kprintf( "\r\n IC卡未插入\r\n" );
-
-						time_now									= Get_RTC( );
-											  Time2BCD(JT808Conf_struct.Driver_Info.BD_IC_inoutTime);  
-                                                                                //  send back
-											  buf[0]=0x03;
-											  DeviceData_Encode_Send(0x0B,0x40,buf,1);
-											  break;			  
-					                          case 0x02:
-						rt_kprintf( "\r\n IC卡读取失败\r\n" );
-											   //  send back
-											  buf[0]=0x03;
-											  DeviceData_Encode_Send(0x0B,0x40,buf,1);
-						TTS_Get_Data("IC卡读取失败",12);
-											  break;
-								     case 0x03:
-											  rt_kprintf("\r\n 非从业资格证卡\r\n");
-											   //  send back
-											  buf[0]=0x03;
-											  DeviceData_Encode_Send(0x0B,0x40,buf,1);
-						TTS_Get_Data("非从业资格证卡",14);
-											  break;		  
-								     case 0x04:
-						rt_kprintf( "\r\n IC卡被锁定\r\n" );
-  											  //  send back
-											  buf[0]=0x03; 
-											  DeviceData_Encode_Send(0x0B,0x40,buf,1); 
-						JT808Conf_struct.Driver_Info.BD_IC_rd_res	= 0x01;
-						SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
-
-						TTS_Get_Data("IC卡被锁定",10);
-						break;
-				}
-			}
-			break;
-			case    0x41:                                   //  IC 内驾驶员的信息
-			{
-				/*
-				7E 55 00 01 01 00 0B 41 00 
-				06 C2 DE B3 A4 C0 D6 
-				36 32 30 31 32 33 31 39 37 33 30 35 30 33 39 31 31 32 00 00 
-				14 C0 BC D6 DD CA D0 B9 AB C2 B7 D4 CB CA E4 B9 DC C0 ED B4 A6 
-				20 15 05 01 
-				7E 
-				*/
-
-				if( U3_content[8] == 0x00 )                 // 获取驾驶身份信息内容
-				{
-				
-					rt_kprintf( "\r\n 读取驾驶员身份信息成功\r\n" );
-					JT808Conf_struct.Driver_Info.BD_IC_status=0x01;
-					i=*(U3_content + 9);	/*姓名长度*/
-					JT808Conf_struct.Driver_Info.BD_DriveName_Len=i;	/*姓名长度*/
-					memcpy(JT808Conf_struct.Driver_Info.BD_DriveName,U3_content + 10,i);
-					JT808Conf_struct.Driver_Info.BD_DriveName[i]=0;
-					memcpy(JT808Conf_struct.Driver_Info.BD_Drv_CareerID,U3_content + 10+i,20);
-					j=*(U3_content + 30+i);	/*发证机关长度*/
-					JT808Conf_struct.Driver_Info.BD_Confirm_agentID_Len=j;
-					memcpy(JT808Conf_struct.Driver_Info.BD_Confirm_agentID,U3_content + 31+i,j);
-					JT808Conf_struct.Driver_Info.BD_Confirm_agentID[j]=0;
-					memcpy(JT808Conf_struct.Driver_Info.BD_ExpireDate,U3_content + 31+i+j,4);
-					
-					rt_kprintf("\r\n--姓名:%s",JT808Conf_struct.Driver_Info.BD_DriveName);
-					rt_kprintf("\r\n--证件号:%s",JT808Conf_struct.Driver_Info.BD_Drv_CareerID);
-					rt_kprintf("\r\n--发证机关:%s",JT808Conf_struct.Driver_Info.BD_Confirm_agentID);
-					memcpy(buf,JT808Conf_struct.Driver_Info.BD_ExpireDate,4);
-					rt_kprintf("\r\n--有效期至:%02x%02x-%02x-%02x",buf[0],buf[1],buf[2],buf[3]);
-					
-					memcpy( IC_MOD.IC_TX41H, U3_content + 9, len - 9 );
-					IC_MOD.IC_TX41H_len				= len - 9;
-					SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
-				}
-				else
-				{
-					rt_kprintf( "\r\n IC卡驾驶员信息读取失败\r\n" );
-					TTS_Get_Data("IC卡驾驶员信息读取失败",22);
-				}
-				//  send back
-				DeviceData_Encode_Send( 0x0B, 0x41, NULL, 0 );
-				return;
-			}
-			break;
-			case    0x42:                                   // 卡片拔出通知
-			{
-				time_now = Get_RTC( );
-				Time2BCD( JT808Conf_struct.Driver_Info.BD_IC_inoutTime );
-				IC_MOD.IC_Status = 0;
-				if( DataLink_Status( ) )
-				{
-					JT808Conf_struct.Driver_Info.BD_IC_rd_res	= 0x00;
-					SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
-				}
-				// send back
-				DeviceData_Encode_Send( 0x0B, 0x42, NULL, 0 );
-				return;
-			}
-	    }
-         
-	}
-
+       // 1.  Debug  out
+             
+	   rt_kprintf( "\r\n // U3 _RX  -------------------------" );	   
+	   OutPrint_HEX( "U3接收到的数据", U3_Rx,U3_rxCounter ); 
+       rt_kprintf( "\r\n // U3 _end -------------------------" );  	 
+	   
+       //  2. normal   process
+       
+		   /*'5',1,<转义后的ic卡数据,以0x7e封包>*/
+		   len=Protocol_808_Decode_Good( U3_Rx, U3_content,U3_rxCounter); 
+		   rt_kprintf("\r\n******************\r\n");
+		   OutPrint_HEX( "U3 接转义数据", U3_content,len ); 
+		   rt_kprintf("\r\n******************");
+	   
+		   if(U3_content[0]!=0x7e) return;
+		   if(U3_content[len-1]!=0x7e) return; 
+		   /*计算累加和*/
+		   fcs=0;
+		   //for(i=4;i<len-1;i++)  fcs+=U3_content[i]; 
+		   //if(fcs!=U3_content[1])
+		   //{
+			   //rt_kprintf("\r\n%s(line:%d)>",__func__,__LINE__);
+		   //}
+		   if(U3_content[6]!=0x0B) return; // IC 卡类型检查，不是则返回
+		   
+		   switch(U3_content[7])				   
+			 {	
+				 case		  0x40:  // 首次插卡的信息
+							   {	// 40H	 
+									 switch(U3_content[8])
+									   {
+												  case 0x00:
+												 rt_kprintf("\r\n IC 卡读卡成功\r\n");
+												 IC_MOD.IC_Status=1;
+												 JT808Conf_struct.Driver_Info.BD_IC_rd_res=0x00;
+												 time_now=Get_RTC(); 
+												 Time2BCD(JT808Conf_struct.Driver_Info.BD_IC_inoutTime);  
+						   
+						   if( DataLink_Status( ) && ( TCP2_Connect ) )
+						   {													   //  Online	   Trans  64 Data  to  Centre  , wait for 1 or 25 byte result,
+							   memset( IC_MOD.IC_Tx40H, 0, sizeof( IC_MOD.IC_Tx40H ) );
+							   memcpy( IC_MOD.IC_Tx40H, U3_content + 9, 64 );  //获取64个字节的卡片信息
+							   IC_MOD.Trans_0900Flag = 1;					   // 发送透传
+							   rt_kprintf( "\r\n IC get 64 Bytes\r\n" );
+							   return;
+						   }else
+						   {													   //Off line
+							   buf[0] = 0x01;
+							   DeviceData_Encode_Send( 0x0B, 0x40, buf, 1 );
+							   TTS_Get_Data("尚未连到中心",12);
+							   return;
+						   }
+												 break;
+					   case 0x01:  /*等待20分钟，使用0x43命令主动触发读取*/
+						   rt_kprintf( "\r\n IC卡未插入\r\n" );
+	   
+						   time_now 								   = Get_RTC( );
+												 Time2BCD(JT808Conf_struct.Driver_Info.BD_IC_inoutTime);  
+																				   //  send back
+												 buf[0]=0x03;
+												 DeviceData_Encode_Send(0x0B,0x40,buf,1);
+												 break; 			 
+												 case 0x02:
+						   rt_kprintf( "\r\n IC卡读取失败\r\n" );
+												  //  send back
+												 buf[0]=0x03;
+												 DeviceData_Encode_Send(0x0B,0x40,buf,1);
+						   TTS_Get_Data("IC卡读取失败",12);
+												 break;
+										case 0x03:
+												 rt_kprintf("\r\n 非从业资格证卡\r\n");
+												  //  send back
+												 buf[0]=0x03;
+												 DeviceData_Encode_Send(0x0B,0x40,buf,1);
+						   TTS_Get_Data("非从业资格证卡",14);
+												 break; 		 
+										case 0x04:
+						   rt_kprintf( "\r\n IC卡被锁定\r\n" );
+												 //  send back
+												 buf[0]=0x03; 
+												 DeviceData_Encode_Send(0x0B,0x40,buf,1); 
+						   JT808Conf_struct.Driver_Info.BD_IC_rd_res   = 0x01;
+						   SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
+	   
+						   TTS_Get_Data("IC卡被锁定",10);
+						   break;
+				   }
+			   }
+			   break;
+			   case    0x41:								   //  IC 内驾驶员的信息
+			   {
+				   /*
+				   7E 55 00 01 01 00 0B 41 00 
+				   06 C2 DE B3 A4 C0 D6 
+				   36 32 30 31 32 33 31 39 37 33 30 35 30 33 39 31 31 32 00 00 
+				   14 C0 BC D6 DD CA D0 B9 AB C2 B7 D4 CB CA E4 B9 DC C0 ED B4 A6 
+				   20 15 05 01 
+				   7E 
+				   */
+	   
+				   if( U3_content[8] == 0x00 )				   // 获取驾驶身份信息内容
+				   {
+				   
+					   rt_kprintf( "\r\n 读取驾驶员身份信息成功\r\n" );
+					   JT808Conf_struct.Driver_Info.BD_IC_status=0x01;
+					   i=*(U3_content + 9);    /*姓名长度*/
+					   JT808Conf_struct.Driver_Info.BD_DriveName_Len=i;    /*姓名长度*/
+					   memcpy(JT808Conf_struct.Driver_Info.BD_DriveName,U3_content + 10,i);
+					   JT808Conf_struct.Driver_Info.BD_DriveName[i]=0;
+					   memcpy(JT808Conf_struct.Driver_Info.BD_Drv_CareerID,U3_content + 10+i,20);
+					   j=*(U3_content + 30+i); /*发证机关长度*/
+					   JT808Conf_struct.Driver_Info.BD_Confirm_agentID_Len=j;
+					   memcpy(JT808Conf_struct.Driver_Info.BD_Confirm_agentID,U3_content + 31+i,j);
+					   JT808Conf_struct.Driver_Info.BD_Confirm_agentID[j]=0;
+					   memcpy(JT808Conf_struct.Driver_Info.BD_ExpireDate,U3_content + 31+i+j,4);
+					   
+					   rt_kprintf("\r\n--姓名:%s",JT808Conf_struct.Driver_Info.BD_DriveName);
+					   rt_kprintf("\r\n--证件号:%s",JT808Conf_struct.Driver_Info.BD_Drv_CareerID);
+					   rt_kprintf("\r\n--发证机关:%s",JT808Conf_struct.Driver_Info.BD_Confirm_agentID);
+					   memcpy(buf,JT808Conf_struct.Driver_Info.BD_ExpireDate,4);
+					   rt_kprintf("\r\n--有效期至:%02x%02x-%02x-%02x",buf[0],buf[1],buf[2],buf[3]);
+					   
+					   memcpy( IC_MOD.IC_TX41H, U3_content + 9, len - 9 );
+					   IC_MOD.IC_TX41H_len			   = len - 9;
+					   SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
+				   }
+				   else
+				   {
+					   rt_kprintf( "\r\n IC卡驾驶员信息读取失败\r\n" );
+					   TTS_Get_Data("IC卡驾驶员信息读取失败",22);
+				   }
+				   //  send back
+				   DeviceData_Encode_Send( 0x0B, 0x41, NULL, 0 );
+				   return;
+			   }
+			   break;
+			   case    0x42:								   // 卡片拔出通知
+			   {
+				   time_now = Get_RTC( );
+				   Time2BCD( JT808Conf_struct.Driver_Info.BD_IC_inoutTime );
+				   IC_MOD.IC_Status = 0;
+				   if( DataLink_Status( ) )
+				   {
+					   JT808Conf_struct.Driver_Info.BD_IC_rd_res   = 0x00;
+					   SD_ACKflag.f_DriverInfoSD_0702H = 1;    // 使能上报
+				   }
+				   // send back
+				   DeviceData_Encode_Send( 0x0B, 0x42, NULL, 0 );
+				   return;
+			   }
+		   }
+			
+       
 
 }
 
@@ -314,42 +281,40 @@ u16  Protocol_808_Decode_Good(u8 *Instr ,u8* Outstr,u16  in_len)  // 解析指定buf
         return decode_len;
 }
 
-void CAN2_RxHandler(unsigned char rx_data)
-{
-   /*
-if(rx_data&0x01)
-	dayin_ErrorStatus=1;
-else if(rx_data&0x02)
-	dayin_ErrorStatus=2;
-else if(rx_data&0x04)
-	dayin_ErrorStatus=3;
-else if(rx_data&0x08)
-	dayin_ErrorStatus=4;
-	*/
-      //    rt_kprintf("%c",rx_data);     //ADD for CAN 2 debug
-    if(U3_flag)
-    	{
-           U3_Rx[U3_rxCounter++]=rx_data;
-	    if(rx_data==0x7e)
-	   {                 
-	                     U3_content_len=Protocol_808_Decode_Good(U3_Rx,U3_content,U3_rxCounter);
-				  
-                            U3_RxProcess();
+void  U3_rx_timeout(void)
+{//10ms
+     if(U3_flag==1)
+     {
+         U3_rx_timer++;
+		 if(U3_rx_timer>12) 
+		 	{
+                	  
+               U3_RxProcess();
 						   
-				U3_flag=0;
-				U3_rxCounter=0;
-	     }		   
-		   
-    	}
-     else
-      if((rx_data==0x7e)&&(U3_flag==0))
+			   U3_flag=0;
+			   U3_rxCounter=0;
+			   U3_rx_timer=0;
+		 	}		 
+     }
+}
+	
+
+void U3_RxHandler(unsigned char rx_data)
+{
+     //if(((rx_data==0x40)||(rx_data==0x41)||(rx_data==0x42))&&(U3_flag==0))
+     if(U3_flag==0)
       	{
       	   U3_Rx[U3_rxCounter++]=rx_data;
       	   U3_flag=1;
-      	}
-	else
-	    U3_rxCounter=0;	
-	
+		   U3_rx_timer=0;
+      	}	
+	 else
+	  if(U3_flag==1)
+	  	{
+            U3_Rx[U3_rxCounter++]=rx_data;
+	  	}
+	  else
+	  	 U3_rxCounter=0;
 }
 
 void CAN2_putc(char c)
@@ -406,7 +371,7 @@ static rt_err_t   Device_CAN2_init( rt_device_t dev )
 
 	
     //   4.  uart  Initial
-       USART_InitStructure.USART_BaudRate = 115200;    //CAN2    
+       USART_InitStructure.USART_BaudRate = 9600;    //CAN2    
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -419,6 +384,20 @@ static rt_err_t   Device_CAN2_init( rt_device_t dev )
 	USART_ClearFlag( USART3, USART_FLAG_TC );     
 	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);           
 
+    //  5.  Serial 2  power
+         RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);	 
+
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz; 
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;  
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL; 	 
+   //	OUT
+	//------------------- PE7 -----------------------------
+	GPIO_InitStructure.GPIO_Pin	 = GPIO_Pin_7;				//------车门开关状态  0 有效  常态下为高   
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;   //如果只接刹车，那就用PE5当刹车监视 
+	GPIO_Init(GPIOE, &GPIO_InitStructure); 
+
+     GPIO_SetBits(GPIOE,GPIO_Pin_7);  // 给RS232  供电  
 
 	return RT_EOK;
 }

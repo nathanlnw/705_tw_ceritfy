@@ -1,9 +1,2 @@
----- DF_ClearUpdate_Area Matches (9 in 3 files) ----
-DF_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):void DF_ClearUpdate_Area(void)   // 清除远程升级区域 
-DF_Oper.h (bsp\stm32f407vgt6_recdrv\app_712\dataflash):extern void DF_ClearUpdate_Area(void);    // 清除远程升级升级区域 
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<P><STRONG><a name="[27e]"></a>DF_ClearUpdate_Area</STRONG> (Thumb, 32 bytes, Stack size 8 bytes, df_oper.o(i.DF_ClearUpdate_Area))
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 164<LI>Call Chain = DF_ClearUpdate_Area &rArr; DF_EraseAppFile_Area &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR>[Called By]<UL><LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[27e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DF_ClearUpdate_Area
+---- Linik Matches (1 in 1 files) ----
+App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			  	   rt_kprintf("\r\n Linik 2 info \r\n");    

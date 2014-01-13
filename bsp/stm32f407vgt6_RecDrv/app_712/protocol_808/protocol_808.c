@@ -12331,10 +12331,10 @@ void ICack( void )
 	}
 	rt_kprintf( "\r\n" );
 	//------ 直接发送给IC 卡模块-----
-	DeviceData_Encode_Send( 0x0B, 0x40, ackreg, 24 );
+	DeviceData_Encode_Send( 0x0B, 0x40, ackreg, 24 ); 
 }
 
-FINSH_FUNCTION_EXPORT( ICack, ICack );
+FINSH_FUNCTION_EXPORT( ICack, ICack ); 
 
 
 /***********************************************************
@@ -12603,6 +12603,17 @@ void sim_0700( uint8_t cmd )
 	Recode_Obj.SD_Data_Flag = 0;
 }
 
+
 FINSH_FUNCTION_EXPORT( sim_0700, sim_0700 );
+
+
+void password(u8 value)
+{
+  rt_kprintf("\r\n password(%d)",value);
+  JT808Conf_struct.password_flag=value;     // clear  first flag		
+  Api_Config_Recwrite_Large(jt808,0,(u8*)&JT808Conf_struct,sizeof(JT808Conf_struct));    
+
+}
+FINSH_FUNCTION_EXPORT( password, password ); 
 
 // C.  Module

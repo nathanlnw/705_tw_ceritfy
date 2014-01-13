@@ -595,15 +595,17 @@ static void App808_thread_entry(void* parameter)
               }
               */     
 		//--------------------------------------------------	
-                if(Receive_DataFlag==1)
-		   {
+         if(Receive_DataFlag==1)
+		 {
                         memcpy( UDP_HEX_Rx,app_rx_gsm_infoStruct.info,app_rx_gsm_infoStruct.len);
 			  UDP_hexRx_len=app_rx_gsm_infoStruct.len;	 
 			  if(app_rx_gsm_infoStruct.link_num)
-			  	   rt_kprintf("\r\n Linik 2 info \r\n");    
-                       TCP_RX_Process(app_rx_gsm_infoStruct.link_num);        
+			  	   rt_kprintf("\r\n Linik 2 info \r\n");  
+			  
+			  OutPrint_HEX("GSM RX",UDP_HEX_Rx,UDP_hexRx_len); 
+              TCP_RX_Process(app_rx_gsm_infoStruct.link_num);        
 			  Receive_DataFlag=0;	 	   
-                }	
+         }	
 			     
                 //    ISP  service  
 		  Api_CHK_ReadCycle_status();//   Ñ­»·´æ´¢×´Ì¬¼ì²â		
