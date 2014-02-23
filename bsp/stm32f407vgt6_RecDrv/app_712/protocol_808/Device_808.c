@@ -134,18 +134,18 @@ void  APP_IOpinInit(void)   //初始化 和功能相关的IO 管脚
    gpio_init.GPIO_Pin	 = GPIO_Pin_0;				//------PIN 4    远光灯
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
    GPIO_Init(GPIOC, &gpio_init); 
-    //------------- PC1----------------
-   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 5    近光灯
+    //------------- PA6----------------
+   gpio_init.GPIO_Pin	 = GPIO_Pin_6;				//------PIN 5    近光灯
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-   GPIO_Init(GPIOC, &gpio_init); 
+   GPIO_Init(GPIOA, &gpio_init); 
     //------------- PA1 --------------
    gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 6   车门
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
    GPIO_Init(GPIOA, &gpio_init);
-    //------------- PC3 --------------
-   gpio_init.GPIO_Pin	 = GPIO_Pin_3;				//------PIN 7   雾灯 (AD1)
+    //------------- PA7 --------------
+   gpio_init.GPIO_Pin	 = GPIO_Pin_7;				//------PIN 7   雾灯 (AD1)
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-   GPIO_Init(GPIOC, &gpio_init);
+   GPIO_Init(GPIOA, &gpio_init);
     //------------- PC2 --------------   
    gpio_init.GPIO_Pin	 = GPIO_Pin_2;				//------PIN 8   右转灯(AD2)    
    gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
@@ -159,21 +159,6 @@ void  APP_IOpinInit(void)   //初始化 和功能相关的IO 管脚
    gpio_init.GPIO_Pin	 = GPIO_Pin_10;				//------PIN 10  左转灯
    gpio_init.GPIO_Mode  = GPIO_Mode_IN;  
    GPIO_Init(GPIOE, &gpio_init);  
-
-
-   #ifndef BD_IO_Pin6_7_A1C3     // 用作模拟量了
-	    //------------- PA1 --------------
-	   gpio_init.GPIO_Pin	 = GPIO_Pin_1;				//------PIN 6   喇叭
-	   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-	   GPIO_Init(GPIOA, &gpio_init);
-	    //------------- PC3 --------------
-	   gpio_init.GPIO_Pin	 = GPIO_Pin_3;				//------PIN 7   左转灯 
-	   gpio_init.GPIO_Mode  = GPIO_Mode_IN; 
-	   GPIO_Init(GPIOC, &gpio_init);
- #endif        
-
-
- 
    //-----------------------------------------------------------------
    
 
@@ -250,15 +235,15 @@ u8  FarLight_StatusGet(void)
 }	
 u8  NEARLight_StatusGet(void)
 {
-  //  --------------J1pin5		PC1	          近光灯------>  黄
-	   return (!GPIO_ReadInputDataBit(NEARLIGHT_IO_Group,NEARLIGHT_Group_NUM));	// PC1
+  //  --------------J1pin5		PA6	          近光灯------>  黄
+	   return (!GPIO_ReadInputDataBit(NEARLIGHT_IO_Group,NEARLIGHT_Group_NUM));	// PA6
 	//		 接高  触发
 }
 
 u8 FOGLight_StatusGet(void)
 {
-// --------------J1pin7    PC3			    雾灯     ------>   绿
-		return(!GPIO_ReadInputDataBit(FOGLIGHT_IO_Group,FOGLIGHT_Group_NUM));  //PC3 
+// --------------J1pin7    PA7		    雾灯     ------>   绿
+		return(!GPIO_ReadInputDataBit(FOGLIGHT_IO_Group,FOGLIGHT_Group_NUM));  //PA7 
 			//		 接高  触发
 }	
 u8  DoorLight_StatusGet(void)
@@ -291,22 +276,22 @@ u8  Get_SensorStatus(void)
    u8  Sensorstatus=0;
    
    /*  
-     -------------------------------------------------------------
-              F4  行车记录仪 TW703   管脚定义
-     -------------------------------------------------------------
-     遵循  GB10956 (2012)  Page26  表A.12  规定
-    -------------------------------------------------------------
-    | Bit  |      Note       |  必备|   MCUpin  |   PCB pin  |   Colour | ADC
-    ------------------------------------------------------------
-        D7      刹车           *            PE11             9                棕
-        D6      左转灯     *             PE10            10               红
-        D5      右转灯     *             PC2              8                白
-        D4      远光灯     *             PC0              4                黑
-        D3      近光灯     *             PC1              5                黄
-        D2      雾灯          add          PC3              7                绿      *
-        D1      车门          add          PA1              6                灰      *
-        D0      预留
-   */
+	   -------------------------------------------------------------
+				F4	行车记录仪 TW705   管脚定义
+	   -------------------------------------------------------------
+	   遵循  GB10956 (2012)  Page26  表A.12  规定
+	  -------------------------------------------------------------
+	  | Bit  |		Note	   |  必备|   MCUpin  |   PCB pin  |   Colour | ADC
+	  ------------------------------------------------------------
+		  D7	  刹车			 *			  PE11			   9				棕
+		  D6	  左转灯	 *			   PE10 		   10				红
+		  D5	  右转灯	 *			   PC2				8				 白
+		  D4	  远光灯	 *			   PC0				4				 黑
+		  D3	  近光灯	 *			   PA6				5				 黄
+		  D2	  雾灯		       	add 		 PA7			  7 			   绿	   *
+		  D1	  车门			 add 		 PA1			  6 			   灰	   *
+		  D0	  预留
+	 */
 
 
    //  1.   D7      刹车           *            PE11             J1 pin9                棕
@@ -506,6 +491,82 @@ void TIM3_Config( void )
 	//----------------------------------------------   
 }
 
+/*************************************************
+Function:    void GPIO_Config(void)       
+Description: GPIO配置函数              
+Input: 无                              
+Output:无                              
+Return:无                              
+*************************************************/ 
+void GPIO_Config_PWM(void)
+{
+/*定义了一个GPIO_InitStructure的结构体，方便一下使用 */
+GPIO_InitTypeDef GPIO_InitStructure;
+/* 使能GPIOG时钟（时钟结构参见“stm32图解.pdf”）*/
+RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA , ENABLE);
+/*仅设置结构体中的部分成员：这种情况下，用户应当首先调用函数PPP_SturcInit(..)
+来初始化变量PPP_InitStructure，然后再修改其中需要修改的成员。这样可以保证其他
+成员的值（多为缺省值）被正确填入。
+ */
+GPIO_StructInit(&GPIO_InitStructure);
+
+/*配置GPIOA_Pin_8，作为TIM1_Channel2 PWM输出*/
+//GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 | GPIO_Pin_5; //指定复用引脚
+GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5; //指定复用引脚
+GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;    //模式必须为复用！
+GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;   //频率为快速
+GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;          //上拉与否对PWM产生无影响
+GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+//GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_TIM2); //复用GPIOA_Pin1为TIM2_Ch2
+GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2); //复用GPIOA_Pin5为TIM2_Ch1, 
+}
+
+
+/*************************************************
+Function:    void TIM_Config(void)  
+Description: 定时器配置函数       
+Input:       无
+Output:      无                            
+*************************************************/
+void TIM_Config_PWM(void)
+{
+TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+TIM_OCInitTypeDef TIM_OCInitStructure;
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
+TIM_DeInit(TIM2);//初始化TIM2寄存器
+/*分频和周期计算公式：
+  Prescaler = (TIMxCLK / TIMx counter clock) - 1;
+  Period = (TIMx counter clock / TIM3 output clock) - 1 
+  TIMx counter clock为你所需要的TXM的定时器时钟 
+  */
+TIM_TimeBaseStructure.TIM_Period = 10-1; //查数据手册可知，TIM2与TIM5为32位自动装载，计数周期
+/*在system_stm32f4xx.c中设置的APB1 Prescaler = 4 ,可知
+  APB1时钟为168M/4*2,因为如果APB1分频不为1，则定时时钟*2 
+ */
+TIM_TimeBaseStructure.TIM_Prescaler = 2100-1;
+TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;//向上计数
+TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+
+/*配置输出比较，产生占空比为20%的PWM方波*/
+TIM_OCStructInit(&TIM_OCInitStructure);
+TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;//PWM1为正常占空比模式，PWM2为反极性模式
+TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+//TIM_OCInitStructure.TIM_Pulse = 2;//输入CCR（占空比数值）
+TIM_OCInitStructure.TIM_Pulse = 5;//输入CCR（占空比数值）
+TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;//High为占空比高极性，此时占空比为20%；Low则为反极性，占空比为80%
+
+TIM_OC1Init(TIM2, &TIM_OCInitStructure);
+TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);//CCR自动装载默认也是打开的
+
+TIM_ARRPreloadConfig(TIM2, ENABLE);  //ARR自动装载默认是打开的，可以不设置
+
+TIM_ClearFlag(TIM2, TIM_FLAG_Update);
+TIM_ITConfig(TIM2, TIM_IT_Update,ENABLE);
+TIM_Cmd(TIM2, ENABLE); //使能TIM2定时器
+}
+
 
 
 void Init_ADC(void)
@@ -518,7 +579,7 @@ void Init_ADC(void)
 
 
 //  1.  Clock 
-RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2|RCC_AHB1Periph_GPIOA|RCC_AHB1Periph_GPIOC, ENABLE);
+RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2|RCC_AHB1Periph_GPIOC, ENABLE); 
 RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
  
 //  2.  GPIO  Config   
@@ -528,17 +589,15 @@ gpio_init.GPIO_Mode = GPIO_Mode_AIN;
 GPIO_Init(GPIOC, &gpio_init);
 
 
-#ifdef BD_IO_Pin6_7_A1C3
-//------Configure PA.1 (ADC Channel1) as analog input -------------------------
+//------Configure PC.1 (ADC Channel11) as analog input -------------------------
 gpio_init.GPIO_Pin = GPIO_Pin_1;
 gpio_init.GPIO_Mode = GPIO_Mode_AIN;
-GPIO_Init(GPIOA, &gpio_init);
+GPIO_Init(GPIOC, &gpio_init);
 
 //------Configure PC.3 (ADC Channel13) as analog input -------------------------
 gpio_init.GPIO_Pin = GPIO_Pin_3;
 gpio_init.GPIO_Mode = GPIO_Mode_AIN;
 GPIO_Init(GPIOC, &gpio_init);
-#endif
 
 
 //  3. ADC Common Init 
@@ -546,7 +605,7 @@ GPIO_Init(GPIOC, &gpio_init);
   ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent; /*在独立模式下 每个ADC接口独立工作*/
   ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
   ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;// ADC_DMAAccessMode_Disabled;
-  ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+  ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_20Cycles;
   ADC_CommonInit(&ADC_CommonInitStructure);
 
   
@@ -585,10 +644,10 @@ GPIO_Init(GPIOC, &gpio_init);
 
  /* ADC1 regular channel15 configuration *************************************/
   ADC_RegularChannelConfig(ADC1, ADC_Channel_15, 1, ADC_SampleTime_3Cycles);  // 通道1  电池电量
- /* ADC1 regular channel1 configuration *************************************/ 
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 2, ADC_SampleTime_3Cycles);   //  通道2   灰线
+ /* ADC1 regular channel11 configuration *************************************/ 
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 2, ADC_SampleTime_3Cycles);   //  通道2   8pin 黄线
   /* ADC1 regular channel13 configuration *************************************/
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 3, ADC_SampleTime_3Cycles);  // 通道3   绿线
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 3, ADC_SampleTime_3Cycles);  // 通道3   10pin  橙颜色
 
  /* Enable DMA request after last transfer (Single-ADC mode) */
   ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
@@ -600,7 +659,7 @@ GPIO_Init(GPIOC, &gpio_init);
   ADC_Cmd(ADC1, ENABLE);
 
   ADC_SoftwareStartConv(ADC1);
-
+ 
   //==================================== 
 
 }
@@ -657,8 +716,8 @@ void  sys_status(void)
     else	 
                       rt_kprintf("      GPRS 状态:   Offline\r\n");  	   
 
-   rt_kprintf("\r\nADV1=%d , 灰线ADV2=%d, 绿线ADV3=%d \r\n",ADC_ConValue[0],ADC_ConValue[1],ADC_ConValue[2]);
-   rt_kprintf("\r\nAD1  Voltage=%d.%d V, AD2  Voltage=%d.%d V   \r\n",AD_2through[0]/10,AD_2through[0]%10,AD_2through[1]/10,AD_2through[1]%10);
+   rt_kprintf("\r\n 电源 ADV1=%d ,模拟量1(8pin   黄线线)ADV2=%d, 模拟量2( 10pin 橙线 PC3 )ADV3=%d \r\n",ADC_ConValue[0],ADC_ConValue[1],ADC_ConValue[2]);
+   rt_kprintf("\r\nAD1  Voltage=%d.%d V,   Voltage=%d.%d V   \r\n",AD_2through[0]/10,AD_2through[0]%10,AD_2through[1]/10,AD_2through[1]%10);
    
 }
 FINSH_FUNCTION_EXPORT(sys_status, Status);
@@ -955,7 +1014,7 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 				
 		 if(strcmp((const char*)name,doubt_data)==0)
 		{ 
-		       Save_DrvRecoder(Recorder_write, buffer, len );   
+		       //Save_DrvRecoder(Recorder_write, buffer, len );   
 			//-----  Record update----	    
 			   Recorder_write++; 
 			   if(Recorder_write>=Max_RecoderNum)  
@@ -1053,26 +1112,6 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 			  //-------------------------
 			  return  true;
                 }
-				
-		 if(strcmp((const char*)name,doubt_data)==0)
-		{ 
-		        if(style==1)
-					read_addr=0+numPacket;
-			 else
-			 { 
-			      if(Recorder_write==0)
-				  	    return   false; 
-				else  
-			      if(Recorder_write>=(numPacket+1))		
-			            read_addr=Recorder_write-1-numPacket;
-				else
-					 return false;
-			 }  
-		       Read_DrvRecoder(read_addr, buffer, len );   
-	
-		       //-------------------------		   
-			return true;
-               }	
 		 //------- MultiMedia   RAW  data  ---------
 		 if(strcmp((const char*)name,voice)==0)
 		{

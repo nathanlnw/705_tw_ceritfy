@@ -83,10 +83,9 @@ static char DialStr_ISP[50]="AT+QIOPEN=2,\"TCP\",\"60.28.50.210\",\"6071\"\r\n";
  
 
 
-flash char  CutDataLnk_str1[]="ATQICLOSE=3\r\n";
-flash char  CutDataLnk_str2[]="ATQICLOSE=2\r\n";
-flash char  CutDataLnk_str3[]="ATQICLOSE=1\r\n";
-flash char  CutDataLnk_str4[]="ATQICLOSE=5\r\n";  
+flash char  CutDataLnk_str2[]="AT+QICLOSE=1\r\n"; 
+flash char  CutDataLnk_str3[]="AT\r\n";
+flash char  CutDataLnk_str4[]="AT+QIDEACT\r\n";  
 flash char  CutDataLnk_str5[]="ATH\r\n";     
 
 #endif
@@ -110,7 +109,7 @@ u16  Voice_rx_len=0; // 语音数据接收长度
 u8   Get_voicedata_delay=0; 
 u8   GEt_voice_Counter=0;    
 u8	AT_str[50]; 	
-
+u8  Rx_Error_counter=0;  // 连续错误计数器，连续错误3次以上认为有问题，挂断重播链路
 
                                                                                                  
 //-------  struct  variables -------------
@@ -1867,7 +1866,7 @@ static void GSM_Process(u8 *instr, u16 len)
 		 
 	}
 	else
-	if(strncmp((char*)GSM_rx, "%IPCLOSE:",9) == 0)	  
+	if(strncmp((char*)GSM_rx, "1, CLOSED",9) == 0)	   
 	{
 	   DataLink_Online=0;
 		 ModuleStatus &=~Status_GPRS; 
@@ -1967,7 +1966,10 @@ static void GSM_Process(u8 *instr, u16 len)
 		   	    Api_cycle_Update();
 		         //  rt_kprintf("\r\n Updata cycle  status !! ----reg for debug\r\n");
 			    Send_Rdy4ok=0;	   
-		   	}		   
+		   	}
+		    //-------------------------------------------
+		    if(DataLink_Status())        //   Online  state  Error    , End Link and Redial     
+	              Rx_Error_counter=0;  
 			//-------------------------------------------
                switch(VocREC.Sate)
       {
@@ -2025,8 +2027,8 @@ static void GSM_Process(u8 *instr, u16 len)
 	else
 	if (strcmp((char*)GSM_rx, "NO DIALTONE") == 0) failed = true;
 	else
-	if (strcmp((char*)GSM_rx, "NO ANSWER") == 0) failed = true;
-	if (strncmp((char*)GSM_rx, "NO CARRIER",10) == 0) //NO CARRIER 
+	if((strcmp((char*)GSM_rx, "NO ANSWER") == 0)|| \
+	   (strncmp((char*)GSM_rx, "NO CARRIER",10) == 0)) //NO CARRIER  
 	{                      //  NO CARRIER  
 		 CallState=CallState_Idle;	
 		 failed = true;
@@ -2193,8 +2195,16 @@ static void GSM_Process(u8 *instr, u16 len)
 	   if(TTS_ACK_Error_Process()==true)
                {     rt_kprintf("\r\n  TTS ack  error \r\n");  Speak_OFF; }
 	   else 
-	   if(DataLink_Status())        //   Online  state  Error    , End Link and Redial    
-	        {      DataLink_EndFlag=1;   rt_kprintf("\r\n Datalink end => 数据链路下收到错误\r\n");}  
+	   if(DataLink_Status())        //   Online  state  Error    , End Link and Redial     
+	    {
+	       Rx_Error_counter++;
+		   if(Rx_Error_counter>3)
+	        {
+	           DataLink_EndFlag=1; 
+			   Rx_Error_counter=0;
+		   	}
+
+	   	}
 	   rt_kprintf("\r\n ERROR\r\n");      
 	}   
 	else

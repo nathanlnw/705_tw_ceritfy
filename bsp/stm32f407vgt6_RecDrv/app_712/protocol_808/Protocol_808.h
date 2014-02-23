@@ -489,7 +489,7 @@ typedef struct  _PRODUCT_ATTRIBUTE
 //--------  行车记录仪相关  -----
 typedef struct  _RECODER
 {
-  u16  Float_ID;     //  命令流水号
+  u16  Float_ID;     //  中心下发命令的流水号
   u8   CMD;     //  数据采集 
   u8   SD_Data_Flag; //  发送返回数返回标志
   u8   CountStep;  //  发送数据需要一步一步发送 
@@ -499,6 +499,16 @@ typedef struct  _RECODER
   u16  Total_pkt_num;   // 分包总包数
   u16  Current_pkt_num; // 当前发送包数 从 1  开始
   u8	fcs;
+
+  
+  //-----记录仪列表重传
+  u8   RSD_State;     //  重传状态   0 : 重传没有启用   1 :  重传开始    2  : 表示顺序传完但是还没收到中心的重传命令
+  u8   RSD_Timer;     //  传状态下的计数器   
+  u8   RSD_Reader;    //  重传计数器当前数值 
+  u8   RSD_total;     //  重传选项数目   
+   
+  u16	Media_ReSdList[256]; //  多媒体重传消息列表 
+
   
 }RECODER;
 //------  Camera  --------
@@ -1427,7 +1437,7 @@ extern  void  MangQU_read(u32  coutner, u8 *str, u32 length);
 extern  void  MangquSave_GPS(void);     
 extern  void  CAN_Send_judge(void); 
 extern  void  MangQu_Timer(void);
-
+extern void   buzzer_onoff(u8 in); 
 
 
 //==================================================================================================

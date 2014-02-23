@@ -138,44 +138,18 @@ Crystal: 3.6864Mhz
 //                     Name                                     PageNum                	 	                     Description                             
 // 1.  Cycle Save Send Area
 #define       CycleStart_offset                       1768                          // 循环存储上报存储区域(Basic 基本必备)        1 record=32 Bytes
+                                                                                  //  1768+1408=   3176     1408page=11264 条
 
 
 
+// 2. Average Speed Per Minute
+#define       AverageSpdStart_offset                  3400                         // 车辆每分钟平均速度(要求记录至少360h)          1 record =70 Bytes
 
-// 2. Vehicle  Status Record Area 
-#define       VehicleRecStart_offset                  2792                         // 行车记录仪数据存储区域(事故疑点数据)  1 record=256Bytes
+// 3. Tired Driving Record
+#define       TiredDrvStart_offset                    3408                          //  疲劳驾驶记录起始偏移
 
-// 3. Average Speed Per Minute
-#define       AverageSpdStart_offset                  2992                         // 车辆每分钟平均速度(要求记录至少360h)          1 record =70 Bytes
-
-// 4. Tired Driving Record
-#define       TiredDrvStart_offset                    3392                          //  疲劳驾驶记录起始偏移
-
-// 5. Exp  Speed  Record
-#define       ExpSpdStart_offset                      3400                          //  超速报警偏移
-
-// 6. Average Minte position
-#define      AvrgMintPosit_offset                     3408                         // 车辆每小时内每分钟位置记录   1 record =512 Bytes
-
-
-// 7. Average Speed Per Second
-#define      AvrgSpdSec_offset                        3432                         // 车辆每秒钟平均速度记录       1 record =70 Bytes
-
-// 8. Acc  Work  On  Record
-#define       AccWorkOnStart_offset                 3512                          // 打火记录
-
-// 9. Abnormal  Record 
-#define       AbNormalStart_offset                    3420                         // 设备异常Log存储
-
-// 10.  LogIn  Record
-#define      LogIn_offset                             3528                         // 用户登录记录
-
-// 11. PowerCut Record
-#define      PowerCut_offset                          3536                         // 外部电源断开记录
-
-
-// 12. Setting Change Record
-#define     SettingChg_offset                         3544                    // 参数修改记录
+//4.  定位精度     3176+128=3432 Page
+#define    Pos_accuracy_offset                        3432                         //   定位精度          
 
 
 // 13. Picture   Area
@@ -232,7 +206,11 @@ Crystal: 3.6864Mhz
  #define   DF_AskQuestion_Page                    4600       //  中心提问 
 /*                Dataflash     <------------   End              */ 
 
-#define  DF_Record_Page                         6144 
+#define  DF_Record_Page                         6144  //------行驶记录仪的起始位置大小为252K=504个Page==4x128=
+                                                      //   6144+504 =6648   6144+4x128=6656
+
+#define  DF_MQ_Page                         6784    //  盲区补报起始位置     6144+128*5=6784     6784   到8192 有1408page=11264 条
+ 
 
 //-------------------------------------------------------
 //存储程序以及图片信息所需

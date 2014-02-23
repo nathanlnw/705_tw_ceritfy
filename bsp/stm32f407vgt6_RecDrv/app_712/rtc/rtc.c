@@ -203,8 +203,13 @@ u8  rt_hw_rtc_init(void)
      RTC_ClearFlag(RTC_FLAG_ALRAF);
       
 	/* Wait for RTC registers synchronization */
-       RTC_WaitForSynchro();
-	Resualt=0;				
+     if( RTC_WaitForSynchro()==SUCCESS)
+	  {
+	     Get_RTC();
+		 Resualt=1;
+     }
+	 else
+	   Resualt=0;				
  }
 	
     /* register rtc device */

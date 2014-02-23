@@ -21,8 +21,6 @@
 #define DF_APP1_PageNo		                 50             /*DF_APP_flah run PageNo:   50  ~ 903  page*/
 
 
-//--------  Protocol IO define -------------
-#define    BD_IO_Pin6_7_A1C3          //  北斗应用用 PA1    6   灰线 PC3   7  绿线
 //----- in pins  -------
 #define  ACC_IO_Group          GPIOE               // ACC 管脚设置
 #define  ACC_Group_NUM         GPIO_Pin_9
@@ -35,7 +33,7 @@
 //---- 报警状态  ------------------
    /*  
      -------------------------------------------------------------
-              F4  行车记录仪 TW703   管脚定义
+              F4  行车记录仪 TW705   管脚定义
      -------------------------------------------------------------
      遵循  GB10956 (2012)  Page26  表A.12  规定
     -------------------------------------------------------------
@@ -60,16 +58,16 @@
 #define RIGHTLIGHT_IO_Group       GPIOC               // 右转灯
 #define RIGHTLIGHT_Group_NUM      GPIO_Pin_2
 
-#define FARLIGHT_IO_Group           GPIOC              // 远光灯
+#define FARLIGHT_IO_Group         GPIOC              // 远光灯
 #define FARLIGHT_Group_NUM        GPIO_Pin_0 
 
-#define NEARLIGHT_IO_Group          GPIOC             // 近光灯
-#define NEARLIGHT_Group_NUM       GPIO_Pin_1 
+#define NEARLIGHT_IO_Group        GPIOA             // 近光灯
+#define NEARLIGHT_Group_NUM       GPIO_Pin_6  
 
-#define FOGLIGHT_IO_Group            GPIOC             //  雾灯
-#define FOGLIGHT_Group_NUM         GPIO_Pin_3    
+#define FOGLIGHT_IO_Group          GPIOA          //  雾灯
+#define FOGLIGHT_Group_NUM         GPIO_Pin_7      
 
-#define DOORLIGHT_IO_Group          GPIOA             // 车门灯   预留
+#define DOORLIGHT_IO_Group        GPIOA             // 车门灯   预留
 #define DOORLIGHT_Group_NUM       GPIO_Pin_1
 
 
@@ -146,6 +144,15 @@ extern   u8       Api_cycle_write(u8 *buffer, u16 len);
 extern   u8       Api_cycle_read(u8 *buffer, u16 len); 
 extern   u8       Api_cycle_Update(void);
 extern   u8       Api_CHK_ReadCycle_status(void);  
+
+ /*
+		 ----------------------------
+		蜂鸣器驱动相关
+		 ----------------------------
+ */
+ extern  void GPIO_Config_PWM(void); 
+ extern  void TIM_Config_PWM(void);
+
 
  // 2. Config 
  extern   u8    Api_Config_write(u8 *name,u16 ID,u8* buffer, u16 wr_len);

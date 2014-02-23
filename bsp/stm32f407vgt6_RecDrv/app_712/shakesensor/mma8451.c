@@ -498,7 +498,7 @@ uint16_t			param_mma8451_word2 =0xFFFF; //0x1E02; /* 振动 0x1e:单位4ms的倍数  0x
 uint8_t				crash_counter = 0;
 
 uint8_t				CTRL_REG1_value			= 0x10;
-uint8_t				PL_BF_ZCOMP_REG_value	= 0xc7;
+uint8_t				PL_BF_ZCOMP_REG_value	= 0xc2;   
 uint8_t				PL_P_L_THS_REG_vlaue	= 0xcf;
 
 u32    shaker_continueCounter=0;  // 连续振动状态指示计数器
@@ -543,7 +543,7 @@ void EXTI9_5_IRQHandler( void )
 		IIC_RegRead( MMA845X_ADDR, INT_SOURCE_REG, &value1 );
 		IIC_RegRead( MMA845X_ADDR, PL_STATUS_REG, &value2 );
 		IIC_RegRead( MMA845X_ADDR, PULSE_SRC_REG, &value3 );
-		//rt_kprintf("\nINT=%02x %02x %02x\n",value1,value2,value3); 
+		//rt_kprintf("\nINT=%02x %02x %02x  x=%02x  y=%02x z=%02x\n",value1,value2,value3,value4,value5,value6);    
 		//                                                          trigger  type    grade
              /*
                          Shake Trigger     
@@ -644,6 +644,7 @@ void EXTILine5_Config( void )
  uint8_t mma8451_config( uint16_t param1, uint16_t param2 ) 
 {
    unsigned char res;
+   
 	param_mma8451_word1=param1;
 	param_mma8451_word2=param2;
 
@@ -749,7 +750,7 @@ void EXTILine5_Config( void )
 	   The remaining parts of this step only apply to MMA8451Q
 	   P_L_THS_Data& = 0x07; //Clear the Threshold values
 	   Choose one of the following options
-	   P_L_THS_Data | = (0x07)<<3; //Set Threshold to 15°
+	   P_L_THS_Data | = (0x07)<<3; //Set Threshold to 15° 
 	   P_L_THS_Data | = (0x09)<<3; //Set Threshold to 20°
 	   P_L_THS_Data | = (0x0C)<<3; //Set Threshold to 30°
 	   P_L_THS_Data | = (0x0D)<<3; //Set Threshold to 35°
@@ -781,7 +782,7 @@ void EXTILine5_Config( void )
 	   IIC_RegWrite(0x14, P_L_THS_Data);
 	 */
 
-	if( IIC_RegWrite( MMA845X_ADDR, PL_P_L_THS_REG, PL_P_L_THS_REG_vlaue ) )
+	if( IIC_RegWrite( MMA845X_ADDR, PL_P_L_THS_REG, PL_P_L_THS_REG_vlaue ) )   
 	{
 		goto lbl_mma8451_config_err;
 	}
@@ -857,29 +858,6 @@ void EXTILine5_Config( void )
 	}
 
 	//加速度门限 0.1g 1-79	扩展为0.0625  1-127  扩大1.6倍
-/*
-	res = ( ( param_mma8451_word2 & 0xff00 ) >> 8 ) * 1.6;
-
-	if( IIC_RegWrite( MMA845X_ADDR, PULSE_THSX_REG, res ) )
-	{
-		goto lbl_mma8451_config_err;
-	}
-	if( IIC_RegWrite( MMA845X_ADDR, PULSE_THSY_REG, res ) )
-	{
-		goto lbl_mma8451_config_err;
-	}
-	if( IIC_RegWrite( MMA845X_ADDR, PULSE_THSZ_REG, res ) )
-	{
-		goto lbl_mma8451_config_err;
-	}
-
-	res = param_mma8451_word2 & 0xff;
-	if( IIC_RegWrite( MMA845X_ADDR, PULSE_TMLT_REG, res ) )
-	{
-		goto lbl_mma8451_config_err;
-	}
-*/
-
 	res = ( param_mma8451_word2 & 0xff)*1.6;
 
 	if( IIC_RegWrite( MMA845X_ADDR, PULSE_THSX_REG, res ) )

@@ -18,6 +18,8 @@
 #include <dfs_posix.h>
 //#include "usbh_usr.h"
 
+#define MQ_RAWINFO_SIZE 4096
+
 
 /* 定时器的控制块 */
  static rt_timer_t timer_app; 
@@ -69,7 +71,11 @@ APP_QUE  AppQue;
 
 
 
- //  1. MsgQueue Rx
+ //   盲区补报
+uint8_t					MQ_rawinfo[MQ_INFO_SIZE];
+struct rt_messagequeue	mq_MQBuBao;
+static LENGTH_BUF Tw705_MQ_tx;
+static LENGTH_BUF Tw705_MQ_rx;
 
 
 void App_rxGsmData_SemRelease(u8* instr, u16 inlen,u8 link_num)
@@ -534,6 +540,14 @@ void  Recorder_init(void)
   Recode_Obj.Current_pkt_num=0; // 当前发送包数 从 1  开始
   Recode_Obj.fcs=0;
 
+  
+  //-------  记录仪列表重传---  
+  Recode_Obj.RSD_State=0;     //  重传状态   0 : 重传没有启用   1 :  重传开始    2  : 表示顺序传完但是还没收到中心的重传命令
+  Recode_Obj.RSD_Timer=0;     //  传状态下的计数器   
+  Recode_Obj.RSD_Reader=0;    //  重传计数器当前数值 
+  Recode_Obj.RSD_total=0;     //  重传选项数目    
+   
+
 }
  ALIGN(RT_ALIGN_SIZE)
 char app808_thread_stack[4096];      
@@ -567,6 +581,10 @@ static void App808_thread_entry(void* parameter)
 	//  	rt_kprintf("\r\n TF_result=%d\r\n",pos); 
 	//rt_kprintf("\r\n tf ok\r\n");  
 
+	       //BUZZER
+	   GPIO_Config_PWM();
+	   TIM_Config_PWM();  
+	   buzzer_onoff(0);  
 	   
         /* watch dog init */ 
 	WatchDogInit();                        
@@ -586,14 +604,7 @@ static void App808_thread_entry(void* parameter)
 	while (1)
 	{
 
-
-               //  system reset  
-         /*       if(rt_sem_take(&SysRst_sem,2)==RT_EOK)
-              {
-                       Close_DataLink();  
-			  //reset  	  	  
-              }
-              */     
+  
 		//--------------------------------------------------	
          if(Receive_DataFlag==1)
 		 {
@@ -610,14 +621,14 @@ static void App808_thread_entry(void* parameter)
                 //    ISP  service  
 		  Api_CHK_ReadCycle_status();//   循环存储状态检测		
 		  //-------- 808   Send data   		
-             	  if(DataLink_Status()&&(CallState==CallState_Idle)&&(VocREC.Sate!=VOICEREC_DataRXing))   
+           if(DataLink_Status()&&(CallState==CallState_Idle)&&(VocREC.Sate!=VOICEREC_DataRXing))   
 		   {   		
 		        //------- send
 		          // if(App_mq_Resend()==false)
                             //      App_mq_Read_Process(); 
 		             Do_SendGPSReport_GPRS();   
 		   } 
-                else
+           else
 		   if(CallState==CallState_rdytoDialLis)
 			  {
 				  CallState=CallState_Dialing;
@@ -628,7 +639,17 @@ static void App808_thread_entry(void* parameter)
 				  rt_kprintf((char*)Dialstr);
 				  rt_hw_gsm_output((const char *)Dialstr); 	 
 		  
-		  }   
+		  }  
+         //  盲区存储 
+          // 5. ---------------  顺序存储 GPS  -------------------		    
+		if(GPS_getfirst)	 //------必须搜索到经纬度
+		{
+			    if(Current_SD_Duration>1)// 间隔大于10s 存储顺序上报， 小于10 不存储上报 
+			    {                                                 //  拍照中暂不操作flash
+					   Save_GPS();       
+			    } 
+		}
+		   
 	     //============  状态检测 =======================
                 ACC_status_Check();
 	     //---------------------------------------------------------------------------------------------	  
@@ -644,7 +665,8 @@ void Protocol_app_init(void)
 {
         rt_err_t result;
 
-
+        
+		rt_mq_init( &mq_MQBuBao, "mq_MQBB", &MQ_rawinfo[0], 64 - sizeof( void* ), MQ_RAWINFO_SIZE, RT_IPC_FLAG_FIFO );
         rt_sem_init(&SysRst_sem,"SysRst",0,0);  
         rt_sem_init(&app_rx_gsmdata_sem, "appRxSem", 0, 0);   		
        //---------  timer_app ----------

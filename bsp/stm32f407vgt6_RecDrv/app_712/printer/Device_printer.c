@@ -44,7 +44,7 @@
 
 /*打印头相关*/
 
-//#define PAPER_DETCET_PORT	GPIOA
+//#define PAPER_DETCET_PORT	GPIOA 
 //#define PAPER_DETECT_PIN	GPIO_Pin_8
 
 #define  CLK_PORT	GPIOE

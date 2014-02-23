@@ -50,6 +50,10 @@ extern   int  udisk_fd;
 extern   u16   AD_Volte;
 extern   u16   AD_2through[2]; //  另外2 路AD 的数值 
 
+ //   盲区补报
+#define MQ_INFO_SIZE 4096
+extern uint8_t					MQ_rawinfo[MQ_INFO_SIZE];
+extern struct rt_messagequeue	mq_MQBuBao;
 
 
 

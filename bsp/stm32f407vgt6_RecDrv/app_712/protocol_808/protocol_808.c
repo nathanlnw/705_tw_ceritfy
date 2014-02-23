@@ -21,6 +21,7 @@
 
 #define    ROUTE_DIS_Default 0x3F000000
 
+#define   BLIND_NUM        10100  
 #define   MQ_PKNUM 20
 
 //----   多媒体发送状态 -------
@@ -540,17 +541,19 @@ u8  Do_SendGPSReport_GPRS( void )
 	{
 		if( ( MangQU.Sd_flag == 1 ) && ( DEV_Login.Operate_enable == 2 ) )
 		{
-			Stuff_MangQu_Packet_Send_0704H( );
-			MangQU.Sd_flag = 0;                                         //2;
-		    MangQU.PacketNum++;
-			if( MangQU.PacketNum >= ( 10000 / MQ_PKNUM ) )
-						{
-							MangQU.PacketNum		= 0;
-							MangQU.Enable_SD_state	= 0;
-							rt_kprintf( "\r\nReturn Normal\r\n" );
-						}
-			return true;
-		}
+		                Stuff_MangQu_Packet_Send_0704H();  
+						//MangQU.Sd_flag=0;
+		                MangQU.Sd_flag=2;  //2;  
+		              /*  MangQU.PacketNum++;
+					    if(MangQU.PacketNum>=(BLIND_NUM/MQ_PKNUM))
+									  	    	{
+									  	    	   MangQU.PacketNum=0;
+												   MangQU.Enable_SD_state=0; 
+												   rt_kprintf("\r\nReturn Normal all\r\n");  
+									  	    	}
+									  	    	*/
+									  	    	
+		          }		
 	}
 	if( ( 1 == GNSS_rawdata.WorkEnable ) && ( GNSS_rawdata.save_status ) )
 	{
@@ -708,12 +711,13 @@ u8  Do_SendGPSReport_GPRS( void )
 			packet_type = Packet_Normal;
 		}
 
-		Stuff_RecoderACK_0700H( packet_type ); //   行车记录仪数据上传
+        
 		rt_kprintf( "\r\n 记录仪 CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
 		if( packet_type == Packet_Divide )
 		{
 			rt_kprintf( "\r\n current =%d  Total: %d \r\n", Recode_Obj.Current_pkt_num, Recode_Obj.Total_pkt_num );
 		}
+		Stuff_RecoderACK_0700H( packet_type ); //   行车记录仪数据上传
 		//  3. step  by  step  send   from  00H  ---  07H
 		switch( Recode_Obj.CMD )
 		{
@@ -749,6 +753,38 @@ u8  Do_SendGPSReport_GPRS( void )
 
 		return true;
 	}
+
+       //15.2     记录仪 列表重传
+       if((1 == Recode_Obj.RSD_State)&&(Recode_Obj.SD_Data_Flag==1))  
+       	{
+            
+			if( Recode_Obj.Devide_Flag == 1 )
+			{
+				packet_type = Packet_Divide;
+			} else
+			{
+				packet_type = Packet_Normal;
+			}
+			
+			
+			rt_kprintf( "\r\n 记录仪列表重传 CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
+			if( packet_type == Packet_Divide )
+			{
+				rt_kprintf( "\r\n current =%d  RsendTotal: %d  CurrentRsd=%d\r\n", Recode_Obj.Current_pkt_num, Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
+			}
+			Stuff_RecoderACK_0700H( packet_type ); //	行车记录仪数据上传
+
+            if( Recode_Obj.RSD_Reader == Recode_Obj.RSD_total )
+			{
+				Recorder_init(); //  置位等待状态，等待着中心再发重传指令
+				rt_kprintf( "\r\n 记录仪列表重传结束!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
+			}
+			
+			Recode_Obj.SD_Data_Flag=0;// clear  
+			return true;
+
+       	}
+	
 	// 16. 消息点播
 	if( SD_ACKflag.f_MsgBroadCast_0303H == 1 ) // 消息点播
 	{
@@ -1681,15 +1717,15 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 
 	//  if(Temp_Gps_Gprs.Time[2]%2==0)//    认证时要求2 秒
 	// {
-	RectangleRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
+	//RectangleRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
 	//rt_kprintf("\r\n -----判断矩形电子围栏");
 	//    }
-
+/*
 	if( line_warn_enable == 1 )
 	{
 		RouteLineWarn_judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
 	}
-
+*/ 
 
 	/*
 	     if((Temp_Gps_Gprs.Time[2]%3)==0) //     路线判断
@@ -2167,14 +2203,6 @@ void  Save_GPS( void )
 		//--------------------------------------------------------------------
 		if( strncmp( ( char* )GPSsaveBuf + GPSsaveBuf_Wr - 3, (const char*)Sdgps_Time, 3 ) == 0 )
 		{
-			/*     if(strncmp((const char*)GPSsaveBuf + GPSsaveBuf_Wr-3,(const char*)Sdgps_Time,3)==0)
-			    {
-			        PositionSD_Disable();
-			   rt_kprintf("\r\n  -->不存储上报时间相同的车\r\n");
-			   return;
-			    }
-			   else
-			 */
 			{                                                       //-------- 用RTC 时钟 -----
 				time_now = Get_RTC( );
 				Time2BCD( GPSsaveBuf + GPSsaveBuf_Wr - 6 );
@@ -2191,7 +2219,7 @@ void  Save_GPS( void )
 		}                                                           //求上边数据的异或和
 		GPSsaveBuf[30] = FCS_GPS_UDP;
 		//-------------------------------- Save  ------------------------------------------
-		if( Api_cycle_write( GPSsaveBuf, 31 ) )
+		if( Api_cycle_write( GPSsaveBuf, 31 ) ) 
 		{
 			if( DispContent )
 			{
@@ -2254,32 +2282,31 @@ void MangQU_save( u32 coutner, u8 *str, u32 length )
 ***********************************************************/
 void MangQU_read( u32 packetnum, u8 *str, u32 length )
 {
-	u32 i = 0, Size_pkt = 0, pagein_offset = 0;
-	u8	latiBuf[7 * MQ_PKNUM]; // 15*7
-	u8	regstr[4];
-	u8	reg8str[8];
+    u32  i=0,Size_pkt=0, pagein_offset=0;
+    u8  latiBuf[8*MQ_PKNUM];  // 16*8
+    u8   regstr[4];	
+	u8   reg8str[8];
 	u8	lati[4], longi[4];
 	u32 lati_stuff	= 0, longi_stuff = 0;
 	u16 spd_stuff	= 0;
 	u8	time_stuff[3];
 	u32 timervalue = 0;
 
-	Size_pkt = 7 * MQ_PKNUM;
+	   Size_pkt=8*MQ_PKNUM;	
 	memset( latiBuf, 0, sizeof( latiBuf ) );
 
 	for( i = 0; i < Size_pkt; i++ )
 	{
-		latiBuf[i] = SST25V_ByteRead( ( (u32)( DF_Record_Page + 1 ) * 512 ) + (u32)( packetnum * Size_pkt + i ) ); //512bytes 一个单位
+		latiBuf[i] = SST25V_ByteRead( ( (u32)( DF_MQ_Page ) * 512 ) + (u32)( packetnum * Size_pkt + i ) ); //512bytes 一个单位
 	}
-	//OutPrint_HEX("lati",latiBuf,175);
-	// value start      18:14:29   18*3600+14*60+29=65669
-	timervalue = 65669 + packetnum * MQ_PKNUM;
-	for( i = 0; i < MQ_PKNUM; i++ )
-	{
-		//--------- convert latitude ---------------------
-		reg8str[0] = '0';
-		memcpy( reg8str + 1, latiBuf + 7 * i, 7 );
-		// OutPrint_HEX("ascii",reg8str,8);
+		//OutPrint_HEX("lati",latiBuf,175);
+        // value start      18:13:14   18*3600+13*60+14=65594       
+		timervalue=65594+packetnum*MQ_PKNUM; 
+		for(i=0;i<MQ_PKNUM;i++)
+		{
+		     //--------- convert latitude ---------------------
+			 memcpy(reg8str,latiBuf+8*i,8);
+		//OutPrint_HEX("ascii",reg8str,8);
 		//------------------------------------
 		regstr[0]	= ( HexValue( reg8str[0] ) << 4 ) + HexValue( reg8str[1] );
 		regstr[1]	= ( HexValue( reg8str[2] ) << 4 ) + HexValue( reg8str[3] );
@@ -2331,7 +2358,7 @@ void MangQU_read( u32 packetnum, u8 *str, u32 length )
 		Original_info[Original_info_Wr++]	= 0x03;                                                         //((Gps_Gprs.Date[1]/10)<<4)+(Gps_Gprs.Date[1]%10);
 		Original_info[Original_info_Wr++]	= 0x05;                                                         // ((Gps_Gprs.Date[2]/10)<<4)+(Gps_Gprs.Date[2]%10);
 
-		timervalue		= 65669 + packetnum * MQ_PKNUM + i;
+			  timervalue=65594+packetnum*MQ_PKNUM+i;
 		time_stuff[0]	= timervalue / 3600;
 		time_stuff[1]	= ( timervalue % 3600 ) / 60;
 		time_stuff[2]	= ( timervalue % 60 );
@@ -2623,25 +2650,28 @@ void MangQu_Timer( void )
 		if( MangQU.Sd_flag == 0 )
 		{
 			MangQU.Sd_timer++;
-			if( MangQU.Sd_timer >= 4 )
+				  if(MangQU.Sd_timer>=2) 
 			{
 				MangQU.Sd_timer = 0;
+						 MangQU.NoAck_timer=0;
 				MangQU.Sd_flag	= 1;
 			}
 		}
-		//------- no  ack  process -----
-	/*	if( MangQU.Sd_flag == 3 )
-		{
-			MangQU.NoAck_timer++;
-			if( MangQU.NoAck_timer >= 5 )
-			{
-				MangQU.NoAck_timer	= 0;
-				MangQU.Sd_timer		= 0;
-				MangQU.Sd_flag		= 1;
-				rt_kprintf( "\r\n MQ Noack rensend! \r\n" );
-			}
-		}
-		*/
+              //------- no  ack  process -----
+              if(MangQU.Sd_flag==2)
+              	{
+              	  MangQU.NoAck_timer++;
+				  if( MangQU.NoAck_timer>=2)  
+				  {
+				      MangQU.NoAck_timer=0;
+					  MangQU.Sd_timer=0;
+                      MangQU.Sd_flag=1;		
+					  rt_kprintf("\r\n MQ Noack rensend! \r\n");
+				  }
+
+              	}
+
+				
 	}
 }
 
@@ -2698,9 +2728,11 @@ u8  Protocol_Head( u16 MSG_ID, u8 Packet_Type )
  
 				   break;  
 		default:	
-			      
-				  Original_info[Original_info_Wr++]   = ( JT808Conf_struct.Msg_Float_ID >> 8 ); 					  //消息流水号
-				  Original_info[Original_info_Wr++]   = JT808Conf_struct.Msg_Float_ID;
+			     if(MediaObj.Media_Type<3) // 不是  图片和音频
+			     {
+				    Original_info[Original_info_Wr++]   = ( JT808Conf_struct.Msg_Float_ID >> 8 ); 					  //消息流水号
+				    Original_info[Original_info_Wr++]   = JT808Conf_struct.Msg_Float_ID;
+			     }
 				  break;
 
     } 
@@ -2715,13 +2747,21 @@ u8  Protocol_Head( u16 MSG_ID, u8 Packet_Type )
 				MediaObj.Media_currentPacketNum = Photo_sdState.SD_packetNum;                           // 图片当前报数
 				MediaObj.Media_ID				= 1;                                                    //  多媒体ID
 				MediaObj.Media_Channel			= Camera_Number;                                        // 图片摄像头通道号
+                
+				
+			    CurrentID=0xF000+Camera_Number*0x0100+Photo_sdState.SD_packetNum;
+				Original_info[Original_info_Wr++]=( CurrentID>>8); //消息流水号
+				Original_info[Original_info_Wr++]=	CurrentID; 			   
+
 				break;
 			case 1:                                                                                     // 音频
 				MediaObj.Media_totalPacketNum	= Sound_sdState.Total_packetNum;                        // 音频总包数
 				MediaObj.Media_currentPacketNum = Sound_sdState.SD_packetNum;                           // 音频当前报数
 				MediaObj.Media_ID				= 1;                                                    //  多媒体ID
 				MediaObj.Media_Channel			= 1;                                                    // 音频通道号
-
+                CurrentID=0xE000+Sound_sdState.SD_packetNum;
+			    Original_info[Original_info_Wr++]=( CurrentID>>8); //消息流水号
+	            Original_info[Original_info_Wr++]=  CurrentID; 
 				break;
 			case 2:                                                                                     // 视频
 				MediaObj.Media_totalPacketNum	= Video_sdState.Total_packetNum;                        // 视频总包数
@@ -2881,7 +2921,7 @@ u8  Stuff_MangQu_Packet_Send_0704H( void )
 	//   4 .  end
 	Protocol_End( Packet_Normal, 0 );
 
-	rt_kprintf( "\r\n	0704H  current=%d  total=%d  \r\n", MangQU.PacketNum, 10000 / MQ_PKNUM );
+	rt_kprintf( "\r\n	0704H  current=%d  total=%d  \r\n", MangQU.PacketNum, BLIND_NUM / MQ_PKNUM );
 }
 
 //--------------------------------------------------------------------------------------
@@ -2932,12 +2972,12 @@ u8  Stuff_RegisterPacket_0100H( u8 LinkNum )
 	Original_info[Original_info_Wr++]	= 0x00;
 	Original_info[Original_info_Wr++]	= 107;              // 塘沽区
 	//  厂商ID
-	memcpy( Original_info + Original_info_Wr, "70420", 5 ); //TW703
+	memcpy( Original_info + Original_info_Wr, "70420", 5 ); //TW705
 	Original_info_Wr += 5;
 	//  终端型号 20 Bytes      -- 补充协议里做更改
 	//memcpy(Original_info+Original_info_Wr,"Tianjin TCB TW701-BD",20);
 	// Original_info_Wr+=20;
-	memcpy( Original_info + Original_info_Wr, "TW703", 5 ); //  正式  ----
+	memcpy( Original_info + Original_info_Wr, "TW705", 5 ); //  正式  ----
 	// memcpy(Original_info+Original_info_Wr,"SW703",5);      // 调试
 	Original_info_Wr += 5;
 	for( i = 0; i < 15; i++ )
@@ -2955,7 +2995,7 @@ u8  Stuff_RegisterPacket_0100H( u8 LinkNum )
 	//  车牌颜色
 	Original_info[Original_info_Wr++] = JT808Conf_struct.Vechicle_Info.Dev_Color;   // 车辆颜色
 	//  车牌
-	memcpy( Original_info + Original_info_Wr, "TST000", 6 );
+	memcpy( Original_info + Original_info_Wr, "TST000", 6 ); 
 	Original_info_Wr					+= 6;
 	Original_info[Original_info_Wr++]	= IMSI_CODE[14];
 	Original_info[Original_info_Wr++]	= 0;
@@ -4186,6 +4226,7 @@ u8  REC_09H_Stuff( void )
 * Return:
 * Others:
 ***********************************************************/
+#if  0
 u8  Stuff_RecoderACK_0700H_old( u8 PaketType )  //   行车记录仪数据上传
 {
 	u16 SregLen				= 0, Swr = 0;       //,Gwr=0; // S:serial  G: GPRS
@@ -4373,7 +4414,7 @@ u8  Stuff_RecoderACK_0700H_old( u8 PaketType )  //   行车记录仪数据上传
 
 			/*
 			   -------------------------------------------------------------
-			          F4  行车记录仪 TW703   管脚定义
+			          F4  行车记录仪 TW705   管脚定义
 			   -------------------------------------------------------------
 			   遵循  GB10956 (2012)  Page26  表A.12  规定
 			   -------------------------------------------------------------
@@ -4420,7 +4461,7 @@ u8  Stuff_RecoderACK_0700H_old( u8 PaketType )  //   行车记录仪数据上传
 			//------- 信息内容 ------
 			memcpy( Original_info + Original_info_Wr, "7654321", 7 );           // 3C 认证代码
 			Original_info_Wr += 7;
-			memcpy( Original_info + Original_info_Wr, "TW703   TW703   ", 16 ); // 产品型号
+			memcpy( Original_info + Original_info_Wr, "TW705   TW705   ", 16 ); // 产品型号
 			Original_info_Wr					+= 16;
 			Original_info[Original_info_Wr++]	= 0x13;                         // 生产日期
 			Original_info[Original_info_Wr++]	= 0x03;
@@ -4663,7 +4704,7 @@ u8  Stuff_RecoderACK_0700H_old( u8 PaketType )  //   行车记录仪数据上传
 
 	return true;
 }
-
+#endif
 /***********************************************************
 * Function:
 * Description:
@@ -4887,7 +4928,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 			/*
 			   -------------------------------------------------------------
-			          F4  行车记录仪 TW703   管脚定义
+			          F4  行车记录仪 TW705   管脚定义
 			   -------------------------------------------------------------
 			   遵循  GB10956 (2012)  Page26  表A.12  规定
 			   -------------------------------------------------------------
@@ -4939,7 +4980,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			//------- 信息内容 ------
 			memcpy( Original_info + Original_info_Wr, "7654321", 7 );           // 3C 认证代码
 			Original_info_Wr += 7;
-			memcpy( Original_info + Original_info_Wr, "TW703   TW703   ", 16 ); // 产品型号
+			memcpy( Original_info + Original_info_Wr, "TW705   TW705   ", 16 ); // 产品型号
 			Original_info_Wr					+= 16;
 			Original_info[Original_info_Wr++]	= 0x13;                         // 生产日期
 			Original_info[Original_info_Wr++]	= 0x03;
@@ -4962,7 +5003,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= 0x7A;
 				Original_info[Original_info_Wr++]	= 0x08;                     //命令字
 
-				SregLen								= 630;                      // 信息长度       630
+				SregLen								= 504;//630;                      // 信息长度       630
 				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi
 				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
 
@@ -4972,7 +5013,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			//WatchDog_Feed( );
 			get_08h( Original_info + Original_info_Wr );                        //126*5=630        num=576  packet
 
-			Original_info_Wr += 630;
+			Original_info_Wr += 504; //630;
 			//  后续需要分包处理  -----nate
 			break;
 		case   0x09:                                                            // 09   指定的位置信息记录
@@ -4998,7 +5039,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			}
 			//	信息内容
 			//WatchDog_Feed( );
-			if(Recode_Obj.Current_pkt_num%2)
+			if(Recode_Obj.Current_pkt_num%2) 
 			{    
 			  get_09h(_700H_buffer);
 			  memcpy(Original_info + Original_info_Wr,_700H_buffer,333);
@@ -5204,7 +5245,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 	Protocol_End( PaketType, 0 );
 
 	//  4.     如果是分包 判断结束
-	if( Recode_Obj.Devide_Flag == 1 )   // 不给应答
+	if(( Recode_Obj.Devide_Flag == 1 )&&(Recode_Obj.RSD_State==0))   // 不给应答 ,非列表重传状态下进行
 	{
 		if( Recode_Obj.Current_pkt_num >= Recode_Obj.Total_pkt_num )
 		{
@@ -7299,6 +7340,7 @@ void  Media_Timer( void )
 ***********************************************************/
 void Media_RSdMode_Timer( void )
 {
+    //   多媒体列表重传 
 	if( ( 1 == MediaObj.RSD_State ) )
 	{
 		MediaObj.RSD_Timer++;
@@ -7309,7 +7351,7 @@ void Media_RSdMode_Timer( void )
 			switch( MediaObj.Media_Type )   //   图片重传包数
 			{
 				case 0:                     //  图像
-					Photo_sdState.SD_packetNum	= MediaObj.Media_ReSdList[MediaObj.RSD_Reader];
+					Photo_sdState.SD_packetNum	= MediaObj.Media_ReSdList[MediaObj.RSD_Reader]; 
 					Photo_sdState.SD_flag		= 1;
 					break;
 				case 1:                     // 音频
@@ -7358,6 +7400,39 @@ void Media_RSdMode_Timer( void )
 			//Check_MultiTakeResult_b4Trans();  // 多路摄像头拍照状态检测
 		}
 	}
+
+    //     记录仪列表重传 定时处理
+    
+	if( ( 1 == Recode_Obj.RSD_State ) )
+	{
+		Recode_Obj.RSD_Timer++;
+		if( Recode_Obj.RSD_Timer > 35 )
+		{
+			Recode_Obj.RSD_Timer		= 0;
+            Recode_Obj.SD_Data_Flag	= 1; 
+
+            Recode_Obj.Current_pkt_num	= Recode_Obj.Media_ReSdList[Recode_Obj.RSD_Reader];
+			
+			//-----  重传列表 递增 -----------
+			Recode_Obj.RSD_Reader++;
+			// rt_kprintf("\r\n	  MediaObj.RSD_Reader++  =%d\r\n",MediaObj.RSD_Reader);
+			if( Recode_Obj.RSD_Reader > Recode_Obj.RSD_total )
+			{
+				Recode_Obj.RSD_State = 2; //  置位等待状态，等待着中心再发重传指令
+			}
+		}
+	}	    
+	if( 2 == Recode_Obj.RSD_State )
+	{
+		Recode_Obj.RSD_Timer++;
+		if( Recode_Obj.RSD_Timer > 140 )  //   如果状态一直在等待且超过30s择清除状态
+		{
+		   Recorder_init();
+           rt_kprintf( "\r\n 记录仪信息重传超时结束! \r\n" );
+		}
+	}
+
+	
 }
 
 #ifdef   MEDIA
@@ -7483,7 +7558,7 @@ u8  Sound_send_start( void )
 	// -------  MultiMedia Related --------
 	//  Media_Start_Init(1,5); // 音频  wav 格式   0:JPEG ;   1: TIF ;   2:MP3;  3:WAV  4: WMV  其他保留
 	//    5   amr
-	Media_Start_Init( 1, 17 );
+	Media_Start_Init( 1, 99 ); // 有word文档要求 对于非mp3  和 wav的实用99
 	return true;
 }
 
@@ -7596,7 +7671,7 @@ u8  BlindZoneData_send_start( void )
 	BlindZone_sdState.SD_packetNum		= 1;    // 从1 开始
 	BlindZone_sdState.Exeption_timer	= 0;
 
-	BlindZone_sdState.Total_packetNum = 10000 / MQ_PKNUM;
+       BlindZone_sdState.Total_packetNum=BLIND_NUM/MQ_PKNUM;
 
 	MediaObj.Media_Type = 4;                    // 盲区
 
@@ -7963,6 +8038,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 	u8	Reg_buf[50];
 	//u8   CheckResualt=0;
 	u32 reg_u32 = 0;
+	//u16  Devide_8003_packet_1stID=0; //  分包上传第一包 ID 
+	  u8  devide_value=0; 
 	//----------------      行车记录仪808 协议 接收处理   --------------------------
 
 	//  0.  Decode
@@ -8216,19 +8293,21 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					break;
 				case 0x0704:    // 批量应答
 					rt_kprintf( "\r\n MQ packet= %d   0704H-ack", MangQU.PacketNum );
-				/*	if( MangQU.Sd_flag == 3 )
-					{
-						MangQU.Sd_flag = 0;
-
-						MangQU.PacketNum++;
-						if( MangQU.PacketNum >= ( 10000 / MQ_PKNUM ) )
-						{
-							MangQU.PacketNum		= 0;
-							MangQU.Enable_SD_state	= 0;
-							rt_kprintf( "\r\nReturn Normal\r\n" );
-						}
-					}*/
-					break;
+                                           if(MangQU.Sd_flag==2)
+										  { 	  
+										       MangQU.Sd_flag=0;
+											   MangQU.Sd_timer=0;
+											   MangQU.Sd_timer=0;
+											   
+											   MangQU.PacketNum++;
+											   if(MangQU.PacketNum>=(BLIND_NUM/MQ_PKNUM)) 
+									  	    	{
+									  	    	   MangQU.PacketNum=0;
+												   MangQU.Enable_SD_state=0; 
+												   rt_kprintf("\r\nReturn Normal\r\n");  
+									  	    	}	
+                                          }
+							           break; 		   
 
 				default:
 					break;
@@ -9158,7 +9237,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					Recode_Obj.CMD			= UDP_HEX_Rx[13];
 					Recode_Obj.SD_Data_Flag = 1;
 					Recode_Obj.CountStep	= 1;
-					MediaObj.Media_Type		= 3; //行驶记录仪
+					MediaObj.Media_Type		= 3; //行驶记录仪 只是利用类型填充ID 时候有用
 					break;
 
 				case  0x09:  Recode_Obj.Total_pkt_num	= 720;
@@ -9680,27 +9759,107 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			break;
 		case  0x8003:                               //    补传分包请求
 
-			MediaObj.RSD_State	= 1;                //   进入重传状态
-			MediaObj.RSD_Timer	= 0;                //   清除重传定时器
-			MediaObj.RSD_Reader = 0;
-			MediaObj.RSD_total	= UDP_HEX_Rx[15];   // 重传包总数
+			    //Devide_8003_packet_1stID=( UDP_HEX_Rx[13] << 8 ) + UDP_HEX_Rx[14]; //高字节在前，在后 
+			                                                                      // 这里通过高字节判断
 
-			//   获取重传列表
-			j = 0;
-			for( i = 0; i < MediaObj.RSD_total; i++ )
-			{
-				MediaObj.Media_ReSdList[i]	= ( UDP_HEX_Rx[16 + j] << 8 ) + UDP_HEX_Rx[17 + j];
-				j							+= 2;
-			}
-			rt_kprintf( "\r\n  8003 重传列表Total=%d: ", MediaObj.RSD_total );
-			if( MediaObj.RSD_total<=100)
-				{
-				for( i = 0; i < MediaObj.RSD_total; i++ )
-				{
-					rt_kprintf( "%d,", MediaObj.Media_ReSdList[i] );
-				}
-				rt_kprintf( "\r\n" );
-	                }
+  		       devide_value=0;
+			   switch(UDP_HEX_Rx[13]) //根据中心下发的流水号判断
+			   {
+				   case 0x80:
+				   	         Recode_Obj.CMD=0x08;
+							 Recode_Obj.Total_pkt_num	= 720;
+							Recode_Obj.Devide_Flag				= 1;
+							MediaObj.Media_Type		= 3; //行驶记录仪 只是利用类型填充ID 时候有用
+							  break;
+				   case 0x90: 
+				   	        Recode_Obj.CMD=0x09;
+							Recode_Obj.Total_pkt_num	= 720;
+							Recode_Obj.Devide_Flag				= 1;					
+							MediaObj.Media_Type		= 3; //行驶记录仪
+							  break;
+				   case 0xA0:
+				   	        Recode_Obj.CMD=0x10;
+							Recode_Obj.Total_pkt_num	= 100;
+							Recode_Obj.Devide_Flag				= 1;					
+							MediaObj.Media_Type		= 3; //行驶记录仪
+							  break;
+				   case 0xB0:
+				   	         Recode_Obj.CMD=0x11;
+							 Recode_Obj.Total_pkt_num	= 100;
+					        Recode_Obj.Devide_Flag				= 1;					
+							MediaObj.Media_Type		= 3; //行驶记录仪
+							  break;
+				   case 0xC0:
+				   	        Recode_Obj.CMD=0x12;
+							Recode_Obj.Total_pkt_num	= 10;						
+					        Recode_Obj.Devide_Flag				= 1;					
+							MediaObj.Media_Type		= 3; //行驶记录仪
+							  break;
+							  break;
+				   case  0xD0:
+				   	        Recode_Obj.CMD=0x15;
+							Recode_Obj.Total_pkt_num	= 10;						
+					        Recode_Obj.Devide_Flag				= 1;					
+							MediaObj.Media_Type		= 3; //行驶记录仪
+							  break;
+							  break;  
+				   default:
+                              devide_value=1; // 多媒体分包处理方式
+					          break;
+                 }
+
+                 
+
+
+				  if(0==devide_value)
+				  	{  // 记录仪分包处理
+				       	Recode_Obj.RSD_State	= 1;                //   进入重传状态
+						Recode_Obj.RSD_Timer	= 0;                //   清除重传定时器
+						Recode_Obj.RSD_Reader = 0;
+						Recode_Obj.RSD_total	= UDP_HEX_Rx[15];   // 重传包总数
+
+						//   获取重传列表
+						j = 0;
+						for( i = 0; i < Recode_Obj.RSD_total; i++ )
+						{
+							Recode_Obj.Media_ReSdList[i]	= ( UDP_HEX_Rx[16 + j] << 8 ) + UDP_HEX_Rx[17 + j];
+							j							+= 2;
+						}
+						rt_kprintf( "\r\n 记录仪  8003 重传列表Total=%d: ", Recode_Obj.RSD_total );  
+							for( i = 0; i < Recode_Obj.RSD_total; i++ )
+							{
+								rt_kprintf( "%d,", Recode_Obj.Media_ReSdList[i] ); 
+							}
+							rt_kprintf( "\r\n" );
+
+
+				  	}
+                   else
+		            {  //  多媒体分包  
+		       
+					MediaObj.RSD_State	= 1;                //   进入重传状态
+					MediaObj.RSD_Timer	= 0;                //   清除重传定时器
+					MediaObj.RSD_Reader = 0;
+					MediaObj.RSD_total	= UDP_HEX_Rx[15];   // 重传包总数
+
+					//   获取重传列表
+					j = 0;
+					for( i = 0; i < MediaObj.RSD_total; i++ )
+					{
+						MediaObj.Media_ReSdList[i]	= ( UDP_HEX_Rx[16 + j] << 8 ) + UDP_HEX_Rx[17 + j];
+						j							+= 2;
+					}
+					rt_kprintf( "\r\n  8003 重传列表Total=%d: ", MediaObj.RSD_total );  
+					if( MediaObj.RSD_total<=100)
+					{
+						for( i = 0; i < MediaObj.RSD_total; i++ )
+						{
+							rt_kprintf( "%d,", MediaObj.Media_ReSdList[i] );
+						}
+						rt_kprintf( "\r\n" );
+			         }
+		           }
+			//==================================================================
 			{
 				SD_ACKflag.f_CentreCMDack_0001H		= 1;
 				Ack_Resualt							= 0;
@@ -11934,9 +12093,9 @@ void SMS_send_process( void )
 				break;
 			case  2:    break;
 			case  4:                        // 发送内容 0x1A 结束
-				rt_hw_gsm_output( "ProductNum:70420  Type: TW703  DeviceNum:03 " );
+				rt_hw_gsm_output( "ProductNum:70420  Type: TW705  DeviceNum:03 " );
 				SMS_send.Msg_step = 5;
-				rt_kprintf( "ProductNum:70420  Type: TW703  DeviceNum:03 \x1a" );
+				rt_kprintf( "ProductNum:70420  Type: TW705  DeviceNum:03 \x1a" );
 				break;
 			case  7:
 				rt_hw_gsm_output( "\x1a" );
@@ -12615,5 +12774,74 @@ void password(u8 value)
 
 }
 FINSH_FUNCTION_EXPORT( password, password ); 
+
+void buzzer_onoff(u8 in) 
+{
+   
+   GPIO_InitTypeDef GPIO_InitStructure;
+   
+     if(0==in)
+    {  
+     GPIO_StructInit(&GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5; 			//指定复用引脚
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;		//模式为输入
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	//频率为快速
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;		//下拉以便节省电能
+	GPIO_Init(GPIOA, &GPIO_InitStructure);  
+	  
+    }
+	  
+   if(1==in)
+    {
+	  //-----------------  hardware  0x101    5   Beep -----------------
+	/*仅设置结构体中的部分成员：这种情况下，用户应当首先调用函数PPP_SturcInit(..)
+	来初始化变量PPP_InitStructure，然后再修改其中需要修改的成员。这样可以保证其他
+	成员的值（多为缺省值）被正确填入。
+	 */
+	
+	GPIO_StructInit(&GPIO_InitStructure);
+	
+	/*配置GPIOA_Pin_5，作为TIM2_Channel1 PWM输出*/
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5; 			//指定复用引脚
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;		//模式必须为复用！
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	//频率为快速
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;		//上拉与否对PWM产生无影响
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	//GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_TIM2); //复用GPIOA_Pin1为TIM2_Ch2
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2); //复用GPIOA_Pin5为TIM2_Ch1, 
+	} 
+
+
+}
+FINSH_FUNCTION_EXPORT(buzzer_onoff, buzzer_onoff[1|0]);    
+
+void end_link(void)
+{
+   DataLink_EndFlag=1;
+   rt_kprintf("\r\n 手动挂断\r\n");
+   
+}
+FINSH_FUNCTION_EXPORT(end_link, end_link);  
+
+void erase_mq(void)
+{
+  u8  i=0;
+				for(i=0;i<10;i++)
+				{
+	                 WatchDog_Feed(); 
+					 SST25V_BlockErase_64KByte(((CycleStart_offset+128*i)<<9));   
+			         DF_delay_ms(600);   
+				     WatchDog_Feed(); 
+				}
+				
+	cycle_write=0;
+	cycle_read=0;	
+	DF_Write_RecordAdd(cycle_write,cycle_read,TYPE_CycleAdd);   	
+	rt_kprintf("\r\n earse_MQ   WR=%d  RD=%d \r\n",cycle_write,cycle_read);    		
+
+}
+FINSH_FUNCTION_EXPORT(erase_mq,erase_mq)
 
 // C.  Module

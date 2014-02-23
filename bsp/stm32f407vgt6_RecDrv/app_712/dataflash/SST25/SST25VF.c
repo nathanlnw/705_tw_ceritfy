@@ -136,6 +136,11 @@ u8 SST25V_ByteRead(u32 ReadAddr)
 
 void SST25V_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
 {
+   u32  timeout=50000;
+   // note:  befor read  operation, please  check state
+   while((SST25V_ReadStatusRegister()&0x01)&&(timeout--))     
+   	   ;
+
   SST25V_CS_LOW();
   SPI_Flash_SendByte(Read_Data);
   SPI_Flash_SendByte((ReadAddr & 0xFF0000) >> 16);
@@ -148,7 +153,7 @@ void SST25V_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
     pBuffer++;
   }
   SST25V_CS_HIGH();
-}
+}  
 
 u8 SST25V_HighSpeedRead(u32 ReadAddr)
 {

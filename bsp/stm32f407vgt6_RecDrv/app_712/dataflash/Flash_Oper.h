@@ -54,16 +54,10 @@ extern u32    DayStartDistance_32; //每天起始里程数目
 
 extern u8  SaveCycleGPS(u32 cycle_wr,u8 *content ,u16 saveLen);   
 extern u8  ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen);    
-extern u8  Save_DrvRecoder(u32 In_write,u8 *content ,u16 saveLen);
-extern u8  Read_DrvRecoder(u32 In_read,u8 *content ,u16 ReadLen);
 extern u8  Common_WriteContent(u32 In_write,u8 *content ,u16 saveLen, u8 Type); 
 extern u8  Common_ReadContent(u32 In_read,u8 *content ,u16 ReadLen, u8 Type);    
 extern u8  Save_PerMinContent(u32 In_wr,u8 *content ,u16 saveLen); 
 extern u8  Read_PerMinContent(u32 In_read,u8 *content ,u16 ReadLen);
-extern u8  Save_PerSecContent(u32 In_wr,u8 *content ,u16 saveLen);
-extern u8  Read_PerSecContent(u32 In_read,u8 *content ,u16 ReadLen);  
-extern u8  Save_MintPosition(u32 In_write,u8 *content ,u16 saveLen);
-extern u8  Read_MintPosition(u32 In_read,u8 *content ,u16 ReadLen);		
 extern void  CHK_ReadCycle_status(void);  
 extern void  MediaIndex_Init(void) ; 
 extern void Save_Common(u32 In_write,u8 Type);

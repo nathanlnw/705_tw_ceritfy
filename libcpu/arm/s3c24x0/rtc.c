@@ -68,7 +68,7 @@ void rt_hw_rtc_get(struct tm *ti)
 }
 
 /**
- * This function set rtc time
+ * This function set rtc time      
  */
 void rt_hw_rtc_set(struct tm *ti)
 {
