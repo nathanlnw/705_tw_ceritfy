@@ -9757,7 +9757,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 				SD_ACKflag.f_CentreCMDack_resualt	= Ack_Resualt;
 			}
 			break;
-		case  0x8003:                               //    补传分包请求
+		case  0x8003:                                //    补传分包请求
 
 			    //Devide_8003_packet_1stID=( UDP_HEX_Rx[13] << 8 ) + UDP_HEX_Rx[14]; //高字节在前，在后 
 			                                                                      // 这里通过高字节判断
