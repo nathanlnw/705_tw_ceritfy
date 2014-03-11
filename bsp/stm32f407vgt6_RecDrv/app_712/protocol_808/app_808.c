@@ -74,8 +74,14 @@ APP_QUE  AppQue;
  //   盲区补报
 uint8_t					MQ_rawinfo[MQ_INFO_SIZE];
 struct rt_messagequeue	mq_MQBuBao;
-static LENGTH_BUF Tw705_MQ_tx;
-static LENGTH_BUF Tw705_MQ_rx;
+
+//  消息队列 顺序发送序列
+uint8_t					SD_rawinfo[MQ_INFO_SIZE];
+struct rt_messagequeue	mq_BDsd;
+LENGTH_BUF BDsd_tx;
+LENGTH_BUF BDsd_rx;
+u8  BD_sequence_send_enable=0;  //   北斗数据顺序发送
+
 
 
 void App_rxGsmData_SemRelease(u8* instr, u16 inlen,u8 link_num)
@@ -422,16 +428,18 @@ static void timeout_app(void *  parameter)
                    App808_tick_counter(); 
 
                   //---------------------------------- 
-                  if( ReadCycle_status==RdCycle_SdOver)
-		   {	   
-		        ReadCycle_timer++;	   
-			 if(ReadCycle_timer>5)  //5s No resulat
-			 {
-			      ReadCycle_timer=0; 
-		             Api_cycle_Update();	   
-			 }		
-                  }	   
-
+            if(BDSD.Enable_Working==1)
+            {
+		            if( BDSD.SendFlag==RdCycle_SdOver)
+				   {	   
+				        BDSD.wait__resentTimer++;	   
+					 if(BDSD.wait__resentTimer>3)  //5s No resulat 
+					 {
+					      BDSD.wait__resentTimer=0;  
+						  BDSD.SendFlag=RdCycle_RdytoSD;  // 使能发送  
+					 }		
+		           }	   
+            }  
 	        //====疲劳驾驶===========================
 		if(Car_Status[3]&0x01)	 // 疲劳驾驶是基于ACC开的情况下进行的 
 		       Tired_Check();     
@@ -649,12 +657,14 @@ static void App808_thread_entry(void* parameter)
 					   Save_GPS();       
 			    } 
 		}
-		   
+		   MangQU_true_Save();
 	     //============  状态检测 =======================
-                ACC_status_Check();
+           ACC_status_Check();
 	     //---------------------------------------------------------------------------------------------	  
-                rt_thread_delay(10);	
-		 		WatchDog_Feed();
+                rt_thread_delay(10);
+          //  北斗顺序存储上报          
+		  BD_send_Mque_Rx();
+		  WatchDog_Feed();
 	}
 }
 
@@ -667,7 +677,9 @@ void Protocol_app_init(void)
 
         
 		rt_mq_init( &mq_MQBuBao, "mq_MQBB", &MQ_rawinfo[0], 64 - sizeof( void* ), MQ_RAWINFO_SIZE, RT_IPC_FLAG_FIFO );
-        rt_sem_init(&SysRst_sem,"SysRst",0,0);  
+        rt_mq_init( &mq_BDsd, "mq_BDsd", &SD_rawinfo[0], 128 - sizeof( void* ), MQ_RAWINFO_SIZE, RT_IPC_FLAG_FIFO );
+			
+		rt_sem_init(&SysRst_sem,"SysRst",0,0);  
         rt_sem_init(&app_rx_gsmdata_sem, "appRxSem", 0, 0);   		
        //---------  timer_app ----------
 	         // 5.1. create  timer     100ms=Dur

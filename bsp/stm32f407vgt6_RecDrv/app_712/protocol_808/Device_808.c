@@ -841,15 +841,17 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
   	}
        u8     Api_cycle_Update(void)
        {
-           	 if( ReadCycle_status==RdCycle_SdOver)	 // 发送成功判断 
+           	 if( BDSD.SendFlag==RdCycle_SdOver)	 // 发送成功判断 
 				 {		 
-					 cycle_read++;	 //  收到应答才递增
-					 if(cycle_read>=Max_CycleNum)
-							cycle_read=0;
-					 ReadCycle_status=RdCycle_Idle; 
-					  rt_kprintf("\r\n 发送 GPS --saved  OK!\r\n");    
-					   ReadCycle_timer=0; 
+					 BDSD.read++;	 //  收到应答才递增
+					 if(BDSD.read>=Max_BDSD_Num)
+							BDSD.read=0;
+					 BDSD.SendFlag=RdCycle_Idle; 
+					  rt_kprintf("\r\n 发送 BDsq --saved  OK!  write=%d read=%d \r\n",BDSD.write,BDSD.read);    
+					   BDSD.wait__resentTimer=0; 
 				 }	
+		//	if(MQ_TrueUse.Enable_SD_state==1)  
+			//     MQ_TrueUse.PacketNum++;
 				 return 1;
       }
 	u8   Api_CHK_ReadCycle_status(void)
@@ -1441,7 +1443,9 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 		 DF_delay_ms(50);   
 		 DF_Write_RecordAdd(pic_write,pic_read,TYPE_PhotoAdd);
 		 DF_delay_ms(50);
-		// DF_Write_RecordAdd(AvrgSpdPerSec_write,AvrgSpdPerSec_Read,TYPE_AvrgSpdSecAdd);
+		 BDSD.write=0;
+		 BDSD.read=0;
+		  DF_Write_RecordAdd(BDSD.write,BDSD.read,TYPE_BDsdAdd);
 		// DF_delay_ms(50);  
 		 //DF_Write_RecordAdd(Login_write,Login_Read,TYPE_LogInAdd);  
 		// DF_delay_ms(50);  
@@ -1475,7 +1479,8 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 	      DF_delay_ms(50); 
 		DF_Read_RecordAdd(pic_write,pic_read,TYPE_PhotoAdd);    
 		 DF_delay_ms(50); 
-		//DF_Read_RecordAdd(AvrgSpdPerSec_write,AvrgSpdPerSec_Read,TYPE_AvrgSpdSecAdd);
+		BD_send_Init();// clear 
+		DF_Read_RecordAdd(BDSD.write,BDSD.read,TYPE_BDsdAdd); 
 		//DF_Read_RecordAdd(Login_write,Login_Read,TYPE_LogInAdd);  
 		//DF_Read_RecordAdd(Powercut_write,Powercut_read,TYPE_PowerCutAdd);
 		DF_Read_RecordAdd(Settingchg_write,Settingchg_read,TYPE_SettingChgAdd);

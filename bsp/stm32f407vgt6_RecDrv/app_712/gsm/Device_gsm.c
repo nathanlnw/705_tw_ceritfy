@@ -1800,7 +1800,6 @@ static void GSM_Process(u8 *instr, u16 len)
 	{												  
 	   if(Mainlink_send_over)
           {
-              Api_cycle_Update();  //  数据发送 ，更新写指针	 
               Mainlink_send_over=0;     
 	   	  }
 	} 
@@ -1963,7 +1962,6 @@ static void GSM_Process(u8 *instr, u16 len)
                			 //------------------------------------  
 		   if(Send_Rdy4ok==1)
 		   	{
-		   	    Api_cycle_Update();
 		         //  rt_kprintf("\r\n Updata cycle  status !! ----reg for debug\r\n");
 			    Send_Rdy4ok=0;	   
 		   	}
@@ -2390,13 +2388,6 @@ void Rx_in(u8* instr)
 
 }
 FINSH_FUNCTION_EXPORT(Rx_in, Rx_in);
-
-void mang_qu(void)
-{
-   Get_GSM_HexData("7E860200180136013000046AEF01010000006640000262548106BC3E400238A9580717CBC09C7E",78,0);
-   OutPrint_HEX("盲区围栏", GSM_HEX, GSM_HEX_len); 
-}
-FINSH_FUNCTION_EXPORT(mang_qu, mang_qu);
 
 
 void canrxid(u8 * instr)

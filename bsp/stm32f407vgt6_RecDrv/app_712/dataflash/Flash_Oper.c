@@ -8,7 +8,8 @@ u8    ReadCycle_status=RdCycle_Idle;
 u8    ReadCycle_timer=0;   // 超时判断
 
 
-u32     cycle_write=0, cycle_read=0;  // 循环存储记录
+u32     cycle_write=0, cycle_read=0,delta_0704_rd=0,mangQu_read_reg=0,Mq_total_pkg=0,CurrentTotal=0;  // 循环存储记录
+                                                            //currentTotal 是满足补报情况下再生成的过程中还会有新的数据存储，所以总包数还会增加
 u32     cycle_writeAbnormal_counter=0;  // 写数据异常
 u32    AvrgSpdPerMin_write=0,AvrgSpdPerMin_Read=0; // 车辆每分钟平均速度记录
 u32    AvrgSpdPerSec_write=0,AvrgSpdPerSec_Read=0; // 车辆每秒平均速度记录
@@ -113,7 +114,7 @@ u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
 	// rt_kprintf("\r\n  ReadGPS Starpageoffset=%d  PageOffset= %d ,  InPageAddr= %d  \r\n",CycleStart_offset,pageoffset,InPageoffset);  
   if(DispContent)
   {
-     rt_kprintf("\r\n  读取CycleGPS 内容为 :\r\n ");   
+     //rt_kprintf("\r\n  读取CycleGPS 内容为 :\r\n ");   
 	  for(i=0;i<ReadLen;i++)
 	  	rt_kprintf("%2X ",content[i]);  
 	 rt_kprintf("\r\n"); 
@@ -135,25 +136,138 @@ u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
 			  cycle_read++;	
 		        if(cycle_read>=Max_CycleNum)
 		  	      cycle_read=0; 
-			 ReadCycle_status=RdCycle_Idle;  
 			 return false;	
 		  }  
                  cycle_read++;	
 		  if(cycle_read>=Max_CycleNum)
 		  	cycle_read=0;
-		  ReadCycle_status=RdCycle_Idle; 
 		 // rt_kprintf("\r\n   *******  该条记录内容不对 *******  \r\n");      
 		  return false; 
      	}	  
-	 /* if(content[0]==0xFF)
-	  {
-		 cycle_read=cycle_write;//如果是内容是0xFF ，读指针和写指针相等，不再触发上报。
-		 ReadCycle_status=RdCycle_Idle;  
-		 return false;  
-	  } */  
+ 
 	//------------------------------------------------------------------------------------------   	 
 	    return true;  
    
+  //-------------------------------------------------------------------------------------------- 
+} 
+
+u8 BDSD_SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen) 
+{
+  /*
+         //old  NOTE : Flash  1 page = 512 Bytes  ; 1 Record = 32 Bytes ;  1page= 16 Records   1Sector=8Page=128Records
+         NOTE : Flash  1 page = 512 Bytes  ; 1 Record = 128 Bytes ;  1page= 4Records   1Sector=8Page=32Records
+  */
+    u32  pageoffset=0;   //Page 偏移
+    u32  InPageoffset;   //页内Record偏移
+    u16  InPageAddr=0;   //页内 地址偏移 
+//	u8   reg[1]={0};
+	u8   rd_back[128];
+	u16  i=0,retry=0;
+
+  //----------------------------------------------------------------------------------------------
+  //   1. Judge  Whether  needs to Erase page 
+  
+     pageoffset=(u32)(BDSD.write>>2);                // 计算出 Page 偏移  除以4 (每个page能放4条记录)
+     InPageoffset=BDSD.write-(u32)(pageoffset<<2);   // 计算出 页内偏移地址 
+     InPageAddr=(u16)(InPageoffset<<7);           // 计算出页内 字节   乘以 128 (每个记录128个字节)
+     if(((pageoffset%8)==0)&&(InPageoffset==0))  // 判断是否需要擦除Sector  被移除到下一个Sector  1Sector=8Page  
+     {
+        WatchDog_Feed();
+		SST25V_SectorErase_4KByte((pageoffset+Pos_accuracy_offset)*PageSIZE);      // erase Sector		
+		DF_delay_ms(20); 
+	    rt_kprintf("\r\n Erase BDSD Sector : %d\r\n",(pageoffset>>3));       
+	 }
+  //	   2. write  and read back    
+  SV_RTRY:
+      if(retry>=2)
+	  	  return false;
+	   delay_ms(5);
+	   WatchDog_Feed(); 
+	   DF_WriteFlashDirect(pageoffset+Pos_accuracy_offset,InPageAddr,content,saveLen);  //   写入信息
+	   DF_delay_us(30);   
+       DF_ReadFlash(pageoffset+Pos_accuracy_offset,InPageAddr,rd_back,saveLen);  //   读取信息
+  //  compare 
+       for(i=0;i<saveLen;i++)
+       	{
+             if(content[i]!=rd_back[i])
+			 {
+			     BDSD.write++;		  
+		         if(BDSD.write>=Max_BDSD_Num)
+			       BDSD.write=0; 
+				 if(retry==0)
+				 {
+				     retry++;
+			         goto SV_RTRY;
+				 }
+				 else
+				 {
+				    return false;
+				 }
+             }
+       	}
+		return true;  
+  //-------------------------------------------------------------------------------------------- 
+}  
+
+
+u8  BDSD_ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
+{
+  /*
+     NOTE : Flash  1 page = 512 Bytes  ; 1 Record = 32 Bytes ;  1page= 16 Records   1Sector=8Page=128Records
+  */
+    u32  pageoffset=0;   //Page 偏移
+    u32  InPageoffset;   //页内Record偏移
+    u16  InPageAddr=0;   //页内 地址偏移 
+	u8  i=0,FCS=0;
+	u8  Len_read=0;  // 信息长度
+
+  /*
+      上报的每一包数第一个字节是有效信息的长度，从第二个字节是信息内容，
+      信息内容的后边是一个字节额校验(校验从长度开始到内容最后一个字节)
+  */
+  //----------------------------------------------------------------------------------------------
+  //   1. caculate address 
+     pageoffset=(u32)(BDSD.read>>2);                 // 计算出 Page 偏移  除以4 (每个page能放4条记录)
+     InPageoffset=BDSD.read-(u32)(pageoffset<<2);   // 计算出 页内偏移地址 
+     InPageAddr=(u16)(InPageoffset<<7);            // 计算出页内 字节   乘以 128 (每个记录128个字节)
+  //   2. Write Record Content 
+     DF_ReadFlash(pageoffset+Pos_accuracy_offset,InPageAddr,content,ReadLen); 
+     DF_delay_us(20);
+	 //  获取信息长度
+	 Len_read=content[0];
+	 
+  if(DispContent==2)
+  {
+   	 OutPrint_HEX("读取BDSD_GPS 内容为 ",content,Len_read+1);
+  }	 
+  //  3. Judge FCS	
+	//--------------- 过滤已经发送过的信息 ------- 
+	  FCS = 0;
+	   for ( i = 0; i < Len_read; i++ )   //计算读取信息的异或和
+	   {
+			   FCS ^= *( content + i );  
+	   } 
+	   //rt_kprintf("\r\n  FCS=%d \r\n",FCS); 
+	  if(((content[Len_read]!=FCS)&&(content[0]!=0xFF))||(content[0]==0xFF))  // 判断异或和   
+	    { 	      
+		  if(content[0]==0xFF)
+		  {
+			 rt_kprintf("\r\n  content[0]==0xFF   read=%d,  write=%d  \r\n",BDSD.read,BDSD.write);   
+			 //cycle_read=cycle_write;//如果是内容是0xFF ，读指针和写指针相等，不再触发上报。
+                       
+			  BDSD.read++;	
+		        if(BDSD.read>=Max_BDSD_Num)
+		  	      BDSD.read=0; 
+			 return false;	
+		  }  
+		  //------------------------------------------------
+          BDSD.read++;	
+		  if(BDSD.read>=Max_BDSD_Num)
+		  	BDSD.read=0;
+		  return false; 
+     	}	  
+	//------------------------------------------------------------------------------------------   	 
+	    return true;     
   //-------------------------------------------------------------------------------------------- 
 } 
 
@@ -566,15 +680,18 @@ u8 Read_PerMinContent(u32 In_read,u8 *content ,u16 ReadLen)
 //----------------------------------------------------------------------  
 void  CHK_ReadCycle_status(void) 
 {  
-  		if(RdCycle_Idle==ReadCycle_status)
+   if(BDSD.Enable_Working==0)
+   	  return;
+   
+  		if(RdCycle_Idle==BDSD.SendFlag)
 			  {
 			       
-				   if(cycle_write!=cycle_read)
+				   if(BDSD.write!=BDSD.read)
 					 {
-						ReadCycle_status=RdCycle_RdytoSD; 
+						BDSD.SendFlag=RdCycle_RdytoSD; 
 					 }
 				    else
-						ReadCycle_status=RdCycle_Idle; 
+						BDSD.SendFlag=RdCycle_Idle; 
 				
 			  } 
 }

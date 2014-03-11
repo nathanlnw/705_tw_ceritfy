@@ -215,6 +215,7 @@ u16		UDP_hexRx_len		= 0;                        // hex 内容 长度
 u16		UDP_DecodeHex_Len	= 0;                        // UDP接收后808 解码后的数据长度
 
 GPS_RMC GPRMC;                                          // GPMC格式
+BD_SEND  BDSD;  //    北斗顺序发送
 
 
 /*                         pGpsRmc->status,\
@@ -400,6 +401,7 @@ u8				Send_Rdy4ok = 0;
 unsigned char	Rstart_time = 0;
 
 MQU				MangQU;
+MQU             MQ_TrueUse; // 真正的盲区补报模式     
 
 //---------- SMS SD ------------------
 SMS_SD SMS_send;
@@ -454,6 +456,8 @@ void RouteRail_Judge( u8* LatiStr, u8* LongiStr );
 
 
 void app_queenable( u8* instr );
+u32 Get_MQ_true_CuurentTotal_packets(void);
+
 
 
 //  A.  Total
@@ -465,6 +469,13 @@ void  Mangqu_Init( void )
 	MangQU.Sd_flag		= 0;
 	//---  5-3
 	MangQU.Enable_SD_state = 0;
+
+    //  another  struct  init	
+	MQ_TrueUse.PacketNum	= 0;
+	MQ_TrueUse.Sd_timer		= 0;
+	MQ_TrueUse.Sd_flag		= 0;
+	//---  5-3
+	MQ_TrueUse.Enable_SD_state = 0; 
 }
 
 /***********************************************************
@@ -536,7 +547,30 @@ u8  Do_SendGPSReport_GPRS( void )
 	u8					reg_gps[30], reg_wr = 0;
 	u8					packet_type = 0;
 
+     //  顺序上报BD 信息
+        if(BDSD.Enable_Working==1)
+            {
+		         if( BDSD.SendFlag==RdCycle_RdytoSD)
+		         {
+                   Stuff_BDSD_0200H();
+                   BDSD.SendFlag=RdCycle_SdOver;
+				   return true;
+		         }
+        	}
 	// 1.  GNSS 详细数据上传----------------------------------------------------
+	//          真正补报
+    if( MQ_TrueUse.Enable_SD_state == 1 )
+	{
+		if( ( MQ_TrueUse.Sd_flag == 1 ) && ( DEV_Login.Operate_enable == 2 ) )
+		{
+		                
+		               
+		                Stuff_MangQu_Packet_Send_0704H_True();  
+						MQ_TrueUse.Sd_flag=2;  //2;  
+		    return true;            
+		}		
+	}
+	//--------------------------------------------------------------------------------
 	if( MangQU.Enable_SD_state == 1 )
 	{
 		if( ( MangQU.Sd_flag == 1 ) && ( DEV_Login.Operate_enable == 2 ) )
@@ -552,8 +586,8 @@ u8  Do_SendGPSReport_GPRS( void )
 												   rt_kprintf("\r\nReturn Normal all\r\n");  
 									  	    	}
 									  	    	*/
-									  	    	
-		          }		
+				return true;					  	    	
+		}		
 	}
 	if( ( 1 == GNSS_rawdata.WorkEnable ) && ( GNSS_rawdata.save_status ) )
 	{
@@ -1683,8 +1717,26 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 			{
 				if( stop_current == 0 )
 				{
-					PositionSD_Enable( );
-					Current_UDP_sd = 1;                                                     // 每次都是即时上报
+					                                                  // 每次都是即时上报
+	                 if(MQ_TrueUse.Enable_SD_state) 
+	                 {
+		                  if(MQ_TrueUse.Enable_SD_state==2)  // 存储时候存储。 上报时候不存储
+		                  	{      
+		                  	      //  upgrade    CurrentTotal  
+		                  	       Get_MQ_true_CuurentTotal_packets(); 
+								  //---- 盲区写入队列process--------
+									MangQU_true_create(Temp_Gps_Gprs);
+		                  	}
+	                 }
+					 if(BDSD.Enable_Working==1)
+					 	{   // 顺序存储判断补报
+                           BD_send_Mque_Tx(Temp_Gps_Gprs);
+					 	}
+				    else
+				 	 {
+                        PositionSD_Enable( );
+					    Current_UDP_sd = 1;   
+				 	 }
 				}
 			}
 			memcpy( BakTime, CurrentTime, 3 );                                              // update
@@ -2247,6 +2299,203 @@ void  Save_GPS( void )
 	}
 }
 
+void BD_send_Init(void)
+{
+  BDSD.Enable_Working=0;
+  BDSD.read=0;
+  BDSD.SendFlag=0; 
+  BDSD.wait__resentTimer=0;
+  BDSD.write=0;
+
+}
+
+void BD_send_Mque_Tx(T_GPS_Info_GPRS Gps_Gprs)
+{
+  
+  u16 counter_mainguffer, i;
+  u32 Dis_01km=0;
+   
+  
+	  //----------------------- Save GPS --------------------------------------
+	  memset( (u8*)BDsd_tx.body, 0, sizeof(BDsd_tx.body) );
+	  BDsd_tx.wr= 0;
+	  BDsd_tx.wr++;// 长度
+	  //------------------------------- Stuff ----------------------------------------
+	  counter_mainguffer = BDsd_tx.wr;
+	  // 1. 告警状态   4 Bytes
+	  memcpy( ( char* ) BDsd_tx.body+ BDsd_tx.wr, ( char* )Warn_Status, 4 );
+	  BDsd_tx.wr += 4;
+	  // 2. 车辆状态   4 Bytes
+	  memcpy( ( char* )BDsd_tx.body + BDsd_tx.wr, ( char* )Car_Status, 4 );
+	  BDsd_tx.wr += 4;
+	  // 3.   纬度	   4 Bytes
+	  memcpy( ( char* )BDsd_tx.body + BDsd_tx.wr, ( char* )Gps_Gprs.Latitude, 4 );   //纬度   modify by nathan
+	  BDsd_tx.wr += 4;
+	  // 4.   经度	   4 Bytes
+	  memcpy( ( char* )BDsd_tx.body + BDsd_tx.wr, ( char* )Gps_Gprs.Longitude, 4 );  //经度	东经  Bit 7->0	  西经 Bit 7 -> 1
+	  BDsd_tx.wr += 4;
+	  // 5.  高度	2 Bytes    m
+	  BDsd_tx.body[BDsd_tx.wr++] = ( GPS_Hight >> 8 ); 							  // High
+	  BDsd_tx.body[BDsd_tx.wr++] = (u8)GPS_Hight;									  // Low
+	  // 6.  速度	2 Bytes 	0.1Km/h
+	  BDsd_tx.body[BDsd_tx.wr++] = ( Speed_gps >> 8 ); 							  // High
+	  BDsd_tx.body[BDsd_tx.wr++] = (u8)Speed_gps;									  // Low
+	  // 7.  方向	2 Bytes 	  1度
+	  BDsd_tx.body[BDsd_tx.wr++] = ( GPS_direction >> 8 ); 						  //High
+	  BDsd_tx.body[BDsd_tx.wr++] = GPS_direction;									  // Low
+	  // 8.  日期时间	6 Bytes
+	  BDsd_tx.body[BDsd_tx.wr++] = ( ( ( Gps_Gprs.Date[0] ) / 10 ) << 4 ) + ( ( Gps_Gprs.Date[0] ) % 10 );
+	  BDsd_tx.body[BDsd_tx.wr++] = ( ( Gps_Gprs.Date[1] / 10 ) << 4 ) + ( Gps_Gprs.Date[1] % 10 );
+	  BDsd_tx.body[BDsd_tx.wr++] = ( ( Gps_Gprs.Date[2] / 10 ) << 4 ) + ( Gps_Gprs.Date[2] % 10 );
+	  BDsd_tx.body[BDsd_tx.wr++] = ( ( Gps_Gprs.Time[0] / 10 ) << 4 ) + ( Gps_Gprs.Time[0] % 10 );
+	  BDsd_tx.body[BDsd_tx.wr++] = ( ( Gps_Gprs.Time[1] / 10 ) << 4 ) + ( Gps_Gprs.Time[1] % 10 );
+	  BDsd_tx.body[BDsd_tx.wr++] = ( ( Gps_Gprs.Time[2] / 10 ) << 4 ) + ( Gps_Gprs.Time[2] % 10 );
+
+
+
+
+
+   #if 1
+	  //--------------------------------------------------------------	  
+	  //----------- 附加信息  ------------
+	  //  附加信息 1  -----------------------------
+	  //  附加信息 ID
+	  BDsd_tx.body[BDsd_tx.wr++] = 0x03; // 行驶记录仪的速度
+	  //  附加信息长度
+	  BDsd_tx.body[BDsd_tx.wr++] = 2;
+	  //  类型
+	  BDsd_tx.body[BDsd_tx.wr++]   = (u8)( Speed_cacu >> 8 );
+	  BDsd_tx.body[BDsd_tx.wr++]   = (u8)( Speed_cacu );
+	  //rt_kprintf("\r\n GPS速度=%d km/h , 传感器速度=%d km/h\r\n",Speed_gps,Speed_cacu);
+	  //  附加信息 2  -----------------------------
+	  //  附加信息 ID
+	  BDsd_tx.body[BDsd_tx.wr++] = 0x01; // 车上的行驶里程
+	  //  附加信息长度
+	  BDsd_tx.body[BDsd_tx.wr++] = 4;
+	  //  类型
+	  Dis_01km							  = JT808Conf_struct.Distance_m_u32 / 100;
+	  BDsd_tx.body[BDsd_tx.wr++]   = ( Dis_01km >> 24 );
+	  BDsd_tx.body[BDsd_tx.wr++]   = ( Dis_01km >> 16 );
+	  BDsd_tx.body[BDsd_tx.wr++]   = ( Dis_01km >> 8 );
+	  BDsd_tx.body[BDsd_tx.wr++]   = Dis_01km;
+	  
+	  //  附加信息 3
+	  if( Warn_Status[1] & 0x10 )
+	  {
+		  //  附加信息 ID
+		  BDsd_tx.body[BDsd_tx.wr++] = 0x12; //	进出区域/路线报警
+		  //  附加信息长度
+		  BDsd_tx.body[BDsd_tx.wr++] = 6;
+		  //  类型
+		  BDsd_tx.body[BDsd_tx.wr++]   = InOut_Object.TYPE;
+		  BDsd_tx.body[BDsd_tx.wr++]   = ( InOut_Object.ID >> 24 );
+		  BDsd_tx.body[BDsd_tx.wr++]   = ( InOut_Object.ID >> 16 );
+		  BDsd_tx.body[BDsd_tx.wr++]   = ( InOut_Object.ID >> 8 );
+		  BDsd_tx.body[BDsd_tx.wr++]   = InOut_Object.ID;
+		  BDsd_tx.body[BDsd_tx.wr++]   = InOut_Object.InOutState;
+		  rt_kprintf( "\r\n ----- 0x0200 current 附加信息 \r\n" );
+	  }
+	  
+	  //  附件信息4
+	  if( Warn_Status[3] & 0x02 )
+	  {
+		  //  附加信息 ID
+		  BDsd_tx.body[BDsd_tx.wr++] = 0x11; 				  //  进出区域/路线报警
+		  //  附加信息长度
+		  BDsd_tx.body[BDsd_tx.wr++] = 1;
+		  //  类型
+		  BDsd_tx.body[BDsd_tx.wr++] = 0;					  //  无特定位置
+	  }
+	  // 5. 附加信息
+	  BDsd_tx.body[BDsd_tx.wr++]   = 0x25;					  //ID	扩展车辆信号状态位
+	  BDsd_tx.body[BDsd_tx.wr++]   = 4;						  //LEN
+	  BDsd_tx.body[BDsd_tx.wr++]   = 0x00;
+	  BDsd_tx.body[BDsd_tx.wr++]   = 0x00;
+	  BDsd_tx.body[BDsd_tx.wr++]   = 0x00;
+	  BDsd_tx.body[BDsd_tx.wr++]   = BD_EXT.Extent_IO_status;
+	  //6. 附加信息  :
+	  if( SleepState == 1 ) 										  //休眠
+	  {
+		  BDsd_tx.body[BDsd_tx.wr++]   = 0x2A;				  //ID	 IO状态位【1】	 bit0:深度休眠	 bit1:休眠【0】保留
+		  BDsd_tx.body[BDsd_tx.wr++]   = 2;					  //LEN
+		  BDsd_tx.body[BDsd_tx.wr++]   = 0x02;
+		  BDsd_tx.body[BDsd_tx.wr++]   = 0;
+	  }
+	  //  附加信息 7  -----------------------------
+	  //  附加信息 ID
+	  BDsd_tx.body[BDsd_tx.wr++] = 0x2B; 					  //模拟量
+	  //  附加信息长度
+	  BDsd_tx.body[BDsd_tx.wr++] = 4;
+	  //  类型
+	  BDsd_tx.body[BDsd_tx.wr++]   = ( AD_2through[1] >> 8 );  // AD1
+	  BDsd_tx.body[BDsd_tx.wr++]   = AD_2through[1];
+	  BDsd_tx.body[BDsd_tx.wr++]   = ( AD_2through[0] >> 8 );  // AD0
+	  BDsd_tx.body[BDsd_tx.wr++]   = AD_2through[0];
+	  //  附加信息 8  -----------------------------
+	  //  附加信息 ID
+	  BDsd_tx.body[BDsd_tx.wr++] = 0x30; 					  //无线通信网络信号强度
+	  //  附加信息长度
+	  BDsd_tx.body[BDsd_tx.wr++] = 1;
+	  //  类型
+	  BDsd_tx.body[BDsd_tx.wr++] = ModuleSQ;
+	  
+	  //  附加信号 9  ---------------------------------
+	  BDsd_tx.body[BDsd_tx.wr++]   = 0x31;					  // GNSS 定位卫星颗数
+	  BDsd_tx.body[BDsd_tx.wr++]   = 1;						  // len
+	  BDsd_tx.body[BDsd_tx.wr++]   = Satelite_num;
+	#endif  
+
+		BDsd_tx.body[0]=BDsd_tx.wr;  
+
+		//-------------  Caculate  FCS  -----------------------------------
+		FCS_GPS_UDP=0;  
+		for ( i = 0; i < BDsd_tx.wr; i++ )  
+		{
+				FCS_GPS_UDP ^= *( BDsd_tx.body + i ); 
+		}			   //求上边数据的异或和
+		BDsd_tx.body[BDsd_tx.wr++] = FCS_GPS_UDP;  
+
+	  //-------------------------------- stuff msg_queue------------------------------------------
+	  rt_mq_send( &mq_BDsd, (void*)&BDsd_tx, BDsd_tx.wr+2); 
+  
+	  //OutPrint_HEX("BD-send",BDsd_tx.body,BDsd_tx.wr);
+
+}
+
+u8 BD_send_Mque_Rx(void)
+{
+    rt_err_t	res;
+
+    memset(BDsd_rx.body,0,sizeof(BDsd_rx.body));
+   	res = rt_mq_recv( &mq_BDsd, (void*)&BDsd_rx, 128,5 ); //等待100ms,实际上就是变长的延时,最长100ms
+	if( res == RT_EOK )                                                     //收到一包数据
+	{
+
+               WatchDog_Feed();
+       if( BDSD_SaveCycleGPS(BDSD.write,BDsd_rx.body,BDsd_rx.wr))
+	     { //---- updata pointer   -------------		
+			BDSD.write++;  	
+		       if(BDSD.write>=Max_BDSD_Num)
+		  	               BDSD.write=0;  
+			DF_Write_RecordAdd(BDSD.write,BDSD.write,TYPE_BDsdAdd);   
+			DF_delay_ms(20);  
+	      //-------------------------------	
+	        if(DispContent) 	
+					       rt_kprintf("\r\n    BDsq succed\r\n");
+            }  
+	    else
+	    	{
+	    	  if(DispContent) 	
+					       rt_kprintf("\r\n    BDsq fail\r\n");
+
+	    	}
+           //  OutPrint_HEX("BD-RX",BDsd_rx.body,BDsd_rx.wr);  
+             return true;
+	}
+
+}
+
+
 /***********************************************************
 * Function:
 * Description:
@@ -2256,20 +2505,94 @@ void  Save_GPS( void )
 * Return:
 * Others:
 ***********************************************************/
-void MangQU_save( u32 coutner, u8 *str, u32 length )
+void MangQU_true_create(T_GPS_Info_GPRS Gps_Gprs)
 {
-	u32 i = 0, page_offset = 0, pagein_offset = 0;
+	
+	u16 counter_mainguffer, i;
 
 
-	/*  for(i=0;i<length;i++)
-	   {
-	   SST25V_ByteWrite(*str,(u32)StopComunicate_offset*512+coutner*MANGQsize+i);
-	   str++;
-	   }
-	 */
-	DF_WriteFlashDirect( StopComunicate_offset + coutner, 0, str, length );
-	DF_delay_ms( 5 );
+		//----------------------- Save GPS --------------------------------------
+		memset( GPSsaveBuf, 0, 40 );
+		GPSsaveBuf_Wr = 0;
+		//------------------------------- Stuff ----------------------------------------
+		counter_mainguffer = GPSsaveBuf_Wr;
+		// 1. 告警状态   4 Bytes
+		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Warn_Status, 4 );
+		GPSsaveBuf_Wr += 4;
+		// 2. 车辆状态   4 Bytes
+		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Car_Status, 4 );
+		GPSsaveBuf_Wr += 4;
+		// 3.   纬度     4 Bytes
+		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Gps_Gprs.Latitude, 4 );   //纬度   modify by nathan
+		GPSsaveBuf_Wr += 4;
+		// 4.   经度     4 Bytes
+		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Gps_Gprs.Longitude, 4 );  //经度    东经  Bit 7->0	西经 Bit 7 -> 1
+		GPSsaveBuf_Wr += 4;
+		// 5.  高度	  2 Bytes    m
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( GPS_Hight >> 8 );                               // High
+		GPSsaveBuf[GPSsaveBuf_Wr++] = (u8)GPS_Hight;                                    // Low
+		// 6.  速度	  2 Bytes     0.1Km/h
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( Speed_gps >> 8 );                               // High
+		GPSsaveBuf[GPSsaveBuf_Wr++] = (u8)Speed_gps;                                    // Low
+		// 7.  方向	  2 Bytes	    1度
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( GPS_direction >> 8 );                           //High
+		GPSsaveBuf[GPSsaveBuf_Wr++] = GPS_direction;                                    // Low
+		// 8.  日期时间	  6 Bytes
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( ( Gps_Gprs.Date[0] ) / 10 ) << 4 ) + ( ( Gps_Gprs.Date[0] ) % 10 );
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Date[1] / 10 ) << 4 ) + ( Gps_Gprs.Date[1] % 10 );
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Date[2] / 10 ) << 4 ) + ( Gps_Gprs.Date[2] % 10 );
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Time[0] / 10 ) << 4 ) + ( Gps_Gprs.Time[0] % 10 );
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Time[1] / 10 ) << 4 ) + ( Gps_Gprs.Time[1] % 10 );
+		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Time[2] / 10 ) << 4 ) + ( Gps_Gprs.Time[2] % 10 );
+		//-------------  Caculate  FCS  -----------------------------------
+		FCS_GPS_UDP = 0;
+		for( i = counter_mainguffer; i < 30; i++ )
+		{
+			FCS_GPS_UDP ^= *( GPSsaveBuf + i );
+		}                                                           //求上边数据的异或和
+		GPSsaveBuf[30] = FCS_GPS_UDP;
+
+		
+		//-------------------------------- stuff msg_queue------------------------------------------
+		rt_mq_send( &mq_MQBuBao, (void*)&GPSsaveBuf, 32); 
+
+		//OutPrint_HEX("MQ-Genernate",GPSsaveBuf,32);
+		
 }
+
+void MangQU_true_Save(void)
+{
+    rt_err_t	res;
+	u8  Rx_MQ[40];
+
+    memset(Rx_MQ,0,40);
+   	res = rt_mq_recv( &mq_MQBuBao, (void*)&Rx_MQ, 32,5 ); //等待100ms,实际上就是变长的延时,最长100ms
+	if( res == RT_EOK )                                                     //收到一包数据
+	{
+       	if( Api_cycle_write( GPSsaveBuf, 31 ) ) 
+		{
+			if( DispContent )
+			{
+				rt_kprintf( "\r\n    MQ Save succed\r\n" );
+			}
+		}else
+		{
+			WatchDog_Feed( );
+			if( DispContent )
+			{
+				rt_kprintf( "\r\n MQ save fail\r\n" );
+			}
+
+			if( Api_cycle_write( GPSsaveBuf, 31 ) )
+			{
+				rt_kprintf( "\r\n MQ save retry ok\r\n" ); 
+			}
+		}
+      // OutPrint_HEX("MQ-save",Rx_MQ,32);  
+	}
+
+}
+
 
 /***********************************************************
 * Function:
@@ -2644,33 +2967,65 @@ u8  App_mq_Resend( void )           // 启动Queue 重发
 void MangQu_Timer( void )
 {
 	//------------------------------------------------------------
-	if( ( JT808Conf_struct.Close_CommunicateFlag == 0 ) && ( MangQU.Enable_SD_state == 1 ) )
+	if( ( JT808Conf_struct.Close_CommunicateFlag == 0 ))
 	{
-		// ----- normal -----
-		if( MangQU.Sd_flag == 0 )
+		//   存储方式盲区
+		if( MangQU.Enable_SD_state == 1 )
 		{
-			MangQU.Sd_timer++;
-				  if(MangQU.Sd_timer>=2) 
-			{
-				MangQU.Sd_timer = 0;
-						 MangQU.NoAck_timer=0;
-				MangQU.Sd_flag	= 1;
-			}
-		}
-              //------- no  ack  process -----
-              if(MangQU.Sd_flag==2)
-              	{
-              	  MangQU.NoAck_timer++;
-				  if( MangQU.NoAck_timer>=2)  
-				  {
-				      MangQU.NoAck_timer=0;
-					  MangQU.Sd_timer=0;
-                      MangQU.Sd_flag=1;		
-					  rt_kprintf("\r\n MQ Noack rensend! \r\n");
-				  }
+		               // ----- normal -----
+						if( MangQU.Sd_flag == 0 )
+						{
+							MangQU.Sd_timer++;
+								  if(MangQU.Sd_timer>=2) 
+							{
+								MangQU.Sd_timer = 0;
+										 MangQU.NoAck_timer=0;
+								MangQU.Sd_flag	= 1;
+							}
+						}
+		              //------- no  ack  process -----
+		              if(MangQU.Sd_flag==2)
+		              	{
+		              	  MangQU.NoAck_timer++;
+						  if( MangQU.NoAck_timer>=2)  
+						  {
+						      MangQU.NoAck_timer=0;
+							  MangQU.Sd_timer=0;
+		                      MangQU.Sd_flag=1;		
+							  rt_kprintf("\r\n MQ Noack rensend! \r\n");
+						  }
 
-              	}
+		              	}
+		 } 
+	  // 真正盲区补报从发定时器
+	  	if( MQ_TrueUse.Enable_SD_state == 1 )
+		{
+		               // ----- normal -----
+						if( MQ_TrueUse.Sd_flag == 0 )
+						{
+							MQ_TrueUse.Sd_timer++;
+								  if(MQ_TrueUse.Sd_timer>=2) 
+							{
+								MQ_TrueUse.Sd_timer = 0;
+										 MQ_TrueUse.NoAck_timer=0;
+								MQ_TrueUse.Sd_flag	= 1;
+							}
+						}
+		              //------- no  ack  process -----
+		              if(MQ_TrueUse.Sd_flag==2)
+		              	{
+		              	  MQ_TrueUse.NoAck_timer++;
+						  if( MQ_TrueUse.NoAck_timer>=2)  
+						  {
+						      MQ_TrueUse.NoAck_timer=0;
+							  MQ_TrueUse.Sd_timer=0;
+							  cycle_read=mangQu_read_reg;   //   还原read重新发送
+				              MQ_TrueUse.Sd_flag=1; //enable发送
+							  rt_kprintf("\r\n MQ_true Noack rensend! \r\n");
+						  }
 
+		              	}
+		 } 
 				
 	}
 }
@@ -2892,6 +3247,36 @@ void Protocol_End( u8 Packet_Type, u8 LinkNum )
 	//------------------------------
 }
 
+u8  Stuff_BDSD_0200H(void)  
+{
+  u8 spd_sensorReg[2];
+  u8  rd_infolen=0;
+ //  1. Head  
+   if(!Protocol_Head(MSG_0x0200,Packet_Normal)) 
+ 	  return false;  
+ // 2. content 
+ WatchDog_Feed();
+ if( BDSD_ReadCycleGPS( BDSD.read,Original_info+Original_info_Wr, 128)==false)              
+  {
+     rt_kprintf("\r\n  读取 false\r\n "); 
+    return false;
+  }
+ // 获取信息长度
+ rd_infolen=Original_info[Original_info_Wr];
+ //OutPrint_HEX("read -1",Original_info+Original_info_Wr,rd_infolen+1);
+ memcpy(Original_info+Original_info_Wr,Original_info+Original_info_Wr+1,rd_infolen);
+ //OutPrint_HEX("read -2",Original_info+Original_info_Wr,rd_infolen+1); 
+ Original_info_Wr+=rd_infolen-1;   // 内容长度 剔除第一个长度字节 
+
+ 
+ //  3. Send 
+ Protocol_End(Packet_Normal ,0);
+   	
+ return true; 
+
+}
+
+
 //------------------------------------------------------------------------------------
 u8  Stuff_MangQu_Packet_Send_0704H( void )
 {
@@ -2922,6 +3307,106 @@ u8  Stuff_MangQu_Packet_Send_0704H( void )
 	Protocol_End( Packet_Normal, 0 );
 
 	rt_kprintf( "\r\n	0704H  current=%d  total=%d  \r\n", MangQU.PacketNum, BLIND_NUM / MQ_PKNUM );
+}
+
+
+u8  Stuff_MangQu_Packet_Send_0704H_True( void )
+{
+    /*  Note:
+                      读取存储时有可能存在读取校验不正确的可能，
+                      这种情况下rd_error 要记录错误次数
+                      同时填充的记录数也要递减
+      */
+    u8   Rd_error_Counter=0;  // 读取错误计数器
+    u8   i=0;
+	u16  len_wr_reg=0;//   长度单位下标 记录 
+	u8   rd_infolen=0;
+	u8	 reg_128[128];  // 0704 寄存器
+   
+	u16 Qsize = 0;
+
+       //0 .  congifrm   batch  num
+        if(cycle_read<cycle_write)
+        {
+            delta_0704_rd=cycle_write-cycle_read;
+			// 判断偏差记录条数是否大于最大记录数
+            if(delta_0704_rd>=MQ_PKNUM)
+				 delta_0704_rd=MQ_PKNUM;   
+
+        }
+		else   // write 小于 read
+		{	    
+			delta_0704_rd=Max_CycleNum-cycle_read; 
+		}
+
+		 rt_kprintf("\r\n	 delat_0704=%d\r\n",delta_0704_rd); 
+
+	// 1. Head
+	 if(!Protocol_Head(MSG_0x0704,Packet_Normal)) 
+		  return false; 
+	  // 2. content   
+	  //  2.1	 数据项个数
+	  Original_info[Original_info_Wr++]   = 0x00; //  10000=0x2710
+	  len_wr_reg=Original_info_Wr; //记录长度下标
+	  Original_info[Original_info_Wr++]   = delta_0704_rd;
+	  
+	  //  2.2	 数据类型	  1  盲区补报	 0:   正常位置批量汇报
+	  Original_info[Original_info_Wr++] = 1;
+
+	  //	2.3  数据项目
+		mangQu_read_reg=cycle_read;   //   存储当前的记录
+		 for(i=0;i<delta_0704_rd;i++)
+		 {
+			//	 读取信息
+		   memset(reg_128,0,sizeof(reg_128)); 
+		   if( ReadCycleGPS(cycle_read,reg_128, 32)==false)	 // 实际内容只有28个字节
+		   {  
+			  Rd_error_Counter++;
+			  continue; 
+		   } 
+		   cycle_read++; 
+			//----------  子项信息长度 --------------------------		   
+			rd_infolen=28;
+			Original_info[Original_info_Wr++]	= 0;
+			Original_info[Original_info_Wr++]	= 32; // 28+ 附件信息长度
+	
+			memcpy(Original_info+Original_info_Wr,reg_128,28);
+			Original_info_Wr+=28; 	// 内容长度 剔除第一个长度字节	
+
+	        
+			//----------- 附加信息	------------
+			//	附加信息 1	-----------------------------
+			//	附加信息 ID
+			Original_info[Original_info_Wr++] = 0x03;														// 行驶记录仪的速度
+			//	附加信息长度
+			Original_info[Original_info_Wr++] = 2;
+			//	类型
+			Original_info[Original_info_Wr++]	= (u8)( Speed_cacu >> 8 );
+			Original_info[Original_info_Wr++]	= (u8)( Speed_cacu );
+			
+			//OutPrint_HEX("read -1"reg_128,rd_infolen+1);
+			
+			//OutPrint_HEX("read -2",reg_128+1,rd_infolen); 
+	//==================================================	
+		}
+
+	//   3 .  end
+	Protocol_End( Packet_Normal, 0 );
+
+    
+	if(DispContent)
+			rt_kprintf("\r\n  定位数据批量上传	delta=%d   read=%d  write=%d current=%d  ConstTotal=%d   CurrentTotal=%d\r\n",delta_0704_rd,cycle_read,cycle_write,MQ_TrueUse.PacketNum, Mq_total_pkg,CurrentTotal);  
+	if(MQ_TrueUse.PacketNum==Mq_total_pkg)
+		    rt_kprintf("\r\n  盲区True存储部分已经完成\r\n");
+	if(cycle_read==cycle_write) 
+		{ 
+           MQ_TrueUse.PacketNum=0;
+		   MQ_TrueUse.Enable_SD_state=0; 
+		   // 每次应答存储相关记录数目
+		   DF_Write_RecordAdd(cycle_write,cycle_read,TYPE_CycleAdd);  
+		   rt_kprintf("\r\nTrue Return Normal_place2\r\n");
+		}
+
 }
 
 //--------------------------------------------------------------------------------------
@@ -8188,15 +8673,10 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 #endif
 					//------------------------------------
 					rt_kprintf( "\r\nCentre ACK!\r\n" );
-					Api_cycle_Update( );
+					
 					//-------------------------------------------------------------------
+					Api_cycle_Update();
 
-
-					/* cycle_read++;   //  收到应答才递增
-					   if(cycle_read>=Max_CycleNum)
-					   cycle_read=0;
-					   ReadCycle_status=RdCycle_Idle;
-					 */
 					//--------------  多媒体上传相关  --------------
 					if( MediaObj.Media_transmittingFlag == 1 ) // clear
 					{
@@ -8293,7 +8773,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					break;
 				case 0x0704:    // 批量应答
 					rt_kprintf( "\r\n MQ packet= %d   0704H-ack", MangQU.PacketNum );
-                                           if(MangQU.Sd_flag==2)
+					                   //  本地存储
+                                          if(MangQU.Sd_flag==2)
 										  { 	  
 										       MangQU.Sd_flag=0;
 											   MangQU.Sd_timer=0;
@@ -8307,10 +8788,27 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 												   rt_kprintf("\r\nReturn Normal\r\n");  
 									  	    	}	
                                           }
+										//  真正 存储
+										    if((MQ_TrueUse.Sd_flag==2)&&(MQ_TrueUse.Enable_SD_state==1)) 
+										  { 	  
+										       MQ_TrueUse.Sd_flag=0; 
+											   MQ_TrueUse.Sd_timer=0;
+											   MQ_TrueUse.Sd_timer=0;
+											   
+											   MQ_TrueUse.PacketNum++;
+											   if(MQ_TrueUse.PacketNum>CurrentTotal)  
+									  	    	{
+									  	    	   MQ_TrueUse.PacketNum=0;
+												   MQ_TrueUse.Enable_SD_state=0; 
+												   // 每次应答存储相关记录数目
+												   DF_Write_RecordAdd(cycle_write,cycle_read,TYPE_CycleAdd);  
+												   rt_kprintf("\r\nTrue Return Normal\r\n");  
+									  	    	}	
+                                          }
 							           break; 		   
 
 				default:
-					break;
+					break; 
 			}
 
 			//-------------------------------
@@ -12825,7 +13323,7 @@ void end_link(void)
 }
 FINSH_FUNCTION_EXPORT(end_link, end_link);  
 
-void erase_mq(void)
+void mq_erase(void)
 {
   u8  i=0;
 				for(i=0;i<10;i++)
@@ -12842,6 +13340,91 @@ void erase_mq(void)
 	rt_kprintf("\r\n earse_MQ   WR=%d  RD=%d \r\n",cycle_write,cycle_read);    		
 
 }
-FINSH_FUNCTION_EXPORT(erase_mq,erase_mq)
+FINSH_FUNCTION_EXPORT(mq_erase,mq_erase);
+	
+void mq_cmd(void)
+{
+   Get_GSM_HexData("7E860200180136013000046AEF01010000006640000262548106BC3E400238A9580717CBC09C7E",78,0);
+   OutPrint_HEX("盲区围栏", GSM_HEX, GSM_HEX_len); 
+}
+FINSH_FUNCTION_EXPORT(mq_cmd, mq_cmd);
 
+u32 Get_MQ_true_CuurentTotal_packets(void)
+{
+   u32  delta_reg=0;
+        //获取总包数
+	        if(cycle_read<cycle_write)
+	        {
+	           /* delta_reg=cycle_write-cycle_read;
+				// 计算总包数
+				if(delta_reg%MQ_PKNUM)
+				    CurrentTotal=delta_reg/MQ_PKNUM+1;
+				else
+					 CurrentTotal=delta_reg/MQ_PKNUM;
+			    */
+			    if(cycle_write%MQ_PKNUM)
+				    CurrentTotal=cycle_write/MQ_PKNUM+1;
+				else
+					 CurrentTotal=cycle_write/MQ_PKNUM; 
+
+	        }
+			else   // write 小于 read
+			{	    
+				// 计算总包数
+			    delta_reg=Max_CycleNum+cycle_write-cycle_read; 
+				if(delta_reg%MQ_PKNUM)
+				    CurrentTotal=delta_reg/MQ_PKNUM+2;  // 跨界要分2包
+				else
+					 CurrentTotal=delta_reg/MQ_PKNUM+1; 
+
+			}
+   return CurrentTotal;
+}
+
+void  sequence_sd(u8 value)
+{
+
+  BD_send_Init();
+  DF_Write_RecordAdd(BDSD.write,BDSD.read,TYPE_BDsdAdd); 
+  
+  BDSD.Enable_Working=value;   
+  		  
+  rt_kprintf("\r\n  消息队列发送模式: %d\r\n",BDSD.Enable_Working);
+}
+FINSH_FUNCTION_EXPORT(sequence_sd, sequence_sd0:disable1:enable);
+	
+
+void mq_true_enable(u8 value)
+{
+ u32  delta_reg=0;
+  switch(value)
+  { 
+     case 2:
+          {
+		    mq_erase();
+		    MQ_TrueUse.Enable_SD_state=2;
+			rt_kprintf("\r\n  MQ_true mode  :enable save !\r\n");
+		  }
+		 break;
+	case 1:  	  
+		  {
+		    MQ_TrueUse.Enable_SD_state=1; 
+			MQ_TrueUse.PacketNum=1;
+		     //获取总包数
+		    Mq_total_pkg=Get_MQ_true_CuurentTotal_packets();
+			rt_kprintf("\r\n  MQ_true mode  :enable send ! write=%d  read=%d  Totalpackets: %d  CurrentTotal=%d\r\n",cycle_write,cycle_read,Mq_total_pkg,CurrentTotal);
+			
+		  }
+	      break;
+    case  0:
+	default:
+		  MQ_TrueUse.Enable_SD_state=0; 
+			rt_kprintf("\r\n  MQ_true mode  :enable disable !\r\n"); 
+	      break;
+  	}		  
+
+}
+FINSH_FUNCTION_EXPORT(mq_true_enable, mq_true_enable 0:idle+othervalue 1:send 2:save);
+
+ 
 // C.  Module

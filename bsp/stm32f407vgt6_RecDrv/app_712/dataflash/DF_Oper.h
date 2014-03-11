@@ -90,7 +90,7 @@ Crystal: 3.6864Mhz
 #define       DF_MaxSpdPerDay_Page                     1272                           // Block 起始--当天最大速度
 #define       DF_DayDistance_Page                      1280                           // Block 起始--当天里程  
 #define       DF_DoubtAdd_Page                         1288                           // Block 事故疑点相关
-#define       DF_AvrgSpdSec_Page                       1296                           // Block 起始-每秒钟平均速度
+#define       DF_BDsdAdd_Page                          1296                           // Block 起始-北斗上报page  
 #define       DF_Login_Page				               1304                           // Block 起始-登录记录
 #define       DF_Powercut_Page		                   1312                           // Block 起始-外部电源断开
 #define       DF_Settingchg_Page	                   1320                           // Block 起始-参数修改 
@@ -148,8 +148,9 @@ Crystal: 3.6864Mhz
 // 3. Tired Driving Record
 #define       TiredDrvStart_offset                    3408                          //  疲劳驾驶记录起始偏移
 
-//4.  定位精度     3176+128=3432 Page
-#define    Pos_accuracy_offset                        3432                         //   定位精度          
+//4.  定位精度     3176+128=3432 Page   
+//  4096-3432=664 page   每条记录128 字节     每个page能存4个记录      664*4=2656 条记录 
+#define    Pos_accuracy_offset                        3432                         //   定位精度       北斗顺序上报   
 
 
 // 13. Picture   Area

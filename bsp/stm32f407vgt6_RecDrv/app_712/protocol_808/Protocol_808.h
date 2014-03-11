@@ -986,12 +986,27 @@ typedef struct  _MQU
     u8    Sd_flag;	     //  发送标志位   0   idle     1   enable    2   send over ready ack
     u32   PacketSd_rd;   //  读取发送     
     u8     Buffer[MANGQsize];     
-    u8     Enable_SD_state; //使能上报标志位
+    u8     Enable_SD_state; //使能上报标志位0:空闲  1:上报  2: 存储 
 
 }MQU;
 
+//------北斗  顺序发送  判断补报---------
+typedef struct _BD_SEND
+{
+  u8  Enable_Working;  //  使能启动北斗顺序发送判断应答模式
+  u8  SendFlag;        // 发送状态位 0: idle    1: enable send  2:  sendover 
+  u32  write;          // 写状态
+  u32  read;           //  读取状态
+
+  u16  wait__resentTimer;  //  发送等待重发计数器
+
+}BD_SEND;
+
+extern BD_SEND  BDSD;  //    北斗顺序发送
+
 //--------------------------------------------------
-extern  MQU     MangQU;    
+extern  MQU     MangQU;  
+extern  MQU 	MQ_TrueUse; // 真正的盲区补报模式 
 
 //---------- SMS SD ------------------
 extern  SMS_SD  SMS_send;
@@ -1333,7 +1348,8 @@ extern u8    Stuff_Worklist_0701H(void);
 extern u8    Stuff_DeviceAttribute_BD_0107H(void);
 extern u8    Stuff_ISP_Resualt_BD_0108H(void);
 extern u8    Stuff_BatchDataTrans_BD_0704H(void);     
-extern u8     Stuff_CANDataTrans_BD_0705H(void);
+extern u8    Stuff_MangQu_Packet_Send_0704H_True( void );
+extern u8    Stuff_CANDataTrans_BD_0705H(void);
 extern u8    Stuff_CentreTakeACK_BD_0805H(void);
 extern u8    Stuff_GNSSRawData_0900H(u8*Instr , u16  len);          
 extern u8    Stuff_DataTrans_0900_BD_ICinfo(void);
@@ -1341,6 +1357,11 @@ extern u8    Stuff_MangQu_Packet_Send_0704H(void);
 extern u8    Update_HardSoft_Version_Judge(u8 * instr);
 extern void  ISP_file_Check(void);
 extern  void  Mangqu_Init(void); 
+
+extern void BD_send_Mque_Tx(T_GPS_Info_GPRS Gps_Gprs);
+extern u8   BD_send_Mque_Rx(void);  
+extern void BD_send_Init(void);
+extern u8  Stuff_BDSD_0200H(void);  
 
 
 extern void delay_us(u16 j);
@@ -1438,6 +1459,10 @@ extern  void  MangquSave_GPS(void);
 extern  void  CAN_Send_judge(void); 
 extern  void  MangQu_Timer(void);
 extern void   buzzer_onoff(u8 in); 
+
+//---------------------盲区真正执行-----------------------------------
+extern  void MangQU_true_create(T_GPS_Info_GPRS Gps_Gprs);  
+extern  void MangQU_true_Save(void); 
 
 
 //==================================================================================================

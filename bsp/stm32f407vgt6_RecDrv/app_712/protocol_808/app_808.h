@@ -18,6 +18,7 @@
 #include "spi_sd.h"
 #include "Usbh_conf.h"
 #include <dfs_posix.h>
+#include  "gps.h"
 
 
 // 1  : connect  not find      0:  not  find      2: connect find  
@@ -55,6 +56,13 @@ extern   u16   AD_2through[2]; //  另外2 路AD 的数值
 extern uint8_t					MQ_rawinfo[MQ_INFO_SIZE];
 extern struct rt_messagequeue	mq_MQBuBao;
 
+//  消息队列 顺序发送序列
+
+extern uint8_t					SD_rawinfo[MQ_INFO_SIZE];
+extern struct rt_messagequeue	mq_BDsd;
+extern LENGTH_BUF BDsd_tx;
+extern LENGTH_BUF BDsd_rx;  
+extern u8	BD_sequence_send_enable;	//	 北斗数据顺序发送
 
 
 

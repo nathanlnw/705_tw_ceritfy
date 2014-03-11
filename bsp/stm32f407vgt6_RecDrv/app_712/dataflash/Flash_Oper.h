@@ -15,7 +15,7 @@
 #define   TYPE_ErrorLogAdd                     7                     // 异常Log存储 
 #define   TYPE_VechRecordAdd                   8                     // 正常存储记录偏移地址     
 #define   TYPE_DoubtAdd                        9                     // 事故疑点偏移地址
-#define   TYPE_AvrgSpdSecAdd                   10                    // 车辆单位分钟每秒平均速度记录地址
+#define   TYPE_BDsdAdd                         10                    // 北斗顺序上报状态地址存储器
 #define   TYPE_LogInAdd                        11                    // 登录信息记录地址
 #define   TYPE_PowerCutAdd                     12                    // 外部电源断开记录地址
 #define   TYPE_SettingChgAdd                   13                    // 参数修改记录地址   
@@ -34,7 +34,7 @@
 extern u8       ReadCycle_status;   
 extern u8       ReadCycle_timer;   // 超时判断
 
-extern u32     cycle_write, cycle_read;  // 循环存储记录
+extern u32     cycle_write, cycle_read,delta_0704_rd,mangQu_read_reg,Mq_total_pkg,CurrentTotal;  // 循环存储记录
 extern u32    AvrgSpdPerMin_write,AvrgSpdPerMin_Read; // 车辆每分钟平均速度记录
 extern u32    AvrgSpdPerSec_write,AvrgSpdPerSec_Read; // 车辆每秒平均速度记录   
 extern u32    AvrgMintPosit_write,AvrgMintPosit_Read; // 车辆单位小时内每分钟位置记录 
@@ -53,7 +53,10 @@ extern u32    DayStartDistance_32; //每天起始里程数目
 
 
 extern u8  SaveCycleGPS(u32 cycle_wr,u8 *content ,u16 saveLen);   
-extern u8  ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen);    
+extern u8  ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen);   
+extern u8  BDSD_SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen);
+extern u8  BDSD_ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen); 
+
 extern u8  Common_WriteContent(u32 In_write,u8 *content ,u16 saveLen, u8 Type); 
 extern u8  Common_ReadContent(u32 In_read,u8 *content ,u16 ReadLen, u8 Type);    
 extern u8  Save_PerMinContent(u32 In_wr,u8 *content ,u16 saveLen); 

@@ -143,11 +143,15 @@
 #define   Max_SystemCounter            28800 // 86400   //定时重启时间24小时 一天 
 
 //-----------------------  Max  Add    ---------------------------------
-#define   Max_CycleNum                  16384
+#define   Max_CycleNum                  16284
                                                  /*
 												   每一条记录为31字节，这里取每条记录32个字节，每page 16条记录
 												   1024page=1024x512 Bytes=1024*16=16284Record 
                                                          */
+#define   Max_BDSD_Num                  2656
+//4.  定位精度     3176+128=3432 Page   
+//  4096-3432=664 page   每条记录128 字节     每个page能存4个记录      664*4=2656 条记录 
+
 #define   Max_PicNum                    400
                                                  /*
 												  每张图片32Page，1Page 索引，31page 图片内容
