@@ -1,11 +1,5 @@
----- BDSD.SendFlag Matches (10 in 4 files) ----
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		            if( BDSD.SendFlag==RdCycle_SdOver)
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):						  BDSD.SendFlag=RdCycle_RdytoSD;  // 使能发送  
-Device_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):           	 if( BDSD.SendFlag==RdCycle_SdOver)	 // 发送成功判断 
-Device_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					 BDSD.SendFlag=RdCycle_Idle; 
-Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):  		if(RdCycle_Idle==BDSD.SendFlag)
-Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):						BDSD.SendFlag=RdCycle_RdytoSD; 
-Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):						BDSD.SendFlag=RdCycle_Idle; 
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		         if( BDSD.SendFlag==RdCycle_RdytoSD)
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):                   BDSD.SendFlag=RdCycle_SdOver;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):  BDSD.SendFlag=0;
+---- ReadCycleGPS Matches (4 in 4 files) ----
+Device_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):                return( ReadCycleGPS(cycle_read, buffer, len));
+Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
+Flash_Oper.h (bsp\stm32f407vgt6_recdrv\app_712\dataflash):extern u8  ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen);   
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		   if( ReadCycleGPS(cycle_read,reg_128, 32)==false)	 // 实际内容只有28个字节

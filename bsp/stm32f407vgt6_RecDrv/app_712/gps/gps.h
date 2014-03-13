@@ -89,6 +89,13 @@ typedef struct  Gps_Abnormal
    u16   no_updateTimer; // 没有数据更新定时器
    u16   GPS_Rst_counter;
    u8     Reset_gps;           // GPS timer   
+
+     //       add  on  2013  -4-20         
+   u16   GPS_circuit_short_couter;  // GPS 短路 次数判断 
+   u8    GPS_short_checkFlag;//  GPS 短路判断标志位  常态 0    三次内短路 1    3次以上 2 
+   u16   GPS_short_timer;   // short  判断计数器   
+   u16   GPS_short_keepTimer;  //  短路持续时间
+  
   
 }GPS_ABNORMAL;
 // -----  GPS   App  Related  -------
@@ -103,8 +110,12 @@ void gps_init( void );
 extern void  gps_mode(u8 *str) ;
 extern rt_err_t gps_onoff( uint8_t openflag );
 extern void  GPS_Abnormal_process(void);  
+extern void  GPS_ANTENNA_status(void);      //  天线开短路状态检测
+extern void  GPS_short_judge_timer(void);  
 void thread_gps_upgrade_uart( void* parameter );
 void thread_gps_upgrade_udisk( void* parameter );
+extern  void  gps_io_init(void);
+extern  void  GPS_ANTENNA_status(void);     //  天线开短路状态检测  
 
 
 #endif

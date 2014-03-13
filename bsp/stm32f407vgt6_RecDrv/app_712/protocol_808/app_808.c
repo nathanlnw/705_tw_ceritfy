@@ -582,7 +582,8 @@ static void App808_thread_entry(void* parameter)
           usbh_init();    
 	   APP_IOpinInit();
           Init_ADC(); 
-		  
+		  gps_io_init();
+		    
        //  	 tf_open();      // open device  
 	// pos=dfs_mount("spi_sd","/sd","elm",0,0);	
        //   if(pos)
@@ -650,18 +651,12 @@ static void App808_thread_entry(void* parameter)
 		  }  
          //  盲区存储 
           // 5. ---------------  顺序存储 GPS  -------------------		    
-		if(GPS_getfirst)	 //------必须搜索到经纬度
-		{
-			    if(Current_SD_Duration>1)// 间隔大于10s 存储顺序上报， 小于10 不存储上报 
-			    {                                                 //  拍照中暂不操作flash
-					   Save_GPS();       
-			    } 
-		}
 		   MangQU_true_Save();
+		   WatchDog_Feed();
 	     //============  状态检测 =======================
            ACC_status_Check();
 	     //---------------------------------------------------------------------------------------------	  
-                rt_thread_delay(10);
+           rt_thread_delay(10);
           //  北斗顺序存储上报          
 		  BD_send_Mque_Rx();
 		  WatchDog_Feed();

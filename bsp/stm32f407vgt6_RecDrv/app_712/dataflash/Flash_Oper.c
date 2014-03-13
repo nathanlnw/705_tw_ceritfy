@@ -48,7 +48,7 @@ u8 SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen)
      {
               WatchDog_Feed();
 		SST25V_SectorErase_4KByte((pageoffset+CycleStart_offset)*PageSIZE);      // erase Sector		
-		DF_delay_ms(20); 
+		DF_delay_ms(80); 
 	    rt_kprintf("\r\n Erase Cycle Sector : %d\r\n",(pageoffset>>3));       
 	 }
   //	   2. Filter write  area    
@@ -112,12 +112,19 @@ u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
      DF_delay_us(20);
     // DF_delay_ms(10); 
 	// rt_kprintf("\r\n  ReadGPS Starpageoffset=%d  PageOffset= %d ,  InPageAddr= %d  \r\n",CycleStart_offset,pageoffset,InPageoffset);  
+     WatchDog_Feed();
   if(DispContent)
   {
-     //rt_kprintf("\r\n  读取CycleGPS 内容为 :\r\n ");   
-	  for(i=0;i<ReadLen;i++)
-	  	rt_kprintf("%2X ",content[i]);  
-	 rt_kprintf("\r\n"); 
+	  //for(i=0;i<ReadLen;i++)
+	  	//rt_kprintf("%2X ",content[i]);  
+	  	 for(i=8;i<17;i++)
+	  	     rt_kprintf("%2X ",content[i]);  
+		 
+		  rt_kprintf("  ");
+
+		 for(i=22;i<28;i++)  
+	  	     rt_kprintf("%2X ",content[i]);         
+	 rt_kprintf("\r\n");  
   }	 
   //  3. Judge FCS	
 	//--------------- 过滤已经发送过的信息 -------

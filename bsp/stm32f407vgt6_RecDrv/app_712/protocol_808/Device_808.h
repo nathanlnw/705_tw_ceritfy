@@ -21,6 +21,8 @@
 #define DF_APP1_PageNo		                 50             /*DF_APP_flah run PageNo:   50  ~ 903  page*/
 
 
+//--------  Protocol IO define -------------
+#define    BD_IO_Pin6_7_A1C3          //  北斗应用用 PA1    6   灰线 PC3   7  绿线
 //----- in pins  -------
 #define  ACC_IO_Group          GPIOE               // ACC 管脚设置
 #define  ACC_Group_NUM         GPIO_Pin_9

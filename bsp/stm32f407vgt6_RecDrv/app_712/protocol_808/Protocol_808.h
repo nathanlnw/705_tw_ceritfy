@@ -1324,7 +1324,6 @@ extern void GNSS_RawDataTrans_Init(u8 mode);  // ±±¶·Ìí¼Ó
 //==================================================================================================
 
 extern  u8  Do_SendGPSReport_GPRS(void);   
-extern void  Save_GPS(void);    
 extern u8    Stuff_DevCommmonACK_0001H(void);        
 extern u8    Stuff_RegisterPacket_0100H(u8  LinkNum);  
 extern u8    Stuff_DeviceDeregister_0101H(void);      

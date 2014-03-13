@@ -351,78 +351,6 @@ u8 Process_GSA(u8* packet)
 
 	   return true;
 }
-//------------------
-u8 Process_TXT(u8* packet) 
-{
- // $GNTXT,01,01,01,ANTENNA SHORT*7D
-//$GNTXT,01,01,01,ANTENNA OK*2B
-//$GNTXT,01,01,01,ANTENNA OPEN*3B
-	
-	u8 CommaCount=0,iCount=0;
-	u8  tmpinfo[12];
-//	float dop;	
-	//float Hight1=0,Hight2=0; 
-	while (*packet!=0){
-		if((*packet==',')||(*packet=='*')){  
-			CommaCount++;
-			packet++;
-			if(iCount==0)	 continue;
-			switch(CommaCount){
-				case 5:
-						if(strncmp((char*)tmpinfo,"ANTENNA OPEN",12)==0)//开路检测	1:天线开路
-							{
-							if(OutGPS_Flag==0)
-								{
-								if((Warn_Status[3]&0x20)==0)
-									{
-									Antenna_open_flag=1;
-									rt_kprintf("\r\n	检测到	天线开路");
-									GpsStatus.Antenna_Flag=1;
-									PositionSD_Enable();   
-									Current_UDP_sd=1;	
-									}   
-								Warn_Status[3]|=0x20;
-								Warn_Status[3]&=~0x40;	
-
-								}  
-							}
-						if(strncmp((char*)tmpinfo,"ANTENNA SHORT",13)==0)//短路检测  0:天线短路
-							{
-							   Warn_Status[3]&=~0x20;
-							   Warn_Status[3]|=0x40;
-							}
-						else
-						if(strncmp((char*)tmpinfo,"ANTENNA OK",10)==0)	
-						{
-						  GpsStatus.Antenna_Flag=0;
-						  if(Warn_Status[3]&0x20)
-							{
-							Antenna_open_flag=2;
-							rt_kprintf("\r\n	检测到	天线恢复正常");
-							PositionSD_Enable();    
-							Current_UDP_sd=1;
-							}	
-						  else
-						  	Antenna_open_flag=0;
-						  
-						   Warn_Status[3]&=~0x20;
-						   Warn_Status[3]&=~0x40;	  						   
-						}
-				     break;
-				default:
-					break;
-			}
-			iCount=0;
-		}else{
-			tmpinfo[iCount++]=*packet++;
-			tmpinfo[iCount]=0;
-			if(iCount>12)
-				return CommaCount;
-		}
-	}
-	return CommaCount;
-   
-}
 //---------------------
 
 u32 Str_2_u32( u8 *tmpinfo,u8  	H1_F) 
@@ -544,6 +472,103 @@ u8 Process_GGA(u8* packet)
 
 
 }
+
+void  GPS_ANTENNA_status(void)     //  天线开短路状态检测 
+{
+    // 2013-4-20    更改PCB   用PD4 : GPS 天线开路      PB6 : GPS  天线短路
+   	if(GPIO_ReadOutputDataBit(GPS_PWR_PORT, GPS_PWR_PIN )) // 在GPS 有电时有效   
+		{
+			if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4))//开路检测	1:天线开路
+			{
+				 if(OutGPS_Flag==0)
+				 {
+					   if((Warn_Status[3]&0x20)==0)
+					         rt_kprintf("\r\n	检测到	天线开路"); 
+					   Warn_Status[3]|=0x20;
+					   Warn_Status[3]&=~0x40; 	 
+					   GpsStatus.Antenna_Flag=1;
+					   Gps_Exception.GPS_circuit_short_couter=0;
+			 	}  
+			}
+					#if 1
+			else if(!GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_6))//短路检测  0:天线短路 
+			{
+			         if(( Warn_Status[3]&0x40)==0)   
+				     {
+                        Gps_Exception.GPS_short_keepTimer++;
+						if( Gps_Exception.GPS_short_keepTimer>200)     
+					    {
+					       Gps_Exception.GPS_short_keepTimer=0;  // clear 
+					       rt_kprintf("\r\n	检测到	天线短路");     
+						   rt_kprintf("\r\n	发现短路，立即断开GPS电源");      
+						   GPIO_ResetBits( GPS_PWR_PORT, GPS_PWR_PIN ); 
+
+
+						      //------------------------------------------ 
+							  Gps_Exception.GPS_circuit_short_couter++;
+							  if(Gps_Exception.GPS_circuit_short_couter>=4)  
+							   {
+									Gps_Exception.GPS_short_checkFlag=2;
+									Gps_Exception.GPS_short_timer=0; // clear  
+									rt_kprintf("\r\n   短路检测大于3次 ，一直断开GPS 电源\r\n");   
+									
+									//	断开 GPS 电源后，得启动 本地定时 ，否则人家说丢包.NND
+									/*
+							  
+									   */ 
+							   }	
+							  else
+							   {
+									  Gps_Exception.GPS_short_checkFlag=1; 
+							   } 
+			                   //-----------------------------------------------------
+                             
+							   // set  flag 	
+							   Warn_Status[3]&=~0x20;
+							   Warn_Status[3]|=0x40;	 
+							   //------------------------------------------
+					     }
+			         } 		
+				   
+
+			}
+			#endif
+			else
+			{
+				 if(Warn_Status[3]&0x20)
+				  	      rt_kprintf("\r\n	检测到	天线恢复正常");   
+	              Warn_Status[3]&=~0x20;
+				  Warn_Status[3]&=~0x40;   
+				  GpsStatus.Antenna_Flag=0;
+				  Gps_Exception.GPS_circuit_short_couter=0;
+			} 
+			
+		}
+}
+
+void  GPS_short_judge_timer(void)
+{
+       if(Gps_Exception.GPS_short_checkFlag==1)
+       {
+        Gps_Exception.GPS_short_timer++; 
+		if(Gps_Exception.GPS_short_timer>100)
+		{   //   关电 后开启
+		     Gps_Exception.GPS_short_timer=0;  
+		     gps_onoff(1);
+		     rt_kprintf("\r\n	 再次开启GPS模块\r\n"); 
+			 //---------------期待模块正常-----------
+               Warn_Status[3]&=~0x20;
+			   Warn_Status[3]&=~0x40; 
+			 //----------------
+			 Gps_Exception.GPS_short_checkFlag=0; 
+		}	 
+ 
+       }
+
+
+
+}
+
 //------------------------------------------------------------------
 void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen) 
 {    
@@ -626,12 +651,12 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 					Process_GSA(Gps_instr);
 				      return;	
 			      }
-				if((strncmp((char*)Gps_instr,"$GNTXT,",7)==0)||(strncmp((char*)Gps_instr,"$GPTXT,",7)==0)||(strncmp((char*)Gps_instr,"$BDTXT,",7)==0)) 
+				/*if((strncmp((char*)Gps_instr,"$GNTXT,",7)==0)||(strncmp((char*)Gps_instr,"$GPTXT,",7)==0)||(strncmp((char*)Gps_instr,"$BDTXT,",7)==0)) 
 				{
 					  //rt_kprintf("%s",GPSRx);  
 					  Process_TXT(Gps_instr);  
 					   return;	
-				}
+				}*/
 			      if((strncmp((char*)Gps_instr,"$GPGGA,",7)==0)||(strncmp((char*)Gps_instr,"$GNGGA,",7)==0)||(strncmp((char*)Gps_instr,"$BDGGA,",7)==0))  
 			     {   
 					   //GNSS_Trans();
@@ -738,6 +763,31 @@ void gps_baud( int baud )
 FINSH_FUNCTION_EXPORT( gps_baud, config gsp_baud );
 
 /*初始化*/
+
+void  gps_io_init(void)
+{
+  GPIO_InitTypeDef	GPIO_InitStructure;
+  RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_GPIOD, ENABLE );
+#if 1
+  //-------- 开短路检测  -------- 
+	 //#ifdef HC_595_CONTROL	  
+  // 2013-4-20		更改PCB   用PD4 : GPS 天线开路		PB6 : GPS  天线短路
+  GPIO_InitStructure.GPIO_OType   = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd	  = GPIO_PuPd_NOPULL;  
+  GPIO_InitStructure.GPIO_Speed   = GPIO_Speed_2MHz;	
+  //	 IN
+  //------------------- PD4 -----------------------------
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;    //GPS 天线开路 
+  GPIO_InitStructure.GPIO_Mode	= GPIO_Mode_IN; 
+  GPIO_Init(GPIOD, &GPIO_InitStructure);
+  //------------------- PB6 -----------------------------
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;    //GPS 天线短路 
+  GPIO_InitStructure.GPIO_Mode	= GPIO_Mode_IN; 
+  GPIO_Init(GPIOB, &GPIO_InitStructure);	
+#endif
+
+}
+
 static rt_err_t dev_gps_init( rt_device_t dev )
 {
 	GPIO_InitTypeDef	GPIO_InitStructure;

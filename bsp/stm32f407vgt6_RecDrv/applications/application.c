@@ -170,8 +170,11 @@ static void rt_thread_entry_led(void* parameter)
 					 }
 
 					//---------------------------------------			   
-			     	}	        
-		//----------------------------------------------- 
+			     	}	           
+
+		      GPS_ANTENNA_status();
+			  GPS_short_judge_timer(); 
+		//-----------------------------------------------
                         rt_thread_delay(RT_TICK_PER_SECOND/10);
 	
   }

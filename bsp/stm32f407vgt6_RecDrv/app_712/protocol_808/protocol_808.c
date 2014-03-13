@@ -1728,15 +1728,18 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 									MangQU_true_create(Temp_Gps_Gprs);
 		                  	}
 	                 }
-					 if(BDSD.Enable_Working==1)
-					 	{   // 顺序存储判断补报
-                           BD_send_Mque_Tx(Temp_Gps_Gprs);
-					 	}
-				    else
-				 	 {
-                        PositionSD_Enable( );
-					    Current_UDP_sd = 1;   
-				 	 }
+					 else
+					 {
+						 if(BDSD.Enable_Working==1)
+						 	{   // 顺序存储判断补报
+	                           BD_send_Mque_Tx(Temp_Gps_Gprs);
+						 	} 
+					    else
+					 	 {
+	                        PositionSD_Enable( );
+						    Current_UDP_sd = 1;   
+					 	 }
+					}	
 				}
 			}
 			memcpy( BakTime, CurrentTime, 3 );                                              // update
@@ -2203,102 +2206,6 @@ void StatusReg_Default( void )
 //==================================================================================================
 // 第三部分 :   以下是GPRS无线传输相关协议
 //==================================================================================================
-void  Save_GPS( void )
-{
-	u16 counter_mainguffer, i;
-	u8	lati_reg[4];            //,regstatus;
-
-	if( PositionSD_Status( ) )
-	{
-		if( DF_LOCK == enable ) // 清除文件区域时 ，禁止操作DF
-		{
-			return;
-		}
-		//-------------------------------------------------------
-		//1.   时间超前判断
-		//  if(Time_FastJudge()==false)
-		//		return ;
-		//----------------------- Save GPS --------------------------------------
-		memset( GPSsaveBuf, 0, 40 );
-		GPSsaveBuf_Wr = 0;
-		//------------------------------- Stuff ----------------------------------------
-		counter_mainguffer = GPSsaveBuf_Wr;
-		// 1. 告警状态   4 Bytes
-		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Warn_Status, 4 );
-		GPSsaveBuf_Wr += 4;
-		// 2. 车辆状态   4 Bytes
-		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Car_Status, 4 );
-		GPSsaveBuf_Wr += 4;
-		// 3.   纬度     4 Bytes
-		memcpy( lati_reg, Gps_Gprs.Latitude, 4 );
-		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Gps_Gprs.Latitude, 4 );   //纬度   modify by nathan
-		GPSsaveBuf_Wr += 4;
-		// 4.   经度     4 Bytes
-		memcpy( ( char* )GPSsaveBuf + GPSsaveBuf_Wr, ( char* )Gps_Gprs.Longitude, 4 );  //经度    东经  Bit 7->0	西经 Bit 7 -> 1
-		GPSsaveBuf_Wr += 4;
-		// 5.  高度	  2 Bytes    m
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( GPS_Hight >> 8 );                               // High
-		GPSsaveBuf[GPSsaveBuf_Wr++] = (u8)GPS_Hight;                                    // Low
-		// 6.  速度	  2 Bytes     0.1Km/h
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( Speed_gps >> 8 );                               // High
-		GPSsaveBuf[GPSsaveBuf_Wr++] = (u8)Speed_gps;                                    // Low
-		// 7.  方向	  2 Bytes	    1度
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( GPS_direction >> 8 );                           //High
-		GPSsaveBuf[GPSsaveBuf_Wr++] = GPS_direction;                                    // Low
-		// 8.  日期时间	  6 Bytes
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( ( Gps_Gprs.Date[0] ) / 10 ) << 4 ) + ( ( Gps_Gprs.Date[0] ) % 10 );
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Date[1] / 10 ) << 4 ) + ( Gps_Gprs.Date[1] % 10 );
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Date[2] / 10 ) << 4 ) + ( Gps_Gprs.Date[2] % 10 );
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Time[0] / 10 ) << 4 ) + ( Gps_Gprs.Time[0] % 10 );
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Time[1] / 10 ) << 4 ) + ( Gps_Gprs.Time[1] % 10 );
-		GPSsaveBuf[GPSsaveBuf_Wr++] = ( ( Gps_Gprs.Time[2] / 10 ) << 4 ) + ( Gps_Gprs.Time[2] % 10 );
-		//--------------------------------------------------------------------
-		if( strncmp( ( char* )GPSsaveBuf + GPSsaveBuf_Wr - 3, (const char*)Sdgps_Time, 3 ) == 0 )
-		{
-			{                                                       //-------- 用RTC 时钟 -----
-				time_now = Get_RTC( );
-				Time2BCD( GPSsaveBuf + GPSsaveBuf_Wr - 6 );
-				rt_kprintf( "\r\n    启用RTC时间了! \r\n" );
-			}
-		}
-		memcpy( Sdgps_Time, GPSsaveBuf + GPSsaveBuf_Wr - 3, 3 );    //更新最新一次存储时间
-
-		//-------------  Caculate  FCS  -----------------------------------
-		FCS_GPS_UDP = 0;
-		for( i = counter_mainguffer; i < 30; i++ )
-		{
-			FCS_GPS_UDP ^= *( GPSsaveBuf + i );
-		}                                                           //求上边数据的异或和
-		GPSsaveBuf[30] = FCS_GPS_UDP;
-		//-------------------------------- Save  ------------------------------------------
-		if( Api_cycle_write( GPSsaveBuf, 31 ) ) 
-		{
-			if( DispContent )
-			{
-				rt_kprintf( "\r\n    GPS Save succed\r\n" );
-			}
-		}else
-		{
-			WatchDog_Feed( );
-			if( DispContent )
-			{
-				rt_kprintf( "\r\n GPS save fail\r\n" );
-			}
-
-			if( Api_cycle_write( GPSsaveBuf, 31 ) )
-			{
-				rt_kprintf( "\r\n GPS save retry ok\r\n" );
-			}
-		}
-		//---------------------------------------------------------------------------------
-		if( PositionSD_Status( ) )
-		{
-			PositionSD_Disable( );
-		}
-		//-----------------------------------------------------
-	}
-}
-
 void BD_send_Init(void)
 {
   BDSD.Enable_Working=0;
@@ -2573,7 +2480,7 @@ void MangQU_true_Save(void)
 		{
 			if( DispContent )
 			{
-				rt_kprintf( "\r\n    MQ Save succed\r\n" );
+				rt_kprintf( "\r\n    MQ Save succed wr=%d\r\n",cycle_write ); 
 			}
 		}else
 		{
@@ -13334,8 +13241,8 @@ void mq_erase(void)
 				     WatchDog_Feed(); 
 				}
 				
-	cycle_write=0;
-	cycle_read=0;	
+	cycle_write=0;//6959
+	cycle_read=0;	//0
 	DF_Write_RecordAdd(cycle_write,cycle_read,TYPE_CycleAdd);   	
 	rt_kprintf("\r\n earse_MQ   WR=%d  RD=%d \r\n",cycle_write,cycle_read);    		
 

@@ -410,7 +410,7 @@ static void HMI_thread_entry(void* parameter)
 		       pMenuItem->show();
 		}
 	 	//--------------------------------------------	   
-              rt_thread_delay(5);     
+              rt_thread_delay(10);     
 
      }  
 }

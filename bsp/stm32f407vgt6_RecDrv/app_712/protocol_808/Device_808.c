@@ -827,7 +827,7 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 		       if(cycle_write>=Max_CycleNum)
 		  	               cycle_write=0;  
 			DF_Write_RecordAdd(cycle_write,cycle_read,TYPE_CycleAdd);   
-			DF_delay_ms(20);  
+			DF_delay_ms(5);  
 	      //-------------------------------	
 	        return true;
             }  
