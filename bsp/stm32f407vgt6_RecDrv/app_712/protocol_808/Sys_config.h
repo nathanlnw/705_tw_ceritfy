@@ -325,7 +325,7 @@ extern void DefaultConfig(void);
 extern void RstWrite_ACConoff_counter(void);
 extern void BD_EXT_Write(void);
 extern void MSG_BroadCast_Init(u8  Intype);
-
+extern void Rails_Routline_Read(void);
 
 //写入文本信息1-8
 extern void TEXTMSG_Write(u8 num,u8 new_state,u8 len,u8 *str);

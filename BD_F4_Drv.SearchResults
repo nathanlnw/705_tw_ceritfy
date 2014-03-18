@@ -1,5 +1,5 @@
----- ReadCycleGPS Matches (4 in 4 files) ----
-Device_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):                return( ReadCycleGPS(cycle_read, buffer, len));
-Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
-Flash_Oper.h (bsp\stm32f407vgt6_recdrv\app_712\dataflash):extern u8  ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen);   
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		   if( ReadCycleGPS(cycle_read,reg_128, 32)==false)	 // 实际内容只有28个字节
+---- mq_true_enable Matches (5 in 1 files) ----
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):									  mq_true_enable(2);  //  使能盲区补报存储
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):						 mq_true_enable(1); // 使能盲区补报上报 
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void mq_true_enable(u8 value)
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):FINSH_FUNCTION_EXPORT(mq_true_enable, mq_true_enable 0:idle+othervalue 1:send 2:save);

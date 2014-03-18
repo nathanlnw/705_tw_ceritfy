@@ -1287,6 +1287,24 @@ void  SendMode_ConterProcess(void)         //  定时发送处理程序
 }
 
 
+void  Rails_Routline_Read(void)
+{
+   u16  i=0;
+   
+            //-----------读取围栏状态-------
+           
+		   for(i=0;i<8;i++)
+		   {
+				Api_RecordNum_Read(Rail_rect,i+1, (u8*)&Rail_Rectangle_multi[i], sizeof(Rail_Rectangle));
+				delay_ms(2);
+				Api_RecordNum_Read(Rail_cycle,i+1, (u8*)&Rail_Cycle_multi[i],sizeof(Rail_Cycle));	
+
+				
+		   }  
+
+} 
+
+
 
 
 
@@ -1361,7 +1379,7 @@ void SetConfig(void)
 		   {
 		              ModuleStatus&=~Status_Pcheck;
                   } 
-                 
+           Rails_Routline_Read();       
        
     rt_kprintf("\r\n Read Config Over \r\n");   
 }

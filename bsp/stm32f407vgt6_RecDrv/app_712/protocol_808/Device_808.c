@@ -825,9 +825,11 @@ FINSH_FUNCTION_EXPORT(Socket_aux_Set,Set Socket aux);
 	     { //---- updata pointer   -------------		
 			cycle_write++;  	
 		       if(cycle_write>=Max_CycleNum)
-		  	               cycle_write=0;  
+		  	               cycle_write=0; 
+			WatchDog_Feed();   
 			DF_Write_RecordAdd(cycle_write,cycle_read,TYPE_CycleAdd);   
-			DF_delay_ms(5);  
+			DF_delay_ms(2);  
+			
 	      //-------------------------------	
 	        return true;
             }  

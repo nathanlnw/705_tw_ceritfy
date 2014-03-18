@@ -272,6 +272,9 @@ VEHICLE_CONTROL Vech_Control;                           //  车辆控制
 //-----  电子围栏  -----
 POLYGEN_RAIL	Rail_Polygen;                           // 多边形围栏
 RECT_RAIL		Rail_Rectangle;                         // 矩形围栏
+RECT_RAIL       Rail_Rectangle_multi[8]; // 矩形围栏
+CIRCLE_RAIL     Rail_Cycle_multi[8];     // 圆形围栏
+
 CIRCLE_RAIL		Rail_Cycle;                             // 圆形围栏
 //------- 线路设置 -----
 POINT			POINT_Obj;                              // 路线的拐点
@@ -315,6 +318,16 @@ u8				Car_Status[4] =
 };                                                      //  车辆状态信息
 T_GPS_Info_GPRS Gps_Gprs, Bak_GPS_gprs;
 T_GPS_Info_GPRS Temp_Gps_Gprs;
+
+u8   EverySecond_Time_Get=0;                   // 获取每秒时间标志  0: not get  1: get  day not change  2 : get  day need change
+u8   Lati_Get=0;                               // 纬度GGA  处理过
+u8   Longi_Get=0;                              //  精度 GGA  接收 过
+
+
+
+
+
+
 u8				A_time[6];                              // 定位时刻的时间
 
 u8				ReadPhotoPageTotal	= 0;
@@ -421,6 +434,8 @@ u32			AppRingbuf_rd	= 0;
 u8   Print_power_Q5_enable=0;   
 u8   Buzzer_on_Q7_enable=0; 
 
+u32     MQsend_counter=0;
+
 
 void K_AdjustUseGPS( u32 sp, u32 sp_DISP ); // 通过GPS 校准  K 值  (车辆行驶1KM 的脉冲数目)
 
@@ -438,6 +453,8 @@ void Sound_send_end( void );
 
 
 void Video_send_end( void );
+void mq_true_enable(u8 value);
+
 
 
 unsigned short int CRC16_file( unsigned short int num );
@@ -1726,6 +1743,10 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 		                  	       Get_MQ_true_CuurentTotal_packets(); 
 								  //---- 盲区写入队列process--------
 									MangQU_true_create(Temp_Gps_Gprs);
+								    MQsend_counter++;
+									//if(GpsStatus.Raw_Output==1) 
+									rt_kprintf( "\r\n                 %d-%d-%d %d:%d:%d   sd=%d     Timeenable:%d  lati:%d  longi:%d\r\n",Temp_Gps_Gprs.Date[0], Temp_Gps_Gprs.Date[1], Temp_Gps_Gprs.Date[2], \
+												Temp_Gps_Gprs.Time[0], Temp_Gps_Gprs.Time[1], Temp_Gps_Gprs.Time[2],MQsend_counter,EverySecond_Time_Get,Lati_Get,Longi_Get);  
 		                  	}
 	                 }
 					 else
@@ -1772,15 +1793,14 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 
 	//  if(Temp_Gps_Gprs.Time[2]%2==0)//    认证时要求2 秒
 	// {
-	//RectangleRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
+	     RectangleRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
 	//rt_kprintf("\r\n -----判断矩形电子围栏");
 	//    }
-/*
+
 	if( line_warn_enable == 1 )
 	{
 		RouteLineWarn_judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
 	}
-*/ 
 
 	/*
 	     if((Temp_Gps_Gprs.Time[2]%3)==0) //     路线判断
@@ -1790,6 +1810,11 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 	   }
 	 */
 	//rt_kprintf("\r\n Delta_seconds %d \r\n",delta_time_seconds);
+
+	
+    EverySecond_Time_Get=0; // clear
+    Longi_Get=0;
+	Lati_Get=0; 
 }
 
 /***********************************************************
@@ -9283,6 +9308,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 						{
 							memset( (u8*)&Rail_Cycle, 0, sizeof( Rail_Cycle ) );
 							Api_RecordNum_Write( Rail_cycle, Rail_Cycle.Area_ID, (u8*)&Rail_Cycle, sizeof( Rail_Cycle ) );
+                            Rails_Routline_Read(); 
 							if( Rail_Cycle.Area_attribute ) // 找出来未使用的
 							{
 								break;
@@ -9312,7 +9338,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 							Rail_Cycle.Area_ID = 1;
 						}
 						Api_RecordNum_Write( Rail_cycle, Rail_Cycle.Area_ID, (u8*)&Rail_Cycle, sizeof( Rail_Cycle ) );
-
+                        Rails_Routline_Read(); 
 						break;
 					default:
 						break;
@@ -9343,6 +9369,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					}
 					Rail_Cycle.Effective_flag = 0;                                                                  // clear
 					Api_RecordNum_Write( Rail_cycle, Rail_Cycle.Area_ID, (u8*)&Rail_Cycle, sizeof( Rail_Cycle ) );  // 删除对应的围栏
+                    Rails_Routline_Read(); 
 				}
 			}
 
@@ -9382,7 +9409,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 							Rail_Rectangle.Area_ID = 1;
 						}
 						Api_RecordNum_Write( Rail_rect, Rail_Rectangle.Area_ID, (u8*)&Rail_Rectangle, sizeof( Rail_Rectangle ) );
-
+                        Rails_Routline_Read(); 
 						rt_kprintf( "\r\n   中心设置  矩形围栏 leftLati=%d leftlongi=%d rightLati=%d rightLong=%d \r\n", Rail_Rectangle.LeftUp_Latitude, Rail_Rectangle.LeftUp_Longitude, Rail_Rectangle.RightDown_Latitude, Rail_Rectangle.RightDown_Longitude );
 
 						if( Rail_Rectangle.Area_attribute & 0x4000 )
@@ -9408,6 +9435,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			if( 0 == UDP_HEX_Rx[13] )                                           // 区域数
 			{
 				RailRect_Init( );                                               // 删除所有区域
+                Rails_Routline_Read(); 
 			}else
 			{
 				memset( (u8*)&Rail_Rectangle, 0, sizeof( Rail_Rectangle ) );    //  clear all  first
@@ -9420,6 +9448,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					}
 					Rail_Rectangle.Effective_flag = 0;
 					Api_RecordNum_Write( Rail_rect, Rail_Rectangle.Area_ID, (u8*)&Rail_Rectangle, sizeof( Rail_Rectangle ) ); // 删除对应的围栏
+                    Rails_Routline_Read(); 
 				}
 			}
 
@@ -11499,7 +11528,9 @@ void RectangleRail_Judge( u8* LatiStr, u8* LongiStr )
 	for( i = 0; i < 8; i++ )
 	{
 		InOutState = 1;
-		Api_RecordNum_Read( Rail_rect, i + 1, (u8*)&Rail_Rectangle, sizeof( Rail_Rectangle ) );
+		//Api_RecordNum_Read( Rail_rect, i + 1, (u8*)&Rail_Rectangle, sizeof( Rail_Rectangle ) );		
+		memcpy((u8*)&Rail_Rectangle,(u8*)&Rail_Rectangle_multi[i],sizeof(Rail_Rectangle));	
+		
 
 		if( Rail_Rectangle.Effective_flag == 1 )
 		{
@@ -11538,7 +11569,7 @@ void RectangleRail_Judge( u8* LatiStr, u8* LongiStr )
 						PositionSD_Enable( );
 						Current_UDP_sd = 1;
 						rt_kprintf( "\r\n -----矩形电子围栏--入报警" );
-						gps_raw( "3" );
+						gps_raw( "3" );  // 使能原始GPS 数据信息上传
 					}
 					InOut_Object.Keep_state = 1;            //在围栏内	//
 					break;
@@ -11577,12 +11608,13 @@ void RectangleRail_Judge( u8* LatiStr, u8* LongiStr )
 					;                                       //  关闭通信
 
 
-					/*          if( JT808Conf_struct.Close_CommunicateFlag==0)
+					   if( JT808Conf_struct.Close_CommunicateFlag==0)
 					           {
 					                  close_com();
-					   rt_kprintf("\r\n -----矩形电子围栏--关闭通信");
+									  mq_true_enable(2);  //  使能盲区补报存储
+					                rt_kprintf("\r\n -----矩形电子围栏--关闭通信");
 
-					           }	*/
+					           }	
 					break;
 				}else
 				if( InOutState == 1 )
@@ -11590,7 +11622,8 @@ void RectangleRail_Judge( u8* LatiStr, u8* LongiStr )
 					; // 开启通信
 					if( JT808Conf_struct.Close_CommunicateFlag == 1 )
 					{
-						open_com( "1" );
+						 open_com( "1" );
+						 mq_true_enable(1); // 使能盲区补报上报 
 						rt_kprintf( "\r\n -----矩形电子围栏--开启通信" );
 					}
 					break;
@@ -13309,6 +13342,7 @@ void mq_true_enable(u8 value)
      case 2:
           {
 		    mq_erase();
+			MQsend_counter=0;
 		    MQ_TrueUse.Enable_SD_state=2;
 			rt_kprintf("\r\n  MQ_true mode  :enable save !\r\n");
 		  }

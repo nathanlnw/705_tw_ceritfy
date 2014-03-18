@@ -7,7 +7,6 @@
 u8    ReadCycle_status=RdCycle_Idle;  
 u8    ReadCycle_timer=0;   // 超时判断
 
-
 u32     cycle_write=0, cycle_read=0,delta_0704_rd=0,mangQu_read_reg=0,Mq_total_pkg=0,CurrentTotal=0;  // 循环存储记录
                                                             //currentTotal 是满足补报情况下再生成的过程中还会有新的数据存储，所以总包数还会增加
 u32     cycle_writeAbnormal_counter=0;  // 写数据异常
@@ -47,7 +46,8 @@ u8 SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen)
      if(((pageoffset%8)==0)&&(InPageoffset==0))  // 判断是否需要擦除Sector  被移除到下一个Sector  1Sector=8Page  
      {
               WatchDog_Feed();
-		SST25V_SectorErase_4KByte((pageoffset+CycleStart_offset)*PageSIZE);      // erase Sector		
+		SST25V_SectorErase_4KByte((pageoffset+CycleStart_offset)*PageSIZE);      // erase Sector	
+		WatchDog_Feed();
 		DF_delay_ms(80); 
 	    rt_kprintf("\r\n Erase Cycle Sector : %d\r\n",(pageoffset>>3));       
 	 }

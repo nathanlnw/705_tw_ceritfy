@@ -18,7 +18,7 @@
 #include <dfs_posix.h>
 //#include "usbh_usr.h"
 
-#define MQ_RAWINFO_SIZE 4096
+#define MQ_RAWINFO_SIZE 1024 
 
 
 /* 定时器的控制块 */
@@ -558,7 +558,7 @@ void  Recorder_init(void)
 
 }
  ALIGN(RT_ALIGN_SIZE)
-char app808_thread_stack[4096];      
+char app808_thread_stack[4096];      //4096
 struct rt_thread app808_thread;
 
 static void App808_thread_entry(void* parameter) 
@@ -659,6 +659,7 @@ static void App808_thread_entry(void* parameter)
            rt_thread_delay(10);
           //  北斗顺序存储上报          
 		  BD_send_Mque_Rx();
+		   rt_thread_delay(2); 
 		  WatchDog_Feed();
 	}
 }

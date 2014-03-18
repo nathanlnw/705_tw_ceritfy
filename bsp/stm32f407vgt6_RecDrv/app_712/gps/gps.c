@@ -227,9 +227,22 @@ u8 Process_RMC(u8* packet)
 			switch(CommaCount){
 				case 2: //时间 
 				   //systemTickGPS_Set();    
+				   if(EverySecond_Time_Get)  //  已经从 GGA 获取时间就不用再次去了
+				   	{
+	                     hour=GPRMC.utc_hour;
+						 min=GPRMC.utc_min;
+						 sec=GPRMC.utc_sec;  	
+
+						 if(EverySecond_Time_Get==2)  // day  change
+					     {
+						    fDateModify=1;
+						 }
+				   	  break;
+				   	}
+				   
 				   if ( iCount < 6 ) 	  //  格式检查
 				  {    
-				         StatusReg_GPS_V();  
+				         StatusReg_GPS_V();   
 					  return false;
 				  }
 
@@ -258,6 +271,8 @@ u8 Process_RMC(u8* packet)
 					GPRMC_Funs.Status(tmpinfo);
 					break;
 				case 4://纬度
+				    if(Lati_Get==1)  // allready process
+						break;
 					if((tmpinfo[0]>=0x30)&&(tmpinfo[0]<=0x39)&&(tmpinfo[1]>=0x30)&&(tmpinfo[1]<=0x39)&&(tmpinfo[2]>=0x30)&&(tmpinfo[2]<=0x39)&&(tmpinfo[3]>=0x30)&&(tmpinfo[3]<=0x39)&&(tmpinfo[5]>=0x30)&&(tmpinfo[5]<=0x39)&&(tmpinfo[6]>=0x30)&&(tmpinfo[6]<=0x39)&&(tmpinfo[7]>=0x30)&&(tmpinfo[7]<=0x39)&&(tmpinfo[8]>=0x30)&&(tmpinfo[8]<=0x39))
 						  ;
 					else
@@ -268,6 +283,8 @@ u8 Process_RMC(u8* packet)
 					GPRMC_Funs.Latitude_NS(tmpinfo);  
 					break;
 				case 6://经度 
+				      if(Longi_Get==1)
+					  	   break;
 				     if((tmpinfo[0]>=0x30)&&(tmpinfo[0]<=0x39)&&(tmpinfo[1]>=0x30)&&(tmpinfo[1]<=0x39)&&(tmpinfo[2]>=0x30)&&(tmpinfo[2]<=0x39)&&(tmpinfo[3]>=0x30)&&(tmpinfo[3]<=0x39)&&(tmpinfo[4]>=0x30)&&(tmpinfo[4]<=0x39)&&(tmpinfo[6]>=0x30)&&(tmpinfo[6]<=0x39)&&(tmpinfo[7]>=0x30)&&(tmpinfo[7]<=0x39)&&(tmpinfo[8]>=0x30)&&(tmpinfo[8]<=0x39)&&(tmpinfo[9]>=0x30)&&(tmpinfo[9]<=0x39))
 								;
 					else
@@ -419,9 +436,13 @@ u32 Str_2_u32( u8 *tmpinfo,u8  	H1_F)
 u8 Process_GGA(u8* packet)  
 {	//检查数据完整性,执行数据转换
 	u8 CommaCount=0,iCount=0;
-	u8  tmpinfo[12];
+	u8  tmpinfo[15];
+	u8  hour=0,min=0,sec=0;
 	float dop;	
 	float Hight1=0,Hight2=0; 
+
+	
+	//搜到星的个数$GPGGA,045333,3909.1849,N,11712.3104,E,1,03,4.3,20.9,M,-5.4,M,,*66  
 	while (*packet!=0){
 		if(*packet==','){
 			CommaCount++;
@@ -433,6 +454,63 @@ u8 Process_GGA(u8* packet)
 			   	continue;
 			   }
 			switch(CommaCount){
+			 	  case 2: //时间 
+				   //systemTickGPS_Set();    
+				   if(EverySecond_Time_Get==0)  //  已经从 GGA 获取时间就不用再次去了				   
+				   if ( iCount < 6 ) 	  //  格式检查
+				  {    
+					  break;
+				  }
+
+				   if((tmpinfo[0]>=0x30)&&(tmpinfo[0]<=0x39)&&(tmpinfo[1]>=0x30)&&(tmpinfo[1]<=0x39)&&(tmpinfo[2]>=0x30)&&(tmpinfo[2]<=0x39)&&(tmpinfo[3]>=0x30)&&(tmpinfo[3]<=0x39)&&(tmpinfo[4]>=0x30)&&(tmpinfo[4]<=0x39)&&(tmpinfo[5]>=0x30)&&(tmpinfo[5]<=0x39)) 
+				          ;
+				   else
+					break;
+
+				       
+					hour=(tmpinfo[0]-0x30)*10+(tmpinfo[1]-0x30)+8;
+					min=(tmpinfo[2]-0x30)*10+(tmpinfo[3]-0x30);
+					sec=(tmpinfo[4]-0x30)*10+(tmpinfo[5]-0x30);
+
+					
+                    EverySecond_Time_Get=1;// enable day not change
+					if(hour>23)
+					{
+						EverySecond_Time_Get=2;  // enable   day  need  change
+						hour-=24;
+						tmpinfo[0]=(hour/10)+'0';
+						tmpinfo[1]=(hour%10)+'0';
+					}
+					//systemTickGPS_Clear();   
+					//----------------------------------------------------
+					GPRMC_Funs.Time(tmpinfo, hour, min, sec); 
+                    //-----------------------------------------------------  
+					break;
+					case 3://纬度
+						if((tmpinfo[0]>=0x30)&&(tmpinfo[0]<=0x39)&&(tmpinfo[1]>=0x30)&&(tmpinfo[1]<=0x39)&&(tmpinfo[2]>=0x30)&&(tmpinfo[2]<=0x39)&&(tmpinfo[3]>=0x30)&&(tmpinfo[3]<=0x39)&&(tmpinfo[5]>=0x30)&&(tmpinfo[5]<=0x39)&&(tmpinfo[6]>=0x30)&&(tmpinfo[6]<=0x39)&&(tmpinfo[7]>=0x30)&&(tmpinfo[7]<=0x39)&&(tmpinfo[8]>=0x30)&&(tmpinfo[8]<=0x39))
+							  ;
+						else
+							 break; 
+						GPRMC_Funs.Latitude(tmpinfo);
+						Lati_Get=1;
+						break;
+					case 4://纬度半球 
+						GPRMC_Funs.Latitude_NS(tmpinfo);  
+						break;
+					case 5://经度 
+						 if((tmpinfo[0]>=0x30)&&(tmpinfo[0]<=0x39)&&(tmpinfo[1]>=0x30)&&(tmpinfo[1]<=0x39)&&(tmpinfo[2]>=0x30)&&(tmpinfo[2]<=0x39)&&(tmpinfo[3]>=0x30)&&(tmpinfo[3]<=0x39)&&(tmpinfo[4]>=0x30)&&(tmpinfo[4]<=0x39)&&(tmpinfo[6]>=0x30)&&(tmpinfo[6]<=0x39)&&(tmpinfo[7]>=0x30)&&(tmpinfo[7]<=0x39)&&(tmpinfo[8]>=0x30)&&(tmpinfo[8]<=0x39)&&(tmpinfo[9]>=0x30)&&(tmpinfo[9]<=0x39))
+									;
+						else
+							break; 
+						GPRMC_Funs.Longitude(tmpinfo);
+						Longi_Get=1; 
+						break;
+					case 6://经度半球 
+						GPRMC_Funs.Longitude_WE(tmpinfo);
+						break;
+
+
+				//------------------------------------------------------------------------------------
 				case 8:
 						        //搜到星的个数$GPGGA,045333,3909.1849,N,11712.3104,E,1,03,4.3,20.9,M,-5.4,M,,*66
 						        Satelite_num = ( tmpinfo[0] - 0x30 ) * 10 + ( tmpinfo[1] - 0x30 );
@@ -452,10 +530,13 @@ u8 Process_GGA(u8* packet)
 				break;
 				case 12:// Geoid Separation
 					Hight2=atof((const char*)tmpinfo);
-					//GPS_Hight=(u16)(Hight1+Hight2);  	 	
 
-                                    //----jiade 
-					GPS_Hight=50+(CSQ_counter%5)-(Satelite_num%4);   
+
+				if(MQ_TrueUse.Enable_SD_state)
+				    GPS_Hight=(u16)(Hight1+Hight2);  	// 真实状态  	
+                else                                    //----jiade 
+				    GPS_Hight=50+(CSQ_counter%5)-(Satelite_num%4);   
+					
 					break;
 				default:
 					break;
@@ -578,9 +659,12 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 	                     memset(Gps_instr,0,sizeof(Gps_instr));     
 	                     memcpy(Gps_instr,Gps_str,gps_strLen); 
 
-				if(GpsStatus.Raw_Output==1)		  
-		                   rt_kprintf((const char*)Gps_instr);        // rt_kprintf((const char*)Gps_str);         
-
+				if(GpsStatus.Raw_Output==1)	
+				{
+				 // if((strncmp((char*)Gps_instr+3,"RMC,",4)==0)||(strncmp((char*)Gps_instr+3,"RMC,",4)==0))
+				 // if(strncmp((char*)Gps_instr+3,"RMC",3)==0)
+				    rt_kprintf((const char*)Gps_instr);        // rt_kprintf((const char*)Gps_str);          
+				}   
 	
 			   //----------------  Mode  Judge    ---------------------			 
 				if(strncmp((char*)Gps_instr,"$GNRMC,",7)==0)
@@ -603,7 +687,7 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 				       GPRMC_Enable=1;
 				       Car_Status[1]&=~0x0C; // clear bit3 bit2      1100 
 					Car_Status[1]|=0x04; // Gps mode   0100
-		               }  	 	  
+		        }  	 	  
 				
                   	    //-------------------------------------------------- 
                             //  GNSS RAW data 存储
@@ -612,23 +696,23 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
                                 if(GNSS_rawdata.first_record==0)
                                 {
                                    memcpy(GNSS_rawdata.Raw[GNSS_rawdata.wr_num]+GNSS_rawdata.Raw_wr,Gps_str,gps_strLen); 
-					GNSS_rawdata.Raw_wr+=gps_strLen;			  
+					               GNSS_rawdata.Raw_wr+=gps_strLen;			  
                                 }				  
-                                  if(GPRMC_Enable==1) 
+                                if(GPRMC_Enable==1) 
                                   	{ 
-                                  	    GNSS_rawdata.Raw_wr=0;
-					    if(GNSS_rawdata.first_record==0)  
-                                  	   {					
-						    GNSS_rawdata.save_status|=(1<<GNSS_rawdata.wr_num); //相应的bit置位
-						    GNSS_rawdata.wr_num++;
-						    if	(GNSS_rawdata.wr_num>3)
-								GNSS_rawdata.wr_num=0;
-						      memset(GNSS_rawdata.Raw[GNSS_rawdata.wr_num],0,800);			
-					    }	
-					    else	
-						    GNSS_rawdata.first_record=0;  
+		                              GNSS_rawdata.Raw_wr=0;
+									    if(GNSS_rawdata.first_record==0)  
+				                       {					
+										    GNSS_rawdata.save_status|=(1<<GNSS_rawdata.wr_num); //相应的bit置位
+										    GNSS_rawdata.wr_num++;
+										    if	(GNSS_rawdata.wr_num>3)
+												GNSS_rawdata.wr_num=0;
+										      memset(GNSS_rawdata.Raw[GNSS_rawdata.wr_num],0,800);			
+									    }	
+									    else	
+										    GNSS_rawdata.first_record=0;  
 
-					     memset(GNSS_rawdata.Raw[GNSS_rawdata.wr_num],0,800);			
+									     memset(GNSS_rawdata.Raw[GNSS_rawdata.wr_num],0,800);			
                                   	}
                           	}
 						  
@@ -644,6 +728,7 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 					Gps_Exception.current_datacou+=gps_strLen;
                                   return;
 			      	}
+				  #if 0
 			      if((strncmp((char*)Gps_instr,"$GPGSA,",7)==0)||(strncmp((char*)Gps_instr,"$BDGSA,",7)==0)||(strncmp((char*)Gps_instr,"$GNGSA,",7)==0))
 		             {   
 					//rt_kprintf("%s",GPSRx);
@@ -651,18 +736,20 @@ void  GPS_Rx_Process(u8 * Gps_str ,u16  gps_strLen)
 					Process_GSA(Gps_instr);
 				      return;	
 			      }
-				/*if((strncmp((char*)Gps_instr,"$GNTXT,",7)==0)||(strncmp((char*)Gps_instr,"$GPTXT,",7)==0)||(strncmp((char*)Gps_instr,"$BDTXT,",7)==0)) 
-				{
-					  //rt_kprintf("%s",GPSRx);  
-					  Process_TXT(Gps_instr);  
-					   return;	
-				}*/
-			      if((strncmp((char*)Gps_instr,"$GPGGA,",7)==0)||(strncmp((char*)Gps_instr,"$GNGGA,",7)==0)||(strncmp((char*)Gps_instr,"$BDGGA,",7)==0))  
+				  #endif
+			      if((strncmp((char*)Gps_instr+3,"GGA,",4)==0))   
 			     {   
 					   //GNSS_Trans();
+					   if(EverySecond_Time_Get)
+					    {
+					        EverySecond_Time_Get=3;  // not get  RMC 
+					       if(GpsStatus.Raw_Output==1)	 
+					        rt_kprintf("----------NO  RMC -----------\r\n"); 
+					        GPS_Delta_DurPro();   //  用GPS 定时触发   
+					   	}
 					   Process_GGA(Gps_instr);  
 					    return;	
-		            }
+		         }
 
 }
 
@@ -705,7 +792,7 @@ unsigned short  CalcCRC16( unsigned char*  src, int startpoint, int len )
 void UART5_IRQHandler( void )
 {
 	uint8_t			ch;
-	rt_interrupt_enter( );
+	rt_interrupt_enter( ); 
 	if( USART_GetITStatus( UART5, USART_IT_RXNE ) != RESET )
 	{
 		ch = USART_ReceiveData( UART5 );
@@ -714,24 +801,25 @@ void UART5_IRQHandler( void )
 			uart5_rxbuf.body[uart5_rxbuf.wr++] = ch;
 			if( uart5_rxbuf.wr < 124 )
 			{
-				rt_mq_send( &mq_gps, (void*)&uart5_rxbuf, uart5_rxbuf.wr + 2 );
+			 	// rt_mq_send( &mq_gps, (void*)&uart5_rxbuf, uart5_rxbuf.wr + 2 );			 	
+				rt_mq_send( &mq_gps, (void*)&uart5_rxbuf,124); 	 		   
 			}
-			uart5_rxbuf.wr = 0;
+			uart5_rxbuf.wr = 0; 
 		}else
 		{ 
-		      // 1. get  head char
+		     // 1. get  head char
 		       if(ch=='$')                                 
 			   	      uart5_rxbuf.wr = 0;
 		      // 2.  judge  head char	   
 		       if(uart5_rxbuf.body[0]!='$')  // add later 
 			   	    uart5_rxbuf.wr = 0;
 		      // 3.  rx data  	   
-			uart5_rxbuf.body[uart5_rxbuf.wr++] = ch;     
-			if( uart5_rxbuf.wr == UART5_RX_SIZE )
-			{
-				uart5_rxbuf.wr = 0;
-			}
-			uart5_rxbuf.body[uart5_rxbuf.wr] = 0;
+				uart5_rxbuf.body[uart5_rxbuf.wr++] = ch;     
+				if( uart5_rxbuf.wr == UART5_RX_SIZE )
+				{
+					uart5_rxbuf.wr = 0;
+				}
+				uart5_rxbuf.body[uart5_rxbuf.wr]=0;
 		}
 		last_ch = ch;
 		USART_ClearITPendingBit( UART5, USART_IT_RXNE ); 
@@ -968,9 +1056,9 @@ static void rt_thread_entry_gps( void* parameter )
 				{
 					rt_device_write( &dev_vuart, 0, gps_rx.body, gps_rx.wr);
 				}
-			}
+			} 
 		}
-		rt_thread_delay( 10 ); 
+		rt_thread_delay(6 ); 
 	}
 }
 

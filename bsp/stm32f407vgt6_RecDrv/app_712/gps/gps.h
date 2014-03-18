@@ -50,7 +50,7 @@
 //=============================
 
 /*串口接收缓存区定义*/
-#define UART5_RX_SIZE 256
+#define UART5_RX_SIZE 128 
 
 typedef __packed struct
 {

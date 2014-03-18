@@ -1080,6 +1080,9 @@ extern POINT        POINT_Obj;      // 路线的拐点
 extern ROUTE        ROUTE_Obj;      // 路线相关
 extern POLYGEN_RAIL Rail_Polygen;   // 多边形围栏
 extern RECT_RAIL    Rail_Rectangle; // 矩形围栏
+extern RECT_RAIL    Rail_Rectangle_multi[8]; // 矩形围栏
+extern CIRCLE_RAIL  Rail_Cycle_multi[8];     // 圆形围栏 
+
 extern CIRCLE_RAIL  Rail_Cycle;  // 圆形围栏
 extern VEHICLE_CONTROL Vech_Control; //  车辆控制
 extern PHONE_BOOK    PhoneBook;  //  电话本
@@ -1209,6 +1212,11 @@ extern  u8		Warn_Status[4]; // 报警状态信息
 extern  u8		Car_Status[4];  // 车辆状态信息   
 extern T_GPS_Info_GPRS 	 Gps_Gprs;	 
 extern T_GPS_Info_GPRS	 Temp_Gps_Gprs;
+extern u8   EverySecond_Time_Get;                            // 获取每秒时间标志
+extern u8   Lati_Get;                               // 纬度GGA  处理过
+extern u8   Longi_Get;                              //  精度 GGA  接收 过
+
+
 extern u8	    A_time[6]; // 定位时刻的时间  
 // 定位时刻的时间
 extern u8       ReadPhotoPageTotal;
