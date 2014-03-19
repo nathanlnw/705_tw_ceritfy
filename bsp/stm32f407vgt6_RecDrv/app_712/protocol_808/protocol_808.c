@@ -3412,6 +3412,7 @@ u8  Stuff_RegisterPacket_0100H( u8 LinkNum )
 	//  车牌颜色
 	Original_info[Original_info_Wr++] = JT808Conf_struct.Vechicle_Info.Dev_Color;   // 车辆颜色
 	//  车牌
+	/*
 	memcpy( Original_info + Original_info_Wr, "TST000", 6 ); 
 	Original_info_Wr					+= 6;
 	Original_info[Original_info_Wr++]	= IMSI_CODE[14];
@@ -3421,8 +3422,9 @@ u8  Stuff_RegisterPacket_0100H( u8 LinkNum )
 	Original_info[Original_info_Wr++]	= 0;
 	Original_info[Original_info_Wr++]	= 0;
 	Original_info[Original_info_Wr++]	= 0;
-	//memcpy(Original_info+Original_info_Wr,JT808Conf_struct.Vechicle_Info.Vech_Num,13);
-	//Original_info_Wr+=13;
+	*/
+	memcpy(Original_info+Original_info_Wr,JT808Conf_struct.Vechicle_Info.Vech_Num,8);
+	Original_info_Wr+=8;
 
 	//  3. Send
 	Protocol_End( Packet_Normal, LinkNum );
@@ -4634,6 +4636,8 @@ u8  REC_09H_Stuff( void )
 #endif
 }
 
+
+
 /***********************************************************
 * Function:
 * Description:
@@ -4641,495 +4645,7 @@ u8  REC_09H_Stuff( void )
 * Input:
 * Output:
 * Return:
-* Others:
-***********************************************************/
-#if  0
-u8  Stuff_RecoderACK_0700H_old( u8 PaketType )  //   行车记录仪数据上传
-{
-	u16 SregLen				= 0, Swr = 0;       //,Gwr=0; // S:serial  G: GPRS
-	u16 Reg_len_position	= 0;
-	u8	Sfcs				= 0;
-	u16 i					= 0;
-	u32 regdis				= 0, reg2 = 0;
-	u8	Reg[70];
-	u8	QueryRecNum = 0;                        // 查询记录数目
-
-	//  1. Head
-	if( !Protocol_Head( MSG_0x0700, PaketType ) )
-	{
-		return false;
-	}
-	// 2. content
-	//------------------------------- Stuff ----------------------------------------
-	//   float ID                                                // 对应中心应答消息的流水号
-	Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
-	Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
-	//   命令字
-	Original_info[Original_info_Wr++] = Recode_Obj.CMD; // 命令字
-
-	//   记录仪 数据块
-	//---------------填写 A 协议头 ------------------------
-	Swr = Original_info_Wr;                             // reg save
-	//---------------根据类型分类填写内容------------------
-	switch( Recode_Obj.CMD )
-	{
-		case   0x00:                                    //  执行标准版本年号
-
-			Original_info[Original_info_Wr++]	= 0x55; // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-			Original_info[Original_info_Wr++]	= 0x00; //命令字
-			SregLen								= 0x02; // 信息长度
-			Original_info[Original_info_Wr++]	= 0x00; // Hi
-			Original_info[Original_info_Wr++]	= 2;    // Lo
-
-			Original_info[Original_info_Wr++]	= 0x00; // 保留字
-			Original_info[Original_info_Wr++]	= 0x13; //  12  年标准
-			Original_info[Original_info_Wr++]	= 0x00;
-
-			break;
-		//---------------- 上传数类型  -------------------------------------
-		case 0x01:
-			//  01  当前驾驶员代码及对应的机动车驾驶证号
-
-			Original_info[Original_info_Wr++]	= 0x55;                         // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-			Original_info[Original_info_Wr++]	= 0x01;                         //命令字
-
-			SregLen								= 0x00;                         // 信息长度
-			Original_info[Original_info_Wr++]	= 0x00;                         // Hi
-			Original_info[Original_info_Wr++]	= 18;                           // Lo
-
-			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
-
-			memcpy( Original_info + Original_info_Wr, "120221123456789", 15 );  //信息内容
-			Original_info_Wr					+= 15;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			break;
-		case 0x02:                                                              //  02  采集记录仪的实时时钟
-
-			Original_info[Original_info_Wr++]	= 0x55;                         // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-			Original_info[Original_info_Wr++]	= 0x02;                         //命令字
-
-			SregLen								= 0x00;                         // 信息长度
-			Original_info[Original_info_Wr++]	= 0x00;                         // Hi
-			Original_info[Original_info_Wr++]	= 6;                            // Lo
-
-			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
-
-			Time2BCD( Original_info + Original_info_Wr );                       //记录仪时间
-			Original_info_Wr += 6;
-			break;
-		case 0x03:                                                              // 03 采集360h内里程
-
-			Original_info[Original_info_Wr++]	= 0x55;                         // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-			Original_info[Original_info_Wr++]	= 0x03;                         //命令字
-
-			SregLen								= 0x00;                         // 信息长度
-			Original_info[Original_info_Wr++]	= 0x00;                         // Hi
-			Original_info[Original_info_Wr++]	= 20;                           // Lo
-
-			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
-			//	信息内容
-			Time2BCD( Original_info + Original_info_Wr );                       // 记录仪实时时间
-			Original_info_Wr					+= 6;
-			Original_info[Original_info_Wr++]	= 0x13;                         // 初次安装时间
-			Original_info[Original_info_Wr++]	= 0x03;
-			Original_info[Original_info_Wr++]	= 0x01;
-			Original_info[Original_info_Wr++]	= 0x08;
-			Original_info[Original_info_Wr++]	= 0x30;
-			Original_info[Original_info_Wr++]	= 0x26;
-			//--- 初始里程
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			// -- 累积里程 3个字节 单位0.1km    6位
-			regdis								= JT808Conf_struct.Distance_m_u32 / 100; //单位0.1km
-			reg2								= regdis / 100000;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= ( reg2 << 4 ) + ( regdis % 100000 / 10000 );
-			Original_info[Original_info_Wr++]	= ( ( regdis % 10000 / 1000 ) << 4 ) + ( regdis % 1000 / 100 );
-			Original_info[Original_info_Wr++]	= ( ( regdis % 100 / 10 ) << 4 ) + ( regdis % 10 );
-			break;
-
-		case 0x04:                                                                  // 04  采集记录仪脉冲系数
-			Original_info[Original_info_Wr++]	= 0x55;                             // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x04;                               //命令字
-
-			SregLen								= 0x00;                             // 信息长度
-			Original_info[Original_info_Wr++]	= 0x00;                             // Hi
-			Original_info[Original_info_Wr++]	= 8;                                // Lo
-
-			Original_info[Original_info_Wr++] = 0x00;                               // 保留字
-
-			//  信息内容
-			Time2BCD( Original_info + Original_info_Wr );                           // 记录仪实时时间
-			Original_info_Wr					+= 6;
-			Original_info[Original_info_Wr++]	= (u8)( JT808Conf_struct.Vech_Character_Value >> 8 );
-			Original_info[Original_info_Wr++]	= (u8)( JT808Conf_struct.Vech_Character_Value );
-			break;
-		case 0x05:                                                                  //05      车辆信息采集
-			Original_info[Original_info_Wr++]	= 0x55;                             // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x05;                               //命令字
-
-			SregLen								= 41;                               // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );             // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;                      // Lo	  65x7
-
-			Original_info[Original_info_Wr++] = 0x00;                               // 保留字
-			//-----------	信息内容  --------------
-			memcpy( Original_info + Original_info_Wr, "LGBK22E70AY100102", 17 );    //信息内容
-			Original_info_Wr += 17;
-			memcpy( Original_info + Original_info_Wr, "TST0001", 7 );               // 车牌号
-			Original_info_Wr					+= 7;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			//车辆类型
-			Original_info[Original_info_Wr++]	= 0x03; //小型车
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			break;
-		case   0x06:                                                    // 06-09
-			//  06 信号配置信息
-			Original_info[Original_info_Wr++]	= 0x55;                 // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x06;                   //命令字
-
-			SregLen								= 87;                   // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 ); // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;          // Lo
-
-			Original_info[Original_info_Wr++] = 0x00;                   // 保留字
-
-			Time2BCD( Original_info + Original_info_Wr );               //记录仪实时时间
-			Original_info_Wr += 6;
-			//-------  状态字个数----------------------
-			Original_info[Original_info_Wr++] = 8;
-			//---------- 状态字内容-------------------
-
-
-			/*
-			   -------------------------------------------------------------
-			          F4  行车记录仪 TW705   管脚定义
-			   -------------------------------------------------------------
-			   遵循  GB10956 (2012)  Page26  表A.12  规定
-			   -------------------------------------------------------------
-			 | Bit  |      Note       |  必备|   MCUpin  |   PCB pin  |   Colour | ADC
-			   ------------------------------------------------------------
-			    D7      刹车           *            PE11             9                棕
-			    D6      左转灯     *             PE10            10               红
-			    D5      右转灯     *             PC2              8                白
-			    D4      远光灯     *             PC0              4                黑
-			    D3      近光灯     *             PC1              5                黄
-			    D2      雾灯          add          PC3              7                绿      *
-			    D1      车门          add          PA1              6                灰      *
-			    D0      预留
-			 */
-			memcpy( Original_info + Original_info_Wr, "预留      ", 10 );       // D0
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "车门      ", 10 );       // D1
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "雾灯      ", 10 );       // D2
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "近光灯    ", 10 );       // D3
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "远光灯    ", 10 );       // D4
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "右转灯    ", 10 );       // D5
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "左转灯    ", 10 );       // D6
-			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "刹车      ", 10 );       // D7
-			Original_info_Wr += 10;
-			break;
-
-		case 0x07:                                                              //07  记录仪唯一编号
-			Original_info[Original_info_Wr++]	= 0x55;                         // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x07;                           //命令字
-
-			SregLen								= 30;                           //206;		 // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );         // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;                  // Lo
-
-			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
-			//------- 信息内容 ------
-			memcpy( Original_info + Original_info_Wr, "7654321", 7 );           // 3C 认证代码
-			Original_info_Wr += 7;
-			memcpy( Original_info + Original_info_Wr, "TW705   TW705   ", 16 ); // 产品型号
-			Original_info_Wr					+= 16;
-			Original_info[Original_info_Wr++]	= 0x13;                         // 生产日期
-			Original_info[Original_info_Wr++]	= 0x03;
-			Original_info[Original_info_Wr++]	= 0x01;
-			Original_info[Original_info_Wr++]	= 0x00;                         // 生产流水号
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= 0x00;
-			Original_info[Original_info_Wr++]	= IMSI_CODE[14] - 0x30;
-			break;
-
-		case 0x08:                                                              //  08   采集指定的行驶速度记录
-			if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			{
-				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
-				Original_info[Original_info_Wr++]	= 0x7A;
-				Original_info[Original_info_Wr++]	= 0x08;                     //命令字
-
-				SregLen								= 504;                      // 信息长度       630
-				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi
-				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
-
-				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
-			//	信息内容
-			WatchDog_Feed( );
-			get_08h( Original_info + Original_info_Wr );                        //126*5=630        num=576  packet
-			WatchDog_Feed( );
-			Original_info_Wr += 504;
-			//  后续需要分包处理  -----nate
-			break;
-		case   0x09:                                                            // 09   指定的位置信息记录
-			if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			{
-				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
-				Original_info[Original_info_Wr++]	= 0x7A;
-
-				Original_info[Original_info_Wr++] = 0x09;                       //命令字
-
-				SregLen								= 666 * 2;                  // 信息长度
-				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi      666=0x29A
-				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
-
-				//Original_info[Original_info_Wr++]=0;    // Hi      666=0x29A
-				//Original_info[Original_info_Wr++]=0;	   // Lo
-
-				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
-			//	信息内容
-			WatchDog_Feed( );
-			delay_ms( 3 );
-			get_09h( Original_info + Original_info_Wr );                        //666  packetsize      num=360
-			Original_info_Wr += 333;
-			REC_09H_Stuff( );
-			break;
-		case   0x10:                                                             // 10-13     10   事故疑点采集记录
-
-			//事故疑点数据
-			if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			{
-				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
-				Original_info[Original_info_Wr++]	= 0x7A;
-
-				Original_info[Original_info_Wr++] = 0x10;                       //命令字
-
-				SregLen								= 234 * 100;                //0		 // 信息长度
-				Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );     // Hi
-				Original_info[Original_info_Wr++]	= (u8)SregLen;              // Lo
-
-				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
-			//------- 信息内容 ------
-			WatchDog_Feed( );
-			delay_ms( 3 );
-			get_10h( Original_info + Original_info_Wr );                        //234  packetsize      num=100
-			Original_info_Wr += 234;
-
-			break;
-
-		case  0x11:                                                             // 11 采集指定的的超时驾驶记录
-			//if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			//if( Recode_Obj.Current_pkt_num == 1 )
-		{
-			Original_info[Original_info_Wr++]	= 0x55;                         // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x11;                           //命令字
-
-			SregLen								= 500 * 10;                     // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );         // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;                  // Lo    65x7
-
-			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
-		}
-			//------- 信息内容 ------
-
-
-			/*
-			       每条 50 bytes  ，100 条    获取的是每10 条打一包  500 packet    Totalnum=10
-			 */
-
-			get_11h( Original_info + Original_info_Wr );                        //50  packetsize      num=100
-			Original_info_Wr += 500;
-			break;
-		case  0x12:                                                             // 12 采集指定驾驶人身份记录  ---Devide
-			if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			{
-				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
-				Original_info[Original_info_Wr++]	= 0x7A;
-
-				Original_info[Original_info_Wr++] = 0x12;                       //命令字
-
-				SregLen								= 50 * 100;                 // 信息长度
-				Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );     // Hi
-				Original_info[Original_info_Wr++]	= (u8)SregLen;              // Lo    65x7
-
-				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
-			//------- 信息内容 ------
-
-
-			/*
-			        驾驶员身份登录记录  每条25 bytes      200条      20条一包 500 packetsize  totalnum=10
-			 */
-			get_12h( Original_info + Original_info_Wr );
-			Original_info_Wr += 500;
-			break;
-		case  0x13:                                                     // 13 采集记录仪外部供电记录
-			Original_info[Original_info_Wr++]	= 0x55;                 // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x13;                   //命令字
-
-			SregLen								= 700;                  // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 ); // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;          // Lo    65x7
-
-			Original_info[Original_info_Wr++] = 0x00;                   // 保留字
-			//------- 信息内容 ------
-
-
-			/*
-			   外部供电记录   7 个字节  100 条       一个完整包
-			 */
-			get_13h( Original_info + Original_info_Wr );
-			Original_info_Wr += 700;
-
-			break;
-		case   0x14:                                                    //
-			// 14 记录仪参数修改记录
-			Original_info[Original_info_Wr++]	= 0x55;                 // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x14;                   //命令字
-
-			SregLen								= 700;                  // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 ); // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;          // Lo    65x7
-
-			Original_info[Original_info_Wr++] = 0x00;                   // 保留字
-			//------- 信息内容 ------
-
-
-			/*
-			       每条 7 个字节   100 条    1个完整包
-			 */
-			get_14h( Original_info + Original_info_Wr );
-			Original_info_Wr += 700;
-			break;
-
-		case     0x15:                                                  // 15 采集指定的速度状态日志     --------Divde
-			//if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			//if( ( Recode_Obj.Current_pkt_num == 1 ) )
-		{
-			Original_info[Original_info_Wr++]	= 0x55;                 // 起始头
-			Original_info[Original_info_Wr++]	= 0x7A;
-
-			Original_info[Original_info_Wr++] = 0x15;                   //命令字
-
-			SregLen								= 133;                  // 信息长度
-			Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 ); // Hi
-			Original_info[Original_info_Wr++]	= (u8)SregLen;          // Lo    65x7
-
-			Original_info[Original_info_Wr++] = 0x00;                   // 保留字
-		}
-			//------- 信息内容 ------
-
-
-			/*
-			       每条 133 个字节   10 条    1个完整包     5*133=665        totalnum=2
-			 */
-			WatchDog_Feed( );
-			get_15h( Original_info + Original_info_Wr );
-			Original_info_Wr += 133;
-
-			break;
-	}
-	//---------------  填写计算 A 协议	Serial Data   校验位  -------------------------------------
-
-	Sfcs = 0;                            //  计算S校验 从Ox55 开始
-	for( i = Swr; i < Original_info_Wr; i++ )
-	{
-		Sfcs ^= Original_info[i];
-	}
-	//Original_info[Original_info_Wr++] = Sfcs;               // 填写FCS
-
-/*bitter:最后一包发送fcs*/
-#if 1
-	if( PaketType == Packet_Divide )
-	{
-		Recode_Obj.fcs ^= Sfcs;
-		if( Recode_Obj.Current_pkt_num == Recode_Obj.Total_pkt_num )
-		{
-			Original_info[Original_info_Wr++] = Recode_Obj.fcs; // 填写FCS
-		}
-	}else
-	{
-		Original_info[Original_info_Wr++] = Sfcs;               // 填写FCS
-	}
-#endif
-
-	//  3. Send
-	Protocol_End( PaketType, 0 );
-
-	//  4.     如果是分包 判断结束
-	if( Recode_Obj.Devide_Flag == 1 )   // 不给应答
-	{
-		if( Recode_Obj.Current_pkt_num >= Recode_Obj.Total_pkt_num )
-		{
-			Recorder_init( );           //  clear
-		}else
-		{
-			Recode_Obj.Current_pkt_num++;
-		}
-	}
-
-	if( DispContent )
-	{
-		rt_kprintf( "\r\n	SEND Recorder Data ! \r\n");
-	}
-
-	return true;
-}
-#endif
-/***********************************************************
-* Function:
-* Description:
-* Input:
-* Input:
-* Output:
-* Return:
-* Others:
+* Others:  wwww
 ***********************************************************/
 u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 {
@@ -5185,11 +4701,13 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
 
-			memcpy( Original_info + Original_info_Wr, "120221123456789", 15 );  //信息内容
-			Original_info_Wr					+= 15;
+			memcpy( Original_info + Original_info_Wr, "410727198503294436", 18 );  //信息内容
+			Original_info_Wr					+= 18;
+			/*
 			Original_info[Original_info_Wr++]	= 0x00;
 			Original_info[Original_info_Wr++]	= 0x00;
 			Original_info[Original_info_Wr++]	= 0x00;
+			*/
 			break;
 		case 0x02:                                                              //  02  采集记录仪的实时时钟
 			Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
@@ -5207,8 +4725,16 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
 
+			Original_info[Original_info_Wr++] = 0x13;
+			Original_info[Original_info_Wr++] = 0x04;
+			Original_info[Original_info_Wr++] = 0x02;
+			Original_info[Original_info_Wr++] =	0x08;
+			Original_info[Original_info_Wr++] = 0x17;
+			Original_info[Original_info_Wr++] = 0x30;
+			/*
 			Time2BCD( Original_info + Original_info_Wr );                       //记录仪时间
 			Original_info_Wr += 6;
+			*/
 			break;
 		case 0x03:                                                              // 03 采集360h内里程
 			Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
@@ -5226,10 +4752,19 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 			Original_info[Original_info_Wr++] = 0x00;                           // 保留字
 			//	信息内容
+			/*
 			Time2BCD( Original_info + Original_info_Wr );                       // 记录仪实时时间
 			Original_info_Wr					+= 6;
+			*/
+			Original_info[Original_info_Wr++] = 0x13;
+			Original_info[Original_info_Wr++] = 0x04;
+			Original_info[Original_info_Wr++] = 0x02;
+			Original_info[Original_info_Wr++] =	0x08;
+			Original_info[Original_info_Wr++] = 0x17;
+			Original_info[Original_info_Wr++] = 0x30;
+			
 			Original_info[Original_info_Wr++]	= 0x13;                         // 初次安装时间
-			Original_info[Original_info_Wr++]	= 0x03;
+			Original_info[Original_info_Wr++]	= 0x04;
 			Original_info[Original_info_Wr++]	= 0x01;
 			Original_info[Original_info_Wr++]	= 0x08;
 			Original_info[Original_info_Wr++]	= 0x30;
@@ -5265,8 +4800,17 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			Original_info[Original_info_Wr++] = 0x00;                               // 保留字
 
 			//  信息内容
+			/*
 			Time2BCD( Original_info + Original_info_Wr );                           // 记录仪实时时间
 			Original_info_Wr					+= 6;
+			*/
+			Original_info[Original_info_Wr++] = 0x13;
+			Original_info[Original_info_Wr++] = 0x04;
+			Original_info[Original_info_Wr++] = 0x02;
+			Original_info[Original_info_Wr++] =	0x08;
+			Original_info[Original_info_Wr++] = 0x17;
+			Original_info[Original_info_Wr++] = 0x30;
+			
 			Original_info[Original_info_Wr++]	= (u8)( JT808Conf_struct.Vech_Character_Value >> 8 );
 			Original_info[Original_info_Wr++]	= (u8)( JT808Conf_struct.Vech_Character_Value );
 			break;
@@ -5288,7 +4832,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			//-----------	信息内容  --------------
 			memcpy( Original_info + Original_info_Wr, "LGBK22E70AY100102", 17 );    //信息内容
 			Original_info_Wr += 17;
-			memcpy( Original_info + Original_info_Wr, "TST0001", 7 );               // 车牌号
+			memcpy( Original_info + Original_info_Wr, JT808Conf_struct.Vechicle_Info.Vech_Num, 8 );               // 车牌号
 			Original_info_Wr					+= 7;
 			Original_info[Original_info_Wr++]	= 0x00;
 			Original_info[Original_info_Wr++]	= 0x00;
@@ -5339,7 +4883,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			Time2BCD( Original_info + Original_info_Wr );               //记录仪实时时间
 			Original_info_Wr += 6;
 			//-------  状态字个数----------------------
-			Original_info[Original_info_Wr++] = 8;
+			Original_info[Original_info_Wr++] = 0;// 8//修改为0
 			//---------- 状态字内容-------------------
 
 
@@ -5362,9 +4906,9 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			 */
 			memcpy( Original_info + Original_info_Wr, "预留      ", 10 );       // D0
 			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "车门      ", 10 );       // D1
+			memcpy( Original_info + Original_info_Wr, "预留      ", 10 );       // D1
 			Original_info_Wr += 10;
-			memcpy( Original_info + Original_info_Wr, "雾灯      ", 10 );       // D2
+			memcpy( Original_info + Original_info_Wr, "预留      ", 10 );       // D2
 			Original_info_Wr += 10;
 			memcpy( Original_info + Original_info_Wr, "近光灯    ", 10 );       // D3
 			Original_info_Wr += 10;
@@ -9773,7 +9317,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 				}
 				// if(CheckResualt==0)
 				Media_Clear_State( );
-			}else
+			}
+			else
 			{                                               //  重传包ID 列表
 				if( UDP_HEX_Rx[17] != 0 )
 				{
@@ -10283,7 +9828,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 						MediaObj.Media_ReSdList[i]	= ( UDP_HEX_Rx[16 + j] << 8 ) + UDP_HEX_Rx[17 + j];
 						j							+= 2;
 					}
-					rt_kprintf( "\r\n  8003 重传列表Total=%d: ", MediaObj.RSD_total );  
+					rt_kprintf( "\r\n  8003 重传列表Total=%d: ", MediaObj.RSD_total );   
 					if( MediaObj.RSD_total<=100)
 					{
 						for( i = 0; i < MediaObj.RSD_total; i++ )
@@ -10294,11 +9839,14 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			         }
 		           }
 			//==================================================================
+           /*      列表重传不要应答 
+                     if(Recode_Obj.RSD_total)  // 重传列表项为0 不返回 
 			{
 				SD_ACKflag.f_CentreCMDack_0001H		= 1;
 				Ack_Resualt							= 0;
 				SD_ACKflag.f_CentreCMDack_resualt	= Ack_Resualt;
 			}
+			*/
 
 			break;
 		//--------  BD  add  Over  --------------------------------
@@ -12814,7 +12362,7 @@ FINSH_FUNCTION_EXPORT( recoverset, recoverset );
 void chepai( u8 *instr )
 {
 	memset( JT808Conf_struct.Vechicle_Info.Vech_Num, 0, sizeof( JT808Conf_struct.Vechicle_Info.Vech_Num ) );
-	memcpy( JT808Conf_struct.Vechicle_Info.Vech_Num, instr, 7 );
+	memcpy( JT808Conf_struct.Vechicle_Info.Vech_Num, instr, 8 );
 	Api_Config_Recwrite_Large( jt808, 0, (u8*)&JT808Conf_struct, sizeof( JT808Conf_struct ) );
 }
 
@@ -13366,6 +12914,18 @@ void mq_true_enable(u8 value)
 
 }
 FINSH_FUNCTION_EXPORT(mq_true_enable, mq_true_enable 0:idle+othervalue 1:send 2:save);
+//+++++++++++++++++++++++++++++++++++++++wxg++++++++++鉴权+++++++++++
+void jianquan(u8 *str)
+{
+	memset( JT808Conf_struct.ConfirmCode, 0, sizeof( JT808Conf_struct.ConfirmCode ));
+	memcpy( JT808Conf_struct.ConfirmCode, str, strlen(str) );	
+	JT808Conf_struct.Regsiter_Status	= 1;
+	Api_Config_Recwrite_Large( jt808, 0, (u8*)&JT808Conf_struct, sizeof( JT808Conf_struct ) );
+	rt_kprintf( "鉴权码: %s\r\n		   鉴权码长度: %d\r\n", str, strlen( (const char*)str ) );
+	//-------- 开始鉴权 ------
+	DEV_Login.Operate_enable = 1;
+}
+FINSH_FUNCTION_EXPORT(jianquan,1);
 
  
 // C.  Module

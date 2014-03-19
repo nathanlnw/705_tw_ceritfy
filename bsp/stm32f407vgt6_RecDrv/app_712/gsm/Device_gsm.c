@@ -1160,7 +1160,7 @@ void  Data_Send(u8* DataStr, u16  Datalen,u8  Link_Num)
 	  
 	  rt_kprintf(AT_send_str);
 	  rt_hw_gsm_output(AT_send_str);  
-	  delay_ms(120);// 给模块返回输出时间  
+	  delay_ms(180);// 给模块返回输出时间  
 
 	 OutPrint_HEX("GsmSend",DataStr,GPRS_infoWr_Tx); 
 	 

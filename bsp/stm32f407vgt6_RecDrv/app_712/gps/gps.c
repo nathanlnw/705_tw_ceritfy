@@ -532,10 +532,10 @@ u8 Process_GGA(u8* packet)
 					Hight2=atof((const char*)tmpinfo);
 
 
-				if(MQ_TrueUse.Enable_SD_state)
+				//if(MQ_TrueUse.Enable_SD_state|| BDSD.Enable_Workin)
 				    GPS_Hight=(u16)(Hight1+Hight2);  	// ÕæÊµ×´Ì¬  	
-                else                                    //----jiade 
-				    GPS_Hight=50+(CSQ_counter%5)-(Satelite_num%4);   
+                //else                                    //----jiade 
+				   // GPS_Hight=50+(CSQ_counter%5)-(Satelite_num%4);   
 					
 					break;
 				default:

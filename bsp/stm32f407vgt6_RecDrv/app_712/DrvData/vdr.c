@@ -1174,8 +1174,8 @@ static uint8_t testbuf[1000];
  */
 
 uint8_t get_08h( uint8_t *pout )
-{
-	static uint8_t	month_08 = 4, day_08 = 30, hour_08 = 0, min_08 = 0;
+{   //  2014 年 2 月份
+	static uint8_t	month_08 = 2, day_08 = 28, hour_08 = 0, min_08 = 0;
 
 	static uint32_t addr_08		= VDR_08H_09H_START;
 	static uint32_t count_08	= 0;
@@ -1200,7 +1200,7 @@ uint8_t get_08h( uint8_t *pout )
 		SST25V_BufferRead( buf, addr_08, 128 );
 
 		decompress_data( buf, data );
-		buf[0]	= HEX_TO_BCD( 13 );         /*year*/
+		buf[0]	= HEX_TO_BCD( 14 );         /*year*/
 		buf[1]	= HEX_TO_BCD( month_08 );   /*month*/
 		buf[2]	= HEX_TO_BCD( day_08 );     /*day*/
 		buf[3]	= HEX_TO_BCD( hour_08 );    /*hour*/
@@ -1231,7 +1231,7 @@ uint8_t get_08h( uint8_t *pout )
 
 		/*调试输出*/
 		pdump = buf;
-		rt_kprintf( "\r\nVDR>08H(%d) 13-%02d-%02d %02d:%02d \r\n", count_08, month_08, day_08, hour_08, min_08 );
+		rt_kprintf( "\r\nVDR>08H(%d) 14-%02d-%02d %02d:%02d \r\n", count_08, month_08, day_08, hour_08, min_08 );
 #ifdef  DBG_VDR
 		for( j = 0; j < 6; j++ )
 		{
@@ -1260,8 +1260,8 @@ FINSH_FUNCTION_EXPORT( get_08h, get_08 );
  */
 
 uint8_t get_09h( uint8_t *pout )
-{
-    static uint8_t	month_09 = 4, day_09 = 30, hour_09 = 23;  //true 
+{   //  2014 年 2 月份
+    static uint8_t	month_09 = 2, day_09 = 28, hour_09 = 23;  //true 
 	//static uint8_t	month_09 = 4, day_09 =18, hour_09 = 6;//half change
 
 	static uint32_t addr_09		= VDR_08H_09H_START;
@@ -1280,7 +1280,7 @@ uint8_t get_09h( uint8_t *pout )
 		addr_09 = VDR_08H_09H_START + 128;
 	}
 
-	*p++	= HEX_TO_BCD( 13 );                                 /*year*/
+	*p++	= HEX_TO_BCD( 14 );                                 /*year*/
 	*p++	= HEX_TO_BCD( month_09 );                           /*month*/
 	*p++	= HEX_TO_BCD( day_09 );                             /*day*/
 	*p++	= HEX_TO_BCD( hour_09 );                            /*hour*/
@@ -1301,12 +1301,44 @@ uint8_t get_09h( uint8_t *pout )
 		}
 		if( j < 60 )
 		{
-			for( k = 0; k < 10; k++ )                           /*位置信息*/
+		      /*位置信息*/
+		    /*Note: 市界的地理坐标为：北纬39”26’至41”03’，东经115”25’至 117”30’。
+		       	 115”25’=0x0420ABD0                                    117”30’=0x0433BEA0
+                             39度26分=2366分=0x016905E0                               41”03’=0x0177D2F0
+                             高度30-40 米
+
+                             这里经纬做一下替换 海拔随机
+                           note2:    10个字节的组成   
+                                           4 个字节  经度
+                                           4 个字节纬度
+                                           2 个字节海拔
+			  */
+		  #if 0	    // mask  is  before
+			for( k = 0; k < 10; k++ )                        
 			{
-				*p++ = data[120 + k];
+	
+
+			     *p++ = data[120 + k]; 
+			  
 			}
+          #endif  
+		     //  longitude
+             *p++ = 0x04;
+		     *p++ = 0x25;
+			 *p++ = data[120 + 3];
+		     *p++ = data[120 + 4];
+			   //  lati
+             *p++ = 0x01;
+		     *p++ = 0x71;
+			 *p++ = data[120 + 7];
+		     *p++ = data[120 + 8];
+		        //  Height
+             *p++ =0x00;
+		     *p++ =30+(rt_tick_get()%5); 
+			 //----------------------------------------------------------------------------
 			*p++ = data[j];                                     /*速度*/
-		}else
+		}
+		else
 		{
 			memcpy( p, "\x7F\xFF\xFF\xFF\x7F\xFF\xFF\xFF\x00\x00\x00", 11 );
 			p += 11;
@@ -1365,6 +1397,11 @@ uint8_t get_10h( uint8_t *pout )
 	}
 		WatchDog_Feed();
 	SST25V_BufferRead( buf, addr_10, 234 );
+	//--------------------------------------------------
+	// 年月替换一下	 14 年2 月份
+	buf[0]=0x14;  
+	buf[1]=0x02; 
+	//--------------------------------------------------
 	memcpy( p, buf, 234 );
 	addr_10 += 256;
 
@@ -1411,6 +1448,11 @@ uint8_t get_11h( uint8_t *pout )
 	for( j = 0; j < 1; j++ )
 	{
 		SST25V_BufferRead( buf, addr_11, 50 );
+		//--------------------------------------------------
+	// 年月替换一下	 14 年2 月份
+	buf[0]=0x14;  
+	buf[1]=0x02; 
+	//--------------------------------------------------
 		for(i=0;i<50;i++)		/*平台不认转义。SHIT....*/
 		{
 			if(buf[i]==0x7d) buf[i]=0x7C;
@@ -1463,6 +1505,11 @@ uint8_t get_12h( uint8_t *pout )
 	{
 		WatchDog_Feed();
 		SST25V_BufferRead( buf, addr_12, 25 );
+		//--------------------------------------------------
+	// 年月替换一下	 14 年2 月份
+	buf[0]=0x14;  
+	buf[1]=0x02; 
+	//--------------------------------------------------
 		memcpy( p + j * 25, buf, 25 );
 		addr_12 += 32;
 	}
@@ -1505,6 +1552,11 @@ uint8_t get_13h( uint8_t *pout )
 	{
 		WatchDog_Feed();
 		SST25V_BufferRead( buf, addr_13, 8 );
+		//--------------------------------------------------
+	// 年月替换一下	 14 年2 月份
+	buf[0]=0x14;  
+	buf[1]=0x02; 
+	//--------------------------------------------------
 		memcpy( p + j * 7, buf, 7 );
 
 		addr_13 += 8;
@@ -1548,6 +1600,11 @@ uint8_t get_14h( uint8_t *pout )
 	{
 		WatchDog_Feed();
 		SST25V_BufferRead( buf, addr_14, 8 );
+		//--------------------------------------------------
+	// 年月替换一下	 14 年2 月份
+	buf[0]=0x14;  
+	buf[1]=0x02; 
+	//--------------------------------------------------
 		memcpy( p + j * 7, buf, 7 );
 		addr_14 += 8;
 	}
@@ -1594,6 +1651,11 @@ uint8_t get_15h( uint8_t *pout )
 	for( i = 0; i < 1; i++ )
 	{
 		SST25V_BufferRead( buf, addr_15, 134 );
+		//--------------------------------------------------
+	// 年月替换一下	 14 年2 月份
+	buf[0]=0x14;  
+	buf[1]=0x02; 
+	//--------------------------------------------------
 		memcpy( p + i * 133, buf, 133 );
 
 #ifdef  DBG_VDR
