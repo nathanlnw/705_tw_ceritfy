@@ -421,8 +421,8 @@ static void timeout_app(void *  parameter)
 					     XinhaoStatus[i+10]=0x30; 
 				     SensorFlag=SensorFlag>>1;   
 			} 
-		       if(DispContent==3)
-			       rt_kprintf("\r\n %s   \r\n",XinhaoStatus);     
+		      // if(DispContent==3)
+			      // rt_kprintf("\r\n %s   \r\n",XinhaoStatus);     
 
                    //  system timer
                    App808_tick_counter(); 
@@ -535,7 +535,7 @@ u8    Udisk_Find(void)
 	Power_485CH1_ON;  // 第一路485的电 		  开电工作
 }
 
-void  Recorder_init(void)
+void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 {
   Recode_Obj.Float_ID=0;     //  命令流水号
   Recode_Obj.CMD=0;     //  数据采集 
@@ -543,8 +543,6 @@ void  Recorder_init(void)
   Recode_Obj.CountStep=0;  //  发送数据需要一步一步发送 
   Recode_Obj.timer=0;
   //--------- add on  5-4 
-  Recode_Obj.Devide_Flag=0;//  需要分包上传标志位
-  Recode_Obj.Total_pkt_num=0;   // 分包总包数
   Recode_Obj.Current_pkt_num=0; // 当前发送包数 从 1  开始
   Recode_Obj.fcs=0;
 
@@ -554,9 +552,32 @@ void  Recorder_init(void)
   Recode_Obj.RSD_Timer=0;     //  传状态下的计数器   
   Recode_Obj.RSD_Reader=0;    //  重传计数器当前数值 
   Recode_Obj.RSD_total=0;     //  重传选项数目    
-   
+
+	if(value)
+	{
+	  
+	  Recode_Obj.Devide_Flag=0;//  需要分包上传标志位
+	  Recode_Obj.Total_pkt_num=0;	// 分包总包数
+	  Recode_Obj.Bak_current_num=0;
+	  Recode_Obj.Transmit_running=0; 
+	  Recode_Obj.Bak_CMD=0;
+	  Recode_Obj.Bak_fcs=0;
+	  
+	}
 
 }
+
+void Rcorder_Recover(void)
+{ 
+    Recode_Obj.fcs=Recode_Obj.Bak_fcs; 
+	Recode_Obj.Current_pkt_num=Recode_Obj.Bak_current_num;
+	Recode_Obj.CMD=Recode_Obj.Bak_CMD;
+	Recode_Obj.SD_Data_Flag = 1;
+	Recode_Obj.CountStep	= 1;
+	MediaObj.Media_Type		= 3; //行驶记录仪 只是利用类型填充ID 时候有用
+}
+
+
  ALIGN(RT_ALIGN_SIZE)
 char app808_thread_stack[4096];      //4096
 struct rt_thread app808_thread;
@@ -601,7 +622,7 @@ static void App808_thread_entry(void* parameter)
 	CAN_struct_init();     
 	SMS_send_init(); 
 	Mangqu_Init();  
-	Recorder_init(); 
+	Recorder_init(1); 
 
        AppQue.write_num=0;
 	AppQue.read_num=0;

@@ -1173,12 +1173,13 @@ static uint8_t testbuf[1000];
    每6条 组一包  756字节
  */
 
-uint8_t get_08h( uint8_t *pout )
+uint8_t get_08h( uint8_t *pout,u16 packet_in )
 {   //  2014 年 2 月份
-	static uint8_t	month_08 = 2, day_08 = 28, hour_08 = 0, min_08 = 0;
-
+	static uint8_t	month_08 = 2, day_08_const = 27; // 起始日期
+	u32  minute_total=0;
+	uint8_t day_08, hour_08 = 0, min_08 = 0;
 	static uint32_t addr_08		= VDR_08H_09H_START;
-	static uint32_t count_08	= 0;
+	uint32_t count_08	= 0;
 	uint8_t			buf[128], data[135];
 	uint8_t			*p = RT_NULL, *pdump;
 	int				i, j, k;
@@ -1187,6 +1188,16 @@ uint8_t get_08h( uint8_t *pout )
 #else
 	p = pout;
 #endif
+    // 根据输入的包序号获取相应的信息
+     // 1. 将日期转换为分钟
+     minute_total=day_08_const*24*60-(packet_in-1)*4;  //      2-28  00:00 
+
+	 min_08=minute_total%60;// 分钟
+	 day_08=minute_total/1440;//  天 每天1440 分钟
+	 hour_08=(minute_total-day_08*1440)/60; // 小时
+	 
+
+    count_08=(packet_in-1)*4; // 每组起始
 
 	for( i = 0; i < 4; i++ )//5
 	{
@@ -1198,7 +1209,6 @@ uint8_t get_08h( uint8_t *pout )
 		}
 
 		SST25V_BufferRead( buf, addr_08, 128 );
-
 		decompress_data( buf, data );
 		buf[0]	= HEX_TO_BCD( 14 );         /*year*/
 		buf[1]	= HEX_TO_BCD( month_08 );   /*month*/
@@ -1213,8 +1223,11 @@ uint8_t get_08h( uint8_t *pout )
 			buf[j * 2 + 7]	= data[60 + j];
 		}
 		memcpy( pout + i * 126, buf, 126 );
-
+		
 		count_08++;
+
+		
+		rt_kprintf( "\r\nVDR>08H(%d) 14-%02d-%02d %02d:%02d \r\n", count_08, month_08, day_08, hour_08, min_08 );
 		if( min_08 == 0 )
 		{
 			min_08 = 59;
@@ -1231,7 +1244,6 @@ uint8_t get_08h( uint8_t *pout )
 
 		/*调试输出*/
 		pdump = buf;
-		rt_kprintf( "\r\nVDR>08H(%d) 14-%02d-%02d %02d:%02d \r\n", count_08, month_08, day_08, hour_08, min_08 );
 #ifdef  DBG_VDR
 		for( j = 0; j < 6; j++ )
 		{
@@ -1259,11 +1271,12 @@ FINSH_FUNCTION_EXPORT( get_08h, get_08 );
    360小时   ，每小时666字节
  */
 
-uint8_t get_09h( uint8_t *pout )
+uint8_t get_09h( uint8_t *pout,u16 packet_in )
 {   //  2014 年 2 月份
-    static uint8_t	month_09 = 2, day_09 = 28, hour_09 = 23;  //true 
+    static uint8_t	month_09 = 2, day_09_const = 27, hour_09_const = 23;  //true 
+    uint8_t day_09 = 0, hour_09 =0;  //true 
 	//static uint8_t	month_09 = 4, day_09 =18, hour_09 = 6;//half change
-
+    u32  hour_total=0;
 	static uint32_t addr_09		= VDR_08H_09H_START;
 	static uint32_t count_09	= 0;
 	uint8_t			buf[128], data[135];
@@ -1274,6 +1287,15 @@ uint8_t get_09h( uint8_t *pout )
 #endif
 	p = pout;
 
+     
+	 count_09=packet_in/2+1; // 每组起始
+   //  将初始日期转换成小时
+     hour_total=day_09_const*24+hour_09_const-count_09; 
+ 
+    day_09=hour_total/24;
+	hour_09=hour_total%24; 
+	
+  
 	addr_09 = 0x00300000 + hour_09 * 8192 + 128;                /*定位到小时的第一分钟数据*/
 	if( addr_09 >= VDR_08H_09H_END )
 	{
@@ -1326,7 +1348,7 @@ uint8_t get_09h( uint8_t *pout )
              *p++ = 0x04;
 		     *p++ = 0x25;
 			 *p++ = data[120 + 3];
-		     *p++ = data[120 + 4];
+		     *p++ = data[120 + 4]; 
 			   //  lati
              *p++ = 0x01;
 		     *p++ = 0x71;
@@ -1344,7 +1366,7 @@ uint8_t get_09h( uint8_t *pout )
 			p += 11;
 		}
 	}
-	rt_kprintf( "\r\nVDR>09H(%d) 13-%02d-%02d %02d \r\n", count_09, month_09, day_09, hour_09 );
+	rt_kprintf( "\r\nVDR>09H(%d) 14-%02d-%02d %02d \r\n", count_09, month_09, day_09, hour_09 );
 
 	if( hour_09 == 0 )
 	{
@@ -1416,7 +1438,6 @@ uint8_t get_10h( uint8_t *pout )
 		}
 		rt_kprintf( "%02x ", *p++ );
 	}
-
 #endif
 	return 234;
 }
@@ -1676,6 +1697,6 @@ uint8_t get_15h( uint8_t *pout )
 //	return 133 * 5;
 }
 
-FINSH_FUNCTION_EXPORT( get_15h, get_15 );
+FINSH_FUNCTION_EXPORT( get_15h, get_15 ); 
 
 /************************************** The End Of File **************************************/

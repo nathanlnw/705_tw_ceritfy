@@ -1,17 +1,14 @@
----- CSQ_counter Matches (16 in 6 files) ----
-App_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):u8  CSQ_counter=0;
-App_gsm.h (bsp\stm32f407vgt6_recdrv\app_712\gsm):extern u8  CSQ_counter;
-Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):            CSQ_counter++;
-Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):          if(CSQ_counter>=CSQ_Duration)
-Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):              CSQ_counter=0;  
-Gps.c (bsp\stm32f407vgt6_recdrv\app_712\gps):				   // GPS_Hight=50+(CSQ_counter%5)-(Satelite_num%4);   
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			longtitude = 116 * 1000000 - ( CSQ_counter % 8 ) + ( TIM1_Timer_Counter % 3 );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		lati_stuff	= ( regstr[0] << 24 ) + ( regstr[1] << 16 ) + ( regstr[2] << 8 ) + ( regstr[3] ) - ( CSQ_counter % 25 ) + ( TIM1_Timer_Counter % 17 );  // need change	a  little
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		longi_stuff = 116 * 1000000 - ( CSQ_counter % 12 ) + ( TIM1_Timer_Counter % 3 );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		GPS_Hight							= 50 + ( CSQ_counter % 8 ) - ( TIM1_Timer_Counter % 6 );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		spd_stuff							= 1080 - ( CSQ_counter % 10 ) + ( TIM1_Timer_Counter % 12 );    // need change	a  little  76
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	lati_stuff	= Latiude_hex[InNUM] - ( CSQ_counter % 7 ) + ( TIM1_Timer_Counter % 2 );    // need change  a  little
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	longi_stuff = 116 * 1000000 - ( CSQ_counter % 8 ) + ( TIM1_Timer_Counter % 3 );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	GPS_Hight							= 50 + ( CSQ_counter % 5 ) - ( Satelite_num % 4 );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		spd_stuff = spd_dex[InNUM] - ( CSQ_counter % 10 ) + ( TIM1_Timer_Counter % 3 ); // need change  a  little  76
-Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):		     *p++ =30+(CSQ_counter%5)-(Satelite_num%4); 
+---- SaveCycleGPS Matches (14 in 4 files) ----
+Device_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):             if( SaveCycleGPS(cycle_write,buffer,len))
+Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):u8 SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen) 
+Flash_Oper.h (bsp\stm32f407vgt6_recdrv\app_712\dataflash):extern u8  SaveCycleGPS(u32 cycle_wr,u8 *content ,u16 saveLen);   
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<P><STRONG><a name="[22d]"></a>SaveCycleGPS</STRONG> (Thumb, 198 bytes, Stack size 40 bytes, flash_oper.o(i.SaveCycleGPS))
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 180<LI>Call Chain = SaveCycleGPS &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS

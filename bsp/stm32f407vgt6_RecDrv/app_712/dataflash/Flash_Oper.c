@@ -117,24 +117,21 @@ u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
   {
 	  //for(i=0;i<ReadLen;i++)
 	  	//rt_kprintf("%2X ",content[i]);  
+
+	  #if 1
 	  	 for(i=8;i<17;i++)
 	  	     rt_kprintf("%2X ",content[i]);  
 		 
 		  rt_kprintf("  ");
 
 		 for(i=22;i<28;i++)  
-	  	     rt_kprintf("%2X ",content[i]);         
+	  	     rt_kprintf("%2X ",content[i]);     
+	  #endif	 
 	 rt_kprintf("\r\n");  
   }	 
   //  3. Judge FCS	
 	//--------------- 过滤已经发送过的信息 -------
-	  FCS = 0;
-	   for ( i = 0; i < ReadLen-1; i++ )   //计算读取信息的异或和
-	   {
-			   FCS ^= *( content + i );  
-	   }			  
-	  if(((content[ReadLen-1]!=FCS)&&(content[0]!=0xFF))||(content[0]==0xFF))  // 判断异或和   
-	    { 	      
+		  
 		  if(content[0]==0xFF)
 		  {
 			 rt_kprintf("\r\n  content[0]==0xFF   read=%d,  write=%d  \r\n",cycle_read,cycle_write);   
@@ -144,12 +141,6 @@ u8 ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
 		        if(cycle_read>=Max_CycleNum)
 		  	      cycle_read=0; 
 			 return false;	
-		  }  
-                 cycle_read++;	
-		  if(cycle_read>=Max_CycleNum)
-		  	cycle_read=0;
-		 // rt_kprintf("\r\n   *******  该条记录内容不对 *******  \r\n");      
-		  return false; 
      	}	  
  
 	//------------------------------------------------------------------------------------------   	 
@@ -243,7 +234,7 @@ u8  BDSD_ReadCycleGPS(u32 cycleread,u8 *content ,u16 ReadLen)
 	 //  获取信息长度
 	 Len_read=content[0];
 	 
-  if(DispContent==2)
+  if(DispContent==3)
   {
    	 OutPrint_HEX("读取BDSD_GPS 内容为 ",content,Len_read+1);
   }	 

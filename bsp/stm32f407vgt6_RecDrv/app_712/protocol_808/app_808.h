@@ -80,6 +80,7 @@ extern void   UDisk_Write_Test(void);
 
 extern  void  MainPower_Recover_process(void);
 extern  void  MainPower_cut_process(void); 
-extern  void  Recorder_init(void); 
+extern  void  Recorder_init(u8 value); 
+extern  void  Rcorder_Recover(void);
 
 #endif

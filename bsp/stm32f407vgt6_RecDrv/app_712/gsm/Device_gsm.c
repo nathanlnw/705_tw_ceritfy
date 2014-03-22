@@ -1162,7 +1162,8 @@ void  Data_Send(u8* DataStr, u16  Datalen,u8  Link_Num)
 	  rt_hw_gsm_output(AT_send_str);  
 	  delay_ms(180);// 给模块返回输出时间  
 
-	 OutPrint_HEX("GsmSend",DataStr,GPRS_infoWr_Tx); 
+      if(DispContent==2)
+	    OutPrint_HEX("GsmSend",DataStr,GPRS_infoWr_Tx);   
 	 
 	 rt_hw_gsm_output_Data(DataStr,GPRS_infoWr_Tx);	 
 	// rt_hw_gsm_putc (0x1A);  
@@ -1741,7 +1742,7 @@ static void GSM_Process(u8 *instr, u16 len)
    memset(GSM_rx,0,sizeof((const char*)GSM_rx));
    memcpy(GSM_rx,instr,len);
   // if((ISP_running_state==0)&&(VocREC.Sate!=VOICEREC_DataRXing)) 
-  if(DispContent!=0) 
+ // if(DispContent!=0) 
    {
       // rt_kprintf("\r\n");      
         for(i=0;i<len;i++)  

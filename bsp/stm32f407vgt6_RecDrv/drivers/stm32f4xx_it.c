@@ -278,7 +278,7 @@ void TIM3_IRQHandler(void)
                     TIM_ClearITPendingBit(TIM3 , TIM_FLAG_Update); 
 
 	        //---------------------Timer  Counter -------------------------- 
-	       CAN_Send_judge();    	//  1 ms	    
+	        CAN_Send_judge();    	//  1 ms	    
             TIM1_Timer_Counter++;
 
             if(TIM1_Timer_Counter==100)  //  100ms
@@ -288,7 +288,7 @@ void TIM3_IRQHandler(void)
 			     {
 			            CAN_trans.canid_ID_enableGet=1;	 
 			     } 
-		       TIM1_Timer_Counter=0; 		  
+		            TIM1_Timer_Counter=0; 		  
             	}
 			
             //-----------------------10ms--------------------

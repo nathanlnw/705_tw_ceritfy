@@ -509,6 +509,12 @@ typedef struct  _RECODER
    
   u16	Media_ReSdList[256]; //  多媒体重传消息列表 
 
+//-------------------------------------------
+  u16   Bak_current_num;     // 存储当前上报的包序号
+  u8    Transmit_running;    //  当前顺序上报尚未完成状态标志位 
+  u8    Bak_fcs;
+  u8    Bak_CMD;
+
   
 }RECODER;
 //------  Camera  --------
