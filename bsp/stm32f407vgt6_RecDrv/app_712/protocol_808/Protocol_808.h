@@ -503,6 +503,7 @@ typedef struct  _RECODER
   
   //-----记录仪列表重传
   u8   RSD_State;     //  重传状态   0 : 重传没有启用   1 :  重传开始    2  : 表示顺序传完但是还没收到中心的重传命令
+                      // 3:   表示收到列表重传但先不传
   u8   RSD_Timer;     //  传状态下的计数器   
   u8   RSD_Reader;    //  重传计数器当前数值 
   u8   RSD_total;     //  重传选项数目   

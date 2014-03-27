@@ -733,7 +733,7 @@ u8  Do_SendGPSReport_GPRS( void )
 		return true;
 	}
 	//  15.  行车记录仪数据上传
-	if( ( 1 == Recode_Obj.SD_Data_Flag ) && ( 1 == Recode_Obj.CountStep )&&(0==Recode_Obj.RSD_State) ) 
+	if( ( 1 == Recode_Obj.SD_Data_Flag ) && ( 1 == Recode_Obj.CountStep )&&((0==Recode_Obj.RSD_State)||(3==Recode_Obj.RSD_State)) ) 
 	{
 		//  1. clear   one  packet  flag
 		switch( Recode_Obj.CMD ) 
@@ -767,7 +767,7 @@ u8  Do_SendGPSReport_GPRS( void )
 		rt_kprintf( "\r\n 记录仪 CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
 		if( packet_type == Packet_Divide )
 		{
-		  if(Recode_Obj.RSD_State==0)  // 在非列表重传情况下进行 bak  
+		  if((Recode_Obj.RSD_State==0)||(Recode_Obj.RSD_State==3))  // 在非列表重传情况下进行 bak  
 		   {
 		       Recode_Obj.Bak_current_num=Recode_Obj.Current_pkt_num;
                Recode_Obj.Bak_fcs= Recode_Obj.fcs;   
@@ -2931,7 +2931,7 @@ void MangQu_Timer( void )
 		              if(MangQU.Sd_flag==2)
 		              	{
 		              	  MangQU.NoAck_timer++;
-						  if( MangQU.NoAck_timer>=2)  
+						  if( MangQU.NoAck_timer>=5)  
 						  {
 						      MangQU.NoAck_timer=0;
 							  MangQU.Sd_timer=0;
@@ -3026,7 +3026,15 @@ u8  Protocol_Head( u16 MSG_ID, u8 Packet_Type )
 				  Original_info[Original_info_Wr++]   =CurrentID;
  
 				   break;  
-		default:	
+		default:
+			     if(MSG_ID==MSG_0x0704)
+			     	{                      
+					  CurrentID=0x5000+MQ_TrueUse.PacketNum;
+					  Original_info[Original_info_Wr++]   = ( CurrentID>> 8 );					  //消息流水号
+					  Original_info[Original_info_Wr++]   =CurrentID;
+
+			     	}
+				 else
 			     if(MediaObj.Media_Type<3) // 不是  图片和音频
 			     {
 				    Original_info[Original_info_Wr++]   = ( JT808Conf_struct.Msg_Float_ID >> 8 ); 					  //消息流水号
@@ -3112,7 +3120,7 @@ void Protocol_End( u8 Packet_Type, u8 LinkNum )
 	if( Packet_Normal == Packet_Type )
 	{
 		Msg_bodyLen			= Original_info_Wr - 12;
-		Original_info[2]	= ( Msg_bodyLen >> 8 );
+		Original_info[2]	= ( Msg_bodyLen >> 8 ); 
 		Original_info[3]	= Msg_bodyLen;
 	}else
 	if( Packet_Divide == Packet_Type )
@@ -3254,11 +3262,11 @@ u8  Stuff_MangQu_Packet_Send_0704H_True( void )
       */
     u8   Rd_error_Counter=0;  // 读取错误计数器
     u8   i=0;
-	u16  len_wr_reg=0;//   长度单位下标 记录 
 	u8   rd_infolen=0;
 	u8	 reg_128[128];  // 0704 寄存器
    
 	u16 Qsize = 0;
+    u32   Area_ID=0;
 
        //0 .  congifrm   batch  num
         if(cycle_read<cycle_write)
@@ -3282,12 +3290,12 @@ u8  Stuff_MangQu_Packet_Send_0704H_True( void )
 	  // 2. content   
 	  //  2.1	 数据项个数
 	  Original_info[Original_info_Wr++]   = 0x00; //  10000=0x2710
-	  len_wr_reg=Original_info_Wr; //记录长度下标
 	  Original_info[Original_info_Wr++]   = delta_0704_rd;
 	  
 	  //  2.2	 数据类型	  1  盲区补报	 0:   正常位置批量汇报
 	  Original_info[Original_info_Wr++] = 1;
-
+      
+	  rd_infolen=Original_info_Wr;
 	  //	2.3  数据项目
 		mangQu_read_reg=cycle_read;   //   存储当前的记录
 		 for(i=0;i<delta_0704_rd;i++)
@@ -3301,14 +3309,12 @@ u8  Stuff_MangQu_Packet_Send_0704H_True( void )
 		   } 
 		   cycle_read++; 
 			//----------  子项信息长度 --------------------------		   
-			rd_infolen=28;
 			Original_info[Original_info_Wr++]	= 0;
-			Original_info[Original_info_Wr++]	= 32; // 28+ 附件信息长度
+			Original_info[Original_info_Wr++]	= 40; // 28+ 附件信息长度
 	
 			memcpy(Original_info+Original_info_Wr,reg_128,28);
 			Original_info_Wr+=28; 	// 内容长度 剔除第一个长度字节	
 
-	        
 			//----------- 附加信息	------------
 			//	附加信息 1	-----------------------------
 			//	附加信息 ID
@@ -3318,12 +3324,29 @@ u8  Stuff_MangQu_Packet_Send_0704H_True( void )
 			//	类型
 			Original_info[Original_info_Wr++]	= (u8)( Speed_cacu >> 8 );
 			Original_info[Original_info_Wr++]	= (u8)( Speed_cacu );
+
+
+		//  附加信息 ID
+		Original_info[Original_info_Wr++] = 0x12; //  进出区域/路线报警
+		//  附加信息长度
+		Original_info[Original_info_Wr++] = 6;
+		//  类型
+		Area_ID=1;
+		Original_info[Original_info_Wr++]	= 2; //矩形围栏
+		Original_info[Original_info_Wr++]	= ( Area_ID >> 24 );
+		Original_info[Original_info_Wr++]	= (Area_ID>> 16 );
+		Original_info[Original_info_Wr++]	= ( Area_ID>> 8 );
+		Original_info[Original_info_Wr++]	= Area_ID;
+		Original_info[Original_info_Wr++]	= 0;  // 进围栏
+
+
 			
 			//OutPrint_HEX("read -1"reg_128,rd_infolen+1);
 			
 			//OutPrint_HEX("read -2",reg_128+1,rd_infolen); 
 	//==================================================	
 		}
+		// rt_kprintf("\r\n   rd_infolen=%d   delta=%d\r\n",rd_infolen,Original_info_Wr-rd_infolen); 
 
 	//   3 .  end
 	Protocol_End( Packet_Normal, 0 );
@@ -4326,7 +4349,7 @@ u8  Stuff_ISP_Resualt_BD_0108H( void )
 u8  Stuff_BatchDataTrans_BD_0704H( void )
 {
 	// 1. Head
-	if( !Protocol_Head( MSG_0x0704, Packet_Divide ) )
+	if( !Protocol_Head( MSG_0x0704, Packet_Normal ) ) 
 	{
 		return false;
 	}
@@ -5002,7 +5025,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= 0x7A;
 				Original_info[Original_info_Wr++]	= 0x08;                     //命令字
 
-				SregLen								= 504;//630;                      // 信息长度       630
+				SregLen								= 65535;//504;//630;                      // 信息长度       630
 				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi
 				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
 
@@ -5027,7 +5050,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 				Original_info[Original_info_Wr++] = 0x09;                       //命令字
 
-				SregLen								= 666 * 2;                  // 信息长度
+				SregLen								= 65535;//666 ;                  // 信息长度
 				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi      666=0x29A
 				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
 
@@ -5211,7 +5234,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			       每条 133 个字节   10 条    1个完整包     5*133=665        totalnum=2
 			 */
 			WatchDog_Feed( );
-			get_15h( Original_info + Original_info_Wr );
+			get_15h( Original_info + Original_info_Wr,Recode_Obj.Current_pkt_num);
 			Original_info_Wr += 133;
 
 			break;
@@ -5244,11 +5267,15 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 	Protocol_End( PaketType, 0 );
 
 	//  4.     如果是分包 判断结束
-	if(( Recode_Obj.Devide_Flag == 1 )&&(Recode_Obj.RSD_State==0))   // 不给应答 ,非列表重传状态下进行
+	if(( Recode_Obj.Devide_Flag == 1 )&&((Recode_Obj.RSD_State==0)||(Recode_Obj.RSD_State==3)))   // 不给应答 ,非列表重传状态下进行
 	{
 		if( Recode_Obj.Current_pkt_num >= Recode_Obj.Total_pkt_num )
 		{
-			Recorder_init(1);           //  clear
+		  // 检查是否有过列表重传
+		  if(Recode_Obj.RSD_State==3)
+             Recode_Obj.RSD_State=1;  // enable   
+		  else
+			 Recorder_init(1);           //  clear
 		}else
 		{
 			Recode_Obj.Current_pkt_num++;
@@ -8040,6 +8067,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 	// u8   ireg[5];
 	u8	Ack_Resualt		= 1;
 	u16 Ack_CMDid_8001	= 0;
+	u16 Ack_Terminal_ID_8001=0;     // 终端返回的流水号  
 	u8	Total_ParaNum	= 0;        // 中心设置参数总数
 	u8	Process_Resualt = 0;        //  bit 表示   bit0 表示 1  bit 1 表示2
 	u8	ContentRdAdd	= 0;        // 当前读取到的地址
@@ -8104,6 +8132,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			// 若没有分包处理的话  消息头长12  从0开始计算第12个字节是消息体得主体
 
 			//  13 14  对应的终端消息流水号
+			Ack_Terminal_ID_8001=( UDP_HEX_Rx[13] << 8 ) + UDP_HEX_Rx[14];
 			//  15 16  对应终端的消息
 			Ack_CMDid_8001 = ( UDP_HEX_Rx[15] << 8 ) + UDP_HEX_Rx[16];
 
@@ -8296,7 +8325,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					rt_kprintf( "\r\n can-ack" );
 					break;
 				case 0x0704:    // 批量应答
-					rt_kprintf( "\r\n MQ packet= %d   0704H-ack", MangQU.PacketNum );
+					rt_kprintf( "\r\n MQ packet= %d   0704H-ack", MQ_TrueUse.PacketNum );
 					                   //  本地存储
                                           if(MangQU.Sd_flag==2)
 										  { 	  
@@ -9834,7 +9863,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 
 				  if(0==devide_value)
 				  	{  // 记录仪分包处理
-				       	Recode_Obj.RSD_State	= 1;                //   进入重传状态
+				       	Recode_Obj.RSD_State	= 3;                //   进入重传状态
 						Recode_Obj.RSD_Timer	= 0;                //   清除重传定时器
 						Recode_Obj.RSD_Reader = 0;
 						Recode_Obj.RSD_total	= UDP_HEX_Rx[15];   // 重传包总数
@@ -11212,7 +11241,7 @@ void RectangleRail_Judge( u8* LatiStr, u8* LongiStr )
 					; // 开启通信
 					if( JT808Conf_struct.Close_CommunicateFlag == 1 )
 					{
-						 open_com( "1" );
+						 open_com("0");
 						 mq_true_enable(1); // 使能盲区补报上报 
 						rt_kprintf( "\r\n -----矩形电子围栏--开启通信" );
 					}
@@ -12969,5 +12998,41 @@ void jianquan(u8 *str)
 }
 FINSH_FUNCTION_EXPORT(jianquan,1);
 
- 
+ void bd_time_set(void)
+ 	{
+       
+	   TDateTime   now;
+	   
+ 	  	  now.year=Gps_Gprs.Date[0];
+	  now.month=Gps_Gprs.Date[1];
+	  now.day=Gps_Gprs.Date[2]; 
+
+	  now.hour=Gps_Gprs.Time[0];
+	  now.min=Gps_Gprs.Time[1];
+	  now.sec=Gps_Gprs.Time[2];
+	  now.week=3;
+	  
+	 // Set_RTC(now);
+	 Device_RTC_set(now);  
+
+ 	}
+FINSH_FUNCTION_EXPORT(bd_time_set,1); 
+
+void in(void)
+{
+  close_com();
+   mq_true_enable(2);  //  使能盲区补报存储
+   rt_kprintf("\r\n  Area  In \r\n");
+}
+FINSH_FUNCTION_EXPORT(in,1); 
+
+
+void out(void)
+{
+   open_com("0");
+   mq_true_enable(1); // 使能盲区补报上报  
+   rt_kprintf("\r\n  Area  Out \r\n");
+}
+FINSH_FUNCTION_EXPORT(out,1); 
+
 // C.  Module

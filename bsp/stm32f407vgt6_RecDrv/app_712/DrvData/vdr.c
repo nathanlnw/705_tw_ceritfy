@@ -1423,6 +1423,22 @@ uint8_t get_10h( uint8_t *pout )
 	// 年月替换一下	 14 年2 月份
 	buf[0]=0x14;  
 	buf[1]=0x02; 
+
+    //  状态线有变化
+    for(i=0;i<60;i=i+2)
+       buf[25+i]= buf[25+i]&(rt_tick_get()%5);  
+
+
+
+	// 替换经纬度
+	buf[224]=0x04;  // longi
+	buf[225]=0x25; 
+
+	buf[228]=0x01;  //lati
+	buf[229]=0x71; 
+
+	buf[232]=0x00;  // height
+	buf[233]=30+(rt_tick_get()%5);  
 	//--------------------------------------------------
 	memcpy( p, buf, 234 );
 	addr_10 += 256;
@@ -1471,8 +1487,37 @@ uint8_t get_11h( uint8_t *pout )
 		SST25V_BufferRead( buf, addr_11, 50 );
 		//--------------------------------------------------
 	// 年月替换一下	 14 年2 月份
-	buf[0]=0x14;  
-	buf[1]=0x02; 
+	//开始时间年月
+	buf[18]=0x14;   
+	buf[19]=0x02; 
+    // 结束时间年月
+	buf[24]=0x14;  
+	buf[25]=0x02; 
+
+	// 开始longi
+    buf[30]=0x04;  
+	buf[31]=0x25; 
+
+	// 开始 laiti
+    buf[34]=0x01;  
+	buf[35]=0x71; 
+
+	//  开始高程
+    buf[38]=0x00;
+    buf[39]=30+(rt_tick_get()%5); 
+
+	// 结束longi
+    buf[40]=0x04;  
+	buf[41]=0x25; 
+
+	// 结束 laiti
+	buf[44]=0x01;  
+    buf[45]=0x71;
+
+	//  结束高程
+	buf[48]=0x00;
+    buf[49]=30+(rt_tick_get()%5); 
+	
 	//--------------------------------------------------
 		for(i=0;i<50;i++)		/*平台不认转义。SHIT....*/
 		{
@@ -1653,12 +1698,13 @@ FINSH_FUNCTION_EXPORT( get_14h, get_14 );
    133Byte
    共10个
  */
-uint8_t get_15h( uint8_t *pout )
+uint8_t get_15h( uint8_t *pout ,u16 packet_in )
 {
 	static uint32_t addr_15 = VDR_15H_START;
 	uint8_t			buf[140];
 	uint8_t			*p;
 	uint32_t		i, j;
+	u8              value_reg=0;
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1674,8 +1720,25 @@ uint8_t get_15h( uint8_t *pout )
 		SST25V_BufferRead( buf, addr_15, 134 );
 		//--------------------------------------------------
 	// 年月替换一下	 14 年2 月份
-	buf[0]=0x14;  
-	buf[1]=0x02; 
+	if(packet_in%2) 
+	    buf[0]=0x02; // 异常 情况下是5  分钟  
+	    
+	    
+	buf[1]=0x14;   // 开始时间
+	buf[2]=0x02; 
+     // 判断分钟
+        value_reg=((buf[5]>>4)*10)+(buf[5]&0x0F);
+	    if(value_reg>=55)
+		{
+		   value_reg=value_reg-5;
+		   buf[5]=((value_reg/10)<<4)+(value_reg%10); 
+	    }
+
+	buf[7]=0x14;   // 结束时间
+	buf[8]=0x02;  
+
+    value_reg=value_reg+5;
+	buf[11]=((value_reg/10)<<4)+(value_reg%10);// 5 分钟 
 	//--------------------------------------------------
 		memcpy( p + i * 133, buf, 133 );
 

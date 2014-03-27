@@ -149,11 +149,11 @@ void rtthread_startup(void)
 
    //---  RTC  device Register---------------
   //
-      if( rt_hw_rtc_init()==1)
+    if( rt_hw_rtc_init()==1)
 	{
 	    RTC_Demo_init();   // Debug  Test  use  
 	    rt_kprintf("\n\r   RTC -first conifg\r\n ");  
-    	}
+    }
   //---------------App Thread    ---------------------------
   #ifdef HMI
         HMI_app_init();  

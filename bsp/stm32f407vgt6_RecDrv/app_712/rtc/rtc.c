@@ -154,7 +154,7 @@ u8  rt_hw_rtc_init(void)
 		if ( RTC_Config() != 0)
 			{
 					rt_kprintf("rtc configure fail...\r\n");
-					return ;
+					return 0;
 			}
 		else
 		{

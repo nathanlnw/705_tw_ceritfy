@@ -363,7 +363,7 @@ void  Recorder_sd_timer(void)
 {
     // 行车记录仪数据发送
     Recode_Obj.timer++;     
-    if((Recode_Obj.CountStep==2)&&(Recode_Obj.timer>=3))  
+    if((Recode_Obj.CountStep==2)&&(Recode_Obj.timer>=4))   
        {    
     	 Recode_Obj.CountStep=1; 
  		 Recode_Obj.timer=0;
@@ -548,12 +548,12 @@ void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 
   
   //-------  记录仪列表重传---  
-  Recode_Obj.RSD_State=0;     //  重传状态   0 : 重传没有启用   1 :  重传开始    2  : 表示顺序传完但是还没收到中心的重传命令
-  Recode_Obj.RSD_Timer=0;     //  传状态下的计数器   
-  Recode_Obj.RSD_Reader=0;    //  重传计数器当前数值 
-  Recode_Obj.RSD_total=0;     //  重传选项数目    
+	  Recode_Obj.RSD_State=0;     //  重传状态   0 : 重传没有启用   1 :  重传开始    2  : 表示顺序传完但是还没收到中心的重传命令
+	  Recode_Obj.RSD_Timer=0;     //  传状态下的计数器   
+	  Recode_Obj.RSD_Reader=0;    //  重传计数器当前数值 
+	  Recode_Obj.RSD_total=0;     //  重传选项数目    
 
-	if(value)
+	if(value==1)
 	{
 	  
 	  Recode_Obj.Devide_Flag=0;//  需要分包上传标志位

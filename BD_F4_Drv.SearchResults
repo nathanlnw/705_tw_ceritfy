@@ -1,14 +1,10 @@
----- SaveCycleGPS Matches (14 in 4 files) ----
-Device_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):             if( SaveCycleGPS(cycle_write,buffer,len))
-Flash_Oper.c (bsp\stm32f407vgt6_recdrv\app_712\dataflash):u8 SaveCycleGPS(u32 cyclewr,u8 *content ,u16 saveLen) 
-Flash_Oper.h (bsp\stm32f407vgt6_recdrv\app_712\dataflash):extern u8  SaveCycleGPS(u32 cycle_wr,u8 *content ,u16 saveLen);   
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<P><STRONG><a name="[22d]"></a>SaveCycleGPS</STRONG> (Thumb, 198 bytes, Stack size 40 bytes, flash_oper.o(i.SaveCycleGPS))
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 180<LI>Call Chain = SaveCycleGPS &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[22d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SaveCycleGPS
+---- NoAck_timer Matches (9 in 2 files) ----
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):										 MangQU.NoAck_timer=0;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		              	  MangQU.NoAck_timer++;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):						  if( MangQU.NoAck_timer>=2)  
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):						      MangQU.NoAck_timer=0;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):										 MQ_TrueUse.NoAck_timer=0;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		              	  MQ_TrueUse.NoAck_timer++;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):						  if( MQ_TrueUse.NoAck_timer>=2)  
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):						      MQ_TrueUse.NoAck_timer=0;
+Protocol_808.h (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):    u32   NoAck_timer;  //  无应答计数器
