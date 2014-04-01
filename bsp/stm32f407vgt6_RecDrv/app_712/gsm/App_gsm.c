@@ -352,8 +352,6 @@ static void gsm_thread_entry(void* parameter)
 			  	  //   TTS	
 	                TTS_Data_Play(); 
 			 
-	                //   Get  CSQ value
-		        // GSM_CSQ_Query();	 			  //   SMS Send
              	}
 		else
 			SMS_send_process();     //  相关短信处理

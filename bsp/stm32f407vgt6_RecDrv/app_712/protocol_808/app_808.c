@@ -375,22 +375,11 @@ static void timeout_app(void *  parameter)
 {     //  100ms  =Dur 
     u8  SensorFlag=0,i=0;
 
-     //--------  CAN ID -------------------------
-   //  if(CAN_trans.can1_trans_dur>0) 
-    // {
-        //    CAN_trans.canid_ID_enableGet=1;	 
-     //} 	
     App_mq_SendTimer(); 
      //------------------------------------------	
       OneSec_CounterApp++;
      if(OneSec_CounterApp>=10)	 
 	{
-           /*   if(CAN_trans.can1_trans_dur>0) 
-              {
-                 if((OneSec_CounterApp%5)==0)  
-                       CAN_trans.can1_enable_get=1;   
-              } 
-*/
              OneSec_CounterApp=0; 
 	     //---------------------------------- 	
 	        if(DataLink_Status())
@@ -552,6 +541,7 @@ void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 	  Recode_Obj.RSD_Timer=0;     //  传状态下的计数器   
 	  Recode_Obj.RSD_Reader=0;    //  重传计数器当前数值 
 	  Recode_Obj.RSD_total=0;     //  重传选项数目    
+	  Recode_Obj.RSD_end=0; // clear 
 
 	if(value==1)
 	{
@@ -680,7 +670,7 @@ static void App808_thread_entry(void* parameter)
            rt_thread_delay(10);
           //  北斗顺序存储上报          
 		  BD_send_Mque_Rx();
-		   rt_thread_delay(2); 
+		   rt_thread_delay(5); 
 		  WatchDog_Feed();
 	}
 }

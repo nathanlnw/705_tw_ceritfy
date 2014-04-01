@@ -1222,12 +1222,12 @@ uint8_t get_08h( uint8_t *pout,u16 packet_in )
 			buf[j * 2 + 6]	= data[j];
 			buf[j * 2 + 7]	= data[60 + j];
 		}
-		memcpy( pout + i * 126, buf, 126 );
+		memcpy( pout + i * 126, buf, 126 ); 
 		
 		count_08++;
 
 		
-		rt_kprintf( "\r\nVDR>08H(%d) 14-%02d-%02d %02d:%02d \r\n", count_08, month_08, day_08, hour_08, min_08 );
+		//rt_kprintf( "\r\nVDR>08H(%d) 14-%02d-%02d %02d:%02d \r\n", count_08, month_08, day_08, hour_08, min_08 );
 		if( min_08 == 0 )
 		{
 			min_08 = 59;
@@ -1282,6 +1282,10 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 	uint8_t			buf[128], data[135];
 	uint8_t			*p = RT_NULL;
 	int				i, j, k;
+	 //  39.906678 =           116.192092   +
+	u32 lati_ini=0x16D5B47,longi_ini=0x427C537;
+	u32 lati=0,longi=0;
+	u8  count=0; 
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1309,6 +1313,7 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 	*p++	= HEX_TO_BCD( 0 );                                  /*miniute*/
 	*p++	= HEX_TO_BCD( 0 );                                  /*sec*/
 
+    count=0;
 	for( i = addr_09; i < addr_09 + ( 60 * 128 ); i += 128 )    /*读出60个分钟数据*/
 	{
 		WatchDog_Feed();
@@ -1329,6 +1334,10 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
                              39度26分=2366分=0x016905E0                               41”03’=0x0177D2F0
                              高度30-40 米
 
+                               1度 <=>  111 公里     0.0001 分 =0.18 米         每秒8个单位是1.44米 即速度是5.2KM/H 
+                                                                                                             每分钟行驶 1.46x60=90米==500   每分钟增加500
+                                                                                                             longi 加 lati不动
+                     
                              这里经纬做一下替换 海拔随机
                            note2:    10个字节的组成   
                                            4 个字节  经度
@@ -1344,27 +1353,38 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 			  
 			}
           #endif  
+             
+
+		  
+		  #if 1
 		     //  longitude
-             *p++ = 0x04;
-		     *p++ = 0x25;
-			 *p++ = data[120 + 3];
-		     *p++ = data[120 + 4]; 
+		    if(packet_in%2)
+		        longi=longi_ini+count*500;  // 每分钟走100米<=>    500 个单位
+		    else
+				longi=longi_ini+(62-count)*500;  
+		     
+             *p++ = (u8)(longi>>24);
+		     *p++ = (u8)(longi>>16);
+			 *p++ =(u8)(longi>>8);
+		     *p++ =(u8)(longi); 
 			   //  lati
-             *p++ = 0x01;
-		     *p++ = 0x71;
-			 *p++ = data[120 + 7];
-		     *p++ = data[120 + 8];
+             *p++ = (u8)(lati_ini>>24);
+		     *p++ = (u8)(lati_ini>>16);
+			 *p++ = (u8)(lati_ini>>8); 
+		     *p++ = (u8)(lati_ini);
 		        //  Height
              *p++ =0x00;
 		     *p++ =30+(rt_tick_get()%5); 
-			 //----------------------------------------------------------------------------
-			*p++ = data[j];                                     /*速度*/
+		   #endif	 
+			 //---------------------------------------------------------------------------- 
+			*p++ =5+(rt_tick_get()%10);// data[j];                                     /*速度*/
 		}
 		else
 		{
 			memcpy( p, "\x7F\xFF\xFF\xFF\x7F\xFF\xFF\xFF\x00\x00\x00", 11 );
 			p += 11;
 		}
+		count++;
 	}
 	rt_kprintf( "\r\nVDR>09H(%d) 14-%02d-%02d %02d \r\n", count_09, month_09, day_09, hour_09 );
 
@@ -1419,23 +1439,23 @@ uint8_t get_10h( uint8_t *pout )
 	}
 		WatchDog_Feed();
 	SST25V_BufferRead( buf, addr_10, 234 );
-	//--------------------------------------------------
+	//-------------------------------------------------- 
 	// 年月替换一下	 14 年2 月份
 	buf[0]=0x14;  
-	buf[1]=0x02; 
+	buf[1]=0x03;  
 
     //  状态线有变化
-    for(i=0;i<60;i=i+2)
-       buf[25+i]= buf[25+i]&(rt_tick_get()%5);  
+    for(i=0;i<80;i=i+2)
+       buf[25+i]= buf[25+i]&(rt_tick_get()%7);   
 
 
 
 	// 替换经纬度
 	buf[224]=0x04;  // longi
-	buf[225]=0x25; 
+	buf[225]=0x28; 
 
 	buf[228]=0x01;  //lati
-	buf[229]=0x71; 
+	buf[229]=0x6D; 
 
 	buf[232]=0x00;  // height
 	buf[233]=30+(rt_tick_get()%5);  
@@ -1444,7 +1464,7 @@ uint8_t get_10h( uint8_t *pout )
 	addr_10 += 256;
 
 #ifdef  DBG_VDR
-	rt_kprintf( "\r\nVDR>10H" );
+	rt_kprintf( "\r\nVDR>10H" ); 
 	p = pout;
 	for( i = 0; i < 234; i++ )
 	{
@@ -1465,12 +1485,17 @@ FINSH_FUNCTION_EXPORT( get_10h, get_10 );
    50Bytes   100条
  */
 
-uint8_t get_11h( uint8_t *pout )
+uint8_t get_11h( uint8_t *pout,u16 packet_in ) 
 {
+	static uint8_t	month_11 = 2, day_11_const = 27; // 起始日期	
+	u32  minute_total=0;
 	static uint32_t addr_11 = VDR_11H_START;
 	uint8_t			buf[64];
 	uint8_t			*p = RT_NULL;
-	uint32_t		i, j;
+	uint32_t		i, j;	
+	uint8_t day_11, hour_11 = 0, min_11 = 0;
+	u8  value_reg=0;
+
 
 #ifdef DBG_VDR
 	pout = testbuf;
@@ -1485,22 +1510,50 @@ uint8_t get_11h( uint8_t *pout )
 	for( j = 0; j < 1; j++ )
 	{
 		SST25V_BufferRead( buf, addr_11, 50 );
-		//--------------------------------------------------
+		//-------------------------------------------------- 
 	// 年月替换一下	 14 年2 月份
+	/*
+	        
+
+             
+	*/
 	//开始时间年月
 	buf[18]=0x14;   
-	buf[19]=0x02; 
+	buf[19]=0x02; //month
+
+	minute_total=day_11_const*24*60-(packet_in)*241-packet_in*30;  //	  2-28	00:00   241+30= 
+
+	min_11=minute_total%60;// 分钟
+	day_11=minute_total/1440;//  天 每天1440 分钟
+	hour_11=(minute_total-day_11*1440)/60; // 小时
+
+	buf[20]= HEX_TO_BCD(day_11);// day
+	buf[21]= HEX_TO_BCD(hour_11);// hour
+	buf[22]= HEX_TO_BCD(min_11);// min
+
+	//                         
     // 结束时间年月
 	buf[24]=0x14;  
-	buf[25]=0x02; 
+    buf[25]=0x02;
+    
+	minute_total=minute_total+241; 
+
+	
+	min_11=minute_total%60;// 分钟
+	day_11=minute_total/1440;//  天 每天1440 分钟
+	hour_11=(minute_total-day_11*1440)/60; // 小时
+
+	buf[26]= HEX_TO_BCD(day_11);// day
+	buf[27]= HEX_TO_BCD(hour_11);// hour
+	buf[28]= HEX_TO_BCD(min_11);// min
 
 	// 开始longi
     buf[30]=0x04;  
-	buf[31]=0x25; 
+	buf[31]=0x27; 
 
 	// 开始 laiti
     buf[34]=0x01;  
-	buf[35]=0x71; 
+	buf[35]=0x6D; 
 
 	//  开始高程
     buf[38]=0x00;
@@ -1508,11 +1561,11 @@ uint8_t get_11h( uint8_t *pout )
 
 	// 结束longi
     buf[40]=0x04;  
-	buf[41]=0x25; 
+	buf[41]=0x27; 
 
 	// 结束 laiti
 	buf[44]=0x01;  
-    buf[45]=0x71;
+    buf[45]=0x6D;
 
 	//  结束高程
 	buf[48]=0x00;
@@ -1556,7 +1609,7 @@ uint8_t get_12h( uint8_t *pout )
 	static uint32_t addr_12 = VDR_12H_START;
 	uint8_t			buf[26];
 	uint8_t			*p;
-	uint32_t		i, j;
+	uint32_t		i, j; 
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1605,6 +1658,7 @@ uint8_t get_13h( uint8_t *pout )
 	uint8_t			buf[8];
 	uint8_t			*p;
 	uint32_t		i, j;
+	u8  day=0;
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1621,13 +1675,22 @@ uint8_t get_13h( uint8_t *pout )
 		//--------------------------------------------------
 	// 年月替换一下	 14 年2 月份
 	buf[0]=0x14;  
-	buf[1]=0x02; 
+	if(j<13)	
+	  buf[1]=0x03;
+	else
+	{ 
+	    buf[1]=0x02;	 
+	 	day=(buf[2]>>4)*10+(buf[2]&0x0F); 
+	 	if(day>=5)
+	 		day=day-2;
+	 	buf[2]=HEX_TO_BCD(day);
+	}
 	//--------------------------------------------------
 		memcpy( p + j * 7, buf, 7 );
 
 		addr_13 += 8;
 	}
-#if 1
+#if 0
 	rt_kprintf( "\r\nVDR>13H @0x%08x\r\n", addr_13 );
 	p = pout;
 	for( i = 0; i < 700; i++ )
@@ -1654,6 +1717,7 @@ uint8_t get_14h( uint8_t *pout )
 	uint8_t			buf[8];
 	uint8_t			*p;
 	uint32_t		i, j;
+	u8 day=0;
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1670,6 +1734,9 @@ uint8_t get_14h( uint8_t *pout )
 	// 年月替换一下	 14 年2 月份
 	buf[0]=0x14;  
 	buf[1]=0x02; 
+	day=(buf[2]>>4)*10+(buf[2]&0x0F);
+	day=day+12;
+	buf[2]=HEX_TO_BCD(day); 
 	//--------------------------------------------------
 		memcpy( p + j * 7, buf, 7 );
 		addr_14 += 8;
@@ -1698,13 +1765,14 @@ FINSH_FUNCTION_EXPORT( get_14h, get_14 );
    133Byte
    共10个
  */
-uint8_t get_15h( uint8_t *pout ,u16 packet_in )
+uint8_t get_15h( uint8_t *pout ,u16 packet_in ) 
 {
 	static uint32_t addr_15 = VDR_15H_START;
 	uint8_t			buf[140];
 	uint8_t			*p;
 	uint32_t		i, j;
-	u8              value_reg=0;
+	u8  value_reg=0;
+	u8  day=0;   
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1725,21 +1793,43 @@ uint8_t get_15h( uint8_t *pout ,u16 packet_in )
 	    
 	    
 	buf[1]=0x14;   // 开始时间
-	buf[2]=0x02; 
+   if(packet_in<=4)	
+	  buf[2]=0x03;
+	else
+	{ 
+	    buf[2]=0x02;	 
+	 	day=(buf[3]>>4)*10+(buf[3]&0x0F); 
+	 	if(day>=5)
+	 		day=day-2;
+	 	buf[3]=HEX_TO_BCD(day);
+	}
+	
      // 判断分钟
         value_reg=((buf[5]>>4)*10)+(buf[5]&0x0F);
 	    if(value_reg>=55)
 		{
 		   value_reg=value_reg-5;
-		   buf[5]=((value_reg/10)<<4)+(value_reg%10); 
+		   buf[5]=((value_reg/10)<<4)+(value_reg%10);  
 	    }
 
 	buf[7]=0x14;   // 结束时间
-	buf[8]=0x02;  
+	buf[8]=buf[2];  
+	buf[9]=buf[3]; 
 
     value_reg=value_reg+5;
-	buf[11]=((value_reg/10)<<4)+(value_reg%10);// 5 分钟 
+	buf[11]=((value_reg/10)<<4)+(value_reg%10);// 5 分钟  
 	//--------------------------------------------------
+     value_reg=13; // 第一个速度字段
+
+	 for(j=0;j<60;j++)  // 速度要大于40
+	 	{
+	 	  if(buf[value_reg]<40)		 	
+	 	     buf[value_reg]=40+(rt_tick_get()%4);     
+		  value_reg++;
+		  buf[value_reg++]=40;
+	 	}
+     //  
+	
 		memcpy( p + i * 133, buf, 133 );
 
 #ifdef  DBG_VDR

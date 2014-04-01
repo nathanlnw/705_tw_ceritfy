@@ -506,7 +506,8 @@ typedef struct  _RECODER
                       // 3:   表示收到列表重传但先不传
   u8   RSD_Timer;     //  传状态下的计数器   
   u8   RSD_Reader;    //  重传计数器当前数值 
-  u8   RSD_total;     //  重传选项数目   
+  u8   RSD_total;     //  重传选项数目     
+  u8   RSD_end;  // 重传列表项目为 0  标志位， 再下发列表就不处理了
    
   u16	Media_ReSdList[256]; //  多媒体重传消息列表 
 

@@ -1058,7 +1058,7 @@ static void rt_thread_entry_gps( void* parameter )
 				}
 			} 
 		}
-		rt_thread_delay(6 ); 
+		rt_thread_delay(7); 
 	}
 }
 

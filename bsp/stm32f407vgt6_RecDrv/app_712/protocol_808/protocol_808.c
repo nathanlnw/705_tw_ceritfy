@@ -612,10 +612,14 @@ u8  Do_SendGPSReport_GPRS( void )
 		if( GNSS_rawdata.save_status & ( 1 << GNSS_rawdata.rd_num ) )   // 检查当前rd   数值状态
 		{
 			str_len = strlen( GNSS_rawdata.Raw[GNSS_rawdata.rd_num] );
-			// for(count=0;count<str_len;count++)
-			// rt_kprintf("%c",GNSS_rawdata.Raw[GNSS_rawdata.rd_num][count]);
+			/*
+			rt_kprintf("\r\n ----------Rx info--------------\r\n");
+			 for(count=0;count<str_len;count++)
+			   rt_kprintf("%c",GNSS_rawdata.Raw[GNSS_rawdata.rd_num][count]); 
+			 rt_kprintf("\r\n ----------Rx info end--------------\r\n");
 			Stuff_GNSSRawData_0900H( GNSS_rawdata.Raw[GNSS_rawdata.rd_num], str_len );
 			//---------------------------
+			*/
 			GNSS_rawdata.rd_num++;
 			if( GNSS_rawdata.rd_num > 3 )
 			{
@@ -833,14 +837,16 @@ u8  Do_SendGPSReport_GPRS( void )
 
             if( Recode_Obj.RSD_Reader == Recode_Obj.RSD_total )
 			{
-				Recorder_init(0); //  置位等待状态，等待着中心再发重传指令
+				Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
 				rt_kprintf( "\r\n 记录仪列表重传结束!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
-                if(Recode_Obj.Transmit_running==1)
-                	{
-                	  Rcorder_Recover(); 
-                      rt_kprintf( "\r\n 顺序执行尚未完成  current=%d  total=%d\r\n",Recode_Obj.Current_pkt_num,Recode_Obj.Total_pkt_num);
-					  return true;
-                	}
+                /*
+                          if(Recode_Obj.Transmit_running==1)
+	                	{
+	                	  Rcorder_Recover(); 
+	                      rt_kprintf( "\r\n 顺序执行尚未完成  current=%d  total=%d\r\n",Recode_Obj.Current_pkt_num,Recode_Obj.Total_pkt_num);
+						  return true;
+	                	}
+				*/
 			}			
 			Recode_Obj.SD_Data_Flag=0;// clear   
 			return true;
@@ -5019,18 +5025,19 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
 				Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
 				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // 命令字
+		    }
+				
 				Swr									= Original_info_Wr;
 
 				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
 				Original_info[Original_info_Wr++]	= 0x7A;
 				Original_info[Original_info_Wr++]	= 0x08;                     //命令字
 
-				SregLen								= 65535;//504;//630;                      // 信息长度       630
+				SregLen								= 504;//504;//630;                      // 信息长度       630
 				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi
 				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
 
 				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
 			//	信息内容
 			//WatchDog_Feed( );
 			get_08h( Original_info + Original_info_Wr,Recode_Obj.Current_pkt_num);                        //126*5=630        num=576  packet
@@ -5044,13 +5051,14 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
 				Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
 				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // 命令字
+			}
 				Swr									= Original_info_Wr;
 				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
 				Original_info[Original_info_Wr++]	= 0x7A;
 
 				Original_info[Original_info_Wr++] = 0x09;                       //命令字
 
-				SregLen								= 65535;//666 ;                  // 信息长度
+				SregLen								= 666;//666 ;                  // 信息长度
 				Original_info[Original_info_Wr++]	= SregLen >> 8;             // Hi      666=0x29A
 				Original_info[Original_info_Wr++]	= SregLen;                  // Lo
 
@@ -5058,9 +5066,9 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				//Original_info[Original_info_Wr++]=0;	   // Lo
 
 				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
 			//	信息内容
-			//WatchDog_Feed( );
+			//WatchDog_Feed( ); 
+		#if 0	
 			if(Recode_Obj.Current_pkt_num%2) 
 			{    
 			  get_09h(_700H_buffer,Recode_Obj.Current_pkt_num);
@@ -5070,6 +5078,9 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
                memcpy(Original_info + Original_info_Wr,_700H_buffer+333,333); 
 			
 			Original_info_Wr += 333;
+	  #endif
+	        get_09h( Original_info + Original_info_Wr,Recode_Obj.Current_pkt_num); 			
+			Original_info_Wr += 666; 
 			break;
 		case   0x10:                                                            // 10-13     10   事故疑点采集记录
 			//事故疑点数据
@@ -5078,6 +5089,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
 				Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
 				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // 命令字
+			}		
 				Swr									= Original_info_Wr;
 
 				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
@@ -5085,12 +5097,12 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 				Original_info[Original_info_Wr++] = 0x10;                       //命令字
 
-				SregLen								= 234 * 100;                //0		 // 信息长度
+				SregLen								= 234;                //0		 // 信息长度
 				Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );     // Hi
 				Original_info[Original_info_Wr++]	= (u8)SregLen;              // Lo
 
 				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
+			
 			//------- 信息内容 ------
 			//WatchDog_Feed( );
 			delay_ms( 3 );
@@ -5105,6 +5117,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
 				Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
 				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // 命令字
+			}
 				Swr									= Original_info_Wr;
 
 				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
@@ -5112,19 +5125,18 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 				Original_info[Original_info_Wr++] = 0x11;                       //命令字
 
-				SregLen								= 500 * 10;                 // 信息长度
+				SregLen								= 50;                 // 信息长度
 				Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );     // Hi
 				Original_info[Original_info_Wr++]	= (u8)SregLen;              // Lo    65x7
 
 				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
 
 
 			/*
 			       每条 50 bytes  ，100 条    获取的是每10 条打一包  500 packet    Totalnum=10
 			 */
 			 WatchDog_Feed( );
-			get_11h( Original_info + Original_info_Wr );                        //50  packetsize      num=100
+			get_11h( Original_info + Original_info_Wr,Recode_Obj.Current_pkt_num); 		                       //50  packetsize      num=100
 			Original_info_Wr += 50;
 			break;
 		case  0x12:                                                             // 12 采集指定驾驶人身份记录  ---Devide
@@ -5133,6 +5145,8 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 				Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
 				Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
 				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // 命令字
+
+			}
 				Swr									= Original_info_Wr;
 
 				Original_info[Original_info_Wr++]	= 0x55;                     // 起始头
@@ -5140,12 +5154,11 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 
 				Original_info[Original_info_Wr++] = 0x12;                       //命令字
 
-				SregLen								= 50 * 100;                 // 信息长度
+				SregLen								= 500;                 // 信息长度
 				Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 );     // Hi
 				Original_info[Original_info_Wr++]	= (u8)SregLen;              // Lo    65x7
 
 				Original_info[Original_info_Wr++] = 0x00;                       // 保留字
-			}
 			//------- 信息内容 ------
 
 
@@ -5200,7 +5213,6 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			Original_info[Original_info_Wr++] = 0x00;                   // 保留字
 			//------- 信息内容 ------
 
-
 			/*
 			       每条 7 个字节   100 条    1个完整包
 			 */
@@ -5210,24 +5222,24 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			break;
 
 		case     0x15:                                                      // 15 采集指定的速度状态日志     --------Divde
-			//if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
-			if( ( Recode_Obj.Current_pkt_num == 1 ) )
+			if( ( PaketType == Packet_Divide ) && ( Recode_Obj.Current_pkt_num == 1 ) )
 			{
 				Original_info[Original_info_Wr++]	= (u8)( Recode_Obj.Float_ID >> 8 );
 				Original_info[Original_info_Wr++]	= (u8)Recode_Obj.Float_ID;
 				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // 命令字
+			}
+			
 				Swr									= Original_info_Wr;
 				Original_info[Original_info_Wr++]	= 0x55;                 // 起始头
 				Original_info[Original_info_Wr++]	= 0x7A;
 
 				Original_info[Original_info_Wr++] = 0x15;                   //命令字
 
-				SregLen								= 133 * 10;             // 信息长度
+				SregLen								= 133 ;             // 信息长度
 				Original_info[Original_info_Wr++]	= (u8)( SregLen >> 8 ); // Hi
 				Original_info[Original_info_Wr++]	= (u8)SregLen;          // Lo    65x7
 
 				Original_info[Original_info_Wr++] = 0x00;                   // 保留字
-			}
 
 
 			/*
@@ -5246,16 +5258,16 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 	{
 		Sfcs ^= Original_info[i];
 	}
-	//Original_info[Original_info_Wr++] = Sfcs;               // 填写FCS
+	Original_info[Original_info_Wr++] = Sfcs;               // 填写FCS 
 
 /*bitter:最后一包发送fcs*/
-#if 1
+#if 0
 	if( PaketType == Packet_Divide )
 	{
 		Recode_Obj.fcs ^= Sfcs;
 		if( Recode_Obj.Current_pkt_num == Recode_Obj.Total_pkt_num )
 		{
-			Original_info[Original_info_Wr++] = Recode_Obj.fcs; // 填写FCS
+			Original_info[Original_info_Wr++] =Sfcs ;//Recode_Obj.fcs; // 填写FCS
 		}
 	}else
 	{
@@ -9264,6 +9276,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			 */
 			rt_kprintf( "\r\n  记录仪采集命令 \r\n" );
 			Recode_Obj.Float_ID = Centre_FloatID;
+			
+			Recode_Obj.RSD_end=0;// clear
 			//Recode_Obj.CMD=UDP_HEX_Rx[13];
 			//    Stuff  Hardly
 			switch( UDP_HEX_Rx[13] )
@@ -9297,8 +9311,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					MediaObj.Media_Type		= 3; //行驶记录仪 只是利用类型填充ID 时候有用
 					break;
 
-				case  0x09:  Recode_Obj.Total_pkt_num	= 720;
-					Recode_Obj.Current_pkt_num			= 0; //0
+				case  0x09:  Recode_Obj.Total_pkt_num	= 360;  //333----720    666--360
+					Recode_Obj.Current_pkt_num			= 1; //0
 					Recode_Obj.Devide_Flag				= 1;
 					Recode_Obj.Bak_current_num=0;
 					Recode_Obj.Transmit_running=1;  // enable transmit
@@ -9863,12 +9877,24 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 
 				  if(0==devide_value)
 				  	{  // 记录仪分包处理
+				  		//   获取重传列表
+						if( Recode_Obj.RSD_end==1)
+						 {
+						    rt_kprintf( "\r\n 之前列表项为0  ，现在不予处理了。\r\n" );
+							Recorder_init(1);// clear all state
+							break;
+						 }	
+						
+				  	if(Recode_Obj.CountStep)
 				       	Recode_Obj.RSD_State	= 3;                //   进入重传状态
+				    else
+                        Recode_Obj.RSD_State	= 1;                //   进入重传状态
+					
 						Recode_Obj.RSD_Timer	= 0;                //   清除重传定时器
 						Recode_Obj.RSD_Reader = 0;
 						Recode_Obj.RSD_total	= UDP_HEX_Rx[15];   // 重传包总数
 
-						//   获取重传列表
+					
 						j = 0;
 						for( i = 0; i < Recode_Obj.RSD_total; i++ )
 						{
@@ -9882,7 +9908,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 							}
 							rt_kprintf( "\r\n" );
 
-
+                         if(Recode_Obj.RSD_total==0)
+						 	  Recode_Obj.RSD_end=1;//enable
 				  	}
                    else
 		            {  //  多媒体分包  

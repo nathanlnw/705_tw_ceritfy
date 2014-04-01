@@ -56,7 +56,7 @@ flash char  CommAT_Str15[]="AT+CMGD=1,4\r\n";
 
 //    2.   通信模块登陆数据链路相关命令
 flash char       DialInit1[]                          = "AT+CGATT=1\r\n"; 
-flash char	DialInit2[]				=	"AT+CGACT=1,1\r\n";	
+flash char	DialInit2[]				=	"AT\r\n";//"AT+CGACT=1,1\r\n";	
 flash char	DialInit3[]				=	"AT+CGPADDR=1\r\n";	  
 flash char	DialInit4[] 			       =	"AT\r\n";  // 查看当前IP   
 char	Dialinit_DNSR[50] 			=	"AT+QIDNSGIP=\"";     //  域名 up.gps960.com
