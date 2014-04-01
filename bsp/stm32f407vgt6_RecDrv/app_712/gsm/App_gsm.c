@@ -329,7 +329,8 @@ static void gsm_thread_entry(void* parameter)
               GSM_Module_TotalInitial();  
             // 3. Receivce & Process   Communication  Module   data ----
 	       GSM_Buffer_Read_Process(); 
-	           
+
+			  rt_thread_delay(5);  	   
              if(!SMS_send_stateQuery())
              	{
 		       DataLink_Process();		
@@ -343,6 +344,7 @@ static void gsm_thread_entry(void* parameter)
 				     { 
 				          linkNum=gsm_rx_app_infoStruct.link_num;  // IC  link  ==1  
 				          rt_device_write(&Device_GSM, linkNum,( const void *)GPRS_info,(rt_size_t) GPRS_infoWr_Tx); 
+						  WatchDog_Feed();
 				    }		  
 				    Send_DataFlag=0;          
 		

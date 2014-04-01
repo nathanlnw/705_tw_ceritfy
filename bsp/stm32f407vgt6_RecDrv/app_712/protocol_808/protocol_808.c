@@ -9882,6 +9882,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 						 {
 						    rt_kprintf( "\r\n 之前列表项为0  ，现在不予处理了。\r\n" );
 							Recorder_init(1);// clear all state
+							Recode_Obj.RSD_end=1; 
 							break;
 						 }	
 						
