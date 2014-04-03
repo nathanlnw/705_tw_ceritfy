@@ -1292,7 +1292,7 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 	p = pout;
 
      
-	 count_09=packet_in/2+1; // 每组起始
+	 count_09=packet_in; // 每组起始 
    //  将初始日期转换成小时
      hour_total=day_09_const*24+hour_09_const-count_09; 
  
@@ -1359,16 +1359,16 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 		  #if 1
 		     //  longitude
 		    if(packet_in%2)
-		        longi=longi_ini+count*500;  // 每分钟走100米<=>    500 个单位
+		        longi=longi_ini+count*6000;  // 每分钟走100米<=>    500 个单位
 		    else
-				longi=longi_ini+(62-count)*500;  
+				longi=longi_ini+(62-count)*6000;   
 		     
              *p++ = (u8)(longi>>24);
 		     *p++ = (u8)(longi>>16);
 			 *p++ =(u8)(longi>>8);
 		     *p++ =(u8)(longi); 
 			   //  lati
-             *p++ = (u8)(lati_ini>>24);
+             *p++ = (u8)(lati_ini>>24); 
 		     *p++ = (u8)(lati_ini>>16);
 			 *p++ = (u8)(lati_ini>>8); 
 		     *p++ = (u8)(lati_ini);
@@ -1453,9 +1453,11 @@ uint8_t get_10h( uint8_t *pout )
 	// 替换经纬度
 	buf[224]=0x04;  // longi
 	buf[225]=0x28; 
+	buf[226]=buf[226]+(rt_tick_get()%3)*3;
 
 	buf[228]=0x01;  //lati
 	buf[229]=0x6D; 
+	buf[230]=buf[230]+3*(rt_tick_get()%5); 
 
 	buf[232]=0x00;  // height
 	buf[233]=30+(rt_tick_get()%5);  
@@ -1604,12 +1606,18 @@ FINSH_FUNCTION_EXPORT( get_11h, get_11 );
    25Bytes   200条
  */
 
-uint8_t get_12h( uint8_t *pout )
+uint8_t get_12h( uint8_t *pout, u16 packet_in ) 
 {
+    
+	static uint8_t	month_11 = 2, day_11_const = 26; // 起始日期		
+	u32  minute_total=0,reg_min=0;
 	static uint32_t addr_12 = VDR_12H_START;
 	uint8_t			buf[26];
 	uint8_t			*p;
 	uint32_t		i, j; 
+	
+	uint8_t day_12, hour_12 = 0, min_12 = 0;
+	u8  value_reg=0;
 #ifdef DBG_VDR
 	pout = testbuf;
 #endif
@@ -1620,14 +1628,26 @@ uint8_t get_12h( uint8_t *pout )
 		addr_12 = VDR_12H_START;
 	}
 
+    reg_min=day_11_const*24*60-(packet_in-1)*2401; 
 	for( j = 0; j < 20; j++ )
 	{
 		WatchDog_Feed();
 		SST25V_BufferRead( buf, addr_12, 25 );
 		//--------------------------------------------------
 	// 年月替换一下	 14 年2 月份
-	buf[0]=0x14;  
-	buf[1]=0x02; 
+
+	buf[0]=0x14;   
+	buf[1]=0x02; //month
+
+	minute_total=reg_min-(j)*120;  //	  每2小时一条   
+
+	min_12=minute_total%60;// 分钟
+	day_12=minute_total/1440;//  天 每天1440 分钟
+	hour_12=(minute_total-day_12*1440)/60; // 小时 
+
+	buf[2]= HEX_TO_BCD(day_12);// day
+	buf[3]= HEX_TO_BCD(hour_12);// hour
+	buf[4]= HEX_TO_BCD(min_12);// min
 	//--------------------------------------------------
 		memcpy( p + j * 25, buf, 25 );
 		addr_12 += 32;

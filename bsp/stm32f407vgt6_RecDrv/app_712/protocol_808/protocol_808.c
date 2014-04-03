@@ -837,7 +837,17 @@ u8  Do_SendGPSReport_GPRS( void )
 
             if( Recode_Obj.RSD_Reader == Recode_Obj.RSD_total )
 			{
-				Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
+			   if( Recode_Obj.RSD_end==1)
+				{ 				
+				   Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
+				   Recode_Obj.RSD_end=1;
+				   rt_kprintf( "\r\n 之前收到过列表重传为0 \r\n ");
+			   	}
+			   else
+			   	{
+				  Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
+			   	}  
+				
 				rt_kprintf( "\r\n 记录仪列表重传结束!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
                 /*
                           if(Recode_Obj.Transmit_running==1)
@@ -5166,7 +5176,7 @@ u8  Stuff_RecoderACK_0700H( u8 PaketType )  //   行车记录仪数据上传
 			        驾驶员身份登录记录  每条25 bytes      200条      20条一包 500 packetsize  totalnum=10
 			 */
 			 WatchDog_Feed( );
-			get_12h( Original_info + Original_info_Wr );
+			get_12h( Original_info + Original_info_Wr,Recode_Obj.Current_pkt_num); 
 			Original_info_Wr += 500;
 			break;
 		case  0x13:                                                     // 13 采集记录仪外部供电记录
@@ -7470,7 +7480,11 @@ void Media_RSdMode_Timer( void )
 		Recode_Obj.RSD_Timer++;
 		if( Recode_Obj.RSD_Timer > 140 )  //   如果状态一直在等待且超过30s择清除状态
 		{
+		  if( Recode_Obj.RSD_end==1)
+		  { 	
 		   Recorder_init(0);
+		   Recode_Obj.RSD_end=1;
+		  } 
            rt_kprintf( "\r\n 记录仪信息重传超时结束! \r\n" );
 	       if(Recode_Obj.Transmit_running==1)
         	{
@@ -9885,6 +9899,13 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 							Recode_Obj.RSD_end=1; 
 							break;
 						 }	
+                         if(Recode_Obj.RSD_State)
+                         {
+                             rt_kprintf( "\r\n 列表重传，尚未执行完成，暂不接收新的\r\n" ); 
+                             break;
+                          }
+ 
+
 						
 				  	if(Recode_Obj.CountStep)
 				       	Recode_Obj.RSD_State	= 3;                //   进入重传状态

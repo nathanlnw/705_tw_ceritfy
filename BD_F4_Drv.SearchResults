@@ -1,2 +1,5 @@
----- 0x8003 Matches (1 in 1 files) ----
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		case  0x8003:                                //    补传分包请求
+---- count_09 Matches (4 in 1 files) ----
+Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):	static uint32_t count_09	= 0;
+Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):	 count_09=packet_in/2+1; // 每组起始
+Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):     hour_total=day_09_const*24+hour_09_const-count_09; 
+Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):	rt_kprintf( "\r\nVDR>09H(%d) 14-%02d-%02d %02d \r\n", count_09, month_09, day_09, hour_09 );
