@@ -1,5 +1,17 @@
----- count_09 Matches (4 in 1 files) ----
-Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):	static uint32_t count_09	= 0;
-Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):	 count_09=packet_in/2+1; // 每组起始
-Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):     hour_total=day_09_const*24+hour_09_const-count_09; 
-Vdr.c (bsp\stm32f407vgt6_recdrv\app_712\drvdata):	rt_kprintf( "\r\nVDR>09H(%d) 14-%02d-%02d %02d \r\n", count_09, month_09, day_09, hour_09 );
+---- RouteRail_Judge Matches (17 in 2 files) ----
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void RouteRail_Judge( u8* LatiStr, u8* LongiStr );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		RouteRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void RouteRail_Judge( u8* LatiStr, u8* LongiStr )
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR>[Called By]<UL><LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 324<LI>Call Chain = GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 556<LI>Call Chain = GPS_Rx_Process &rArr; Process_RMC &rArr; GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 380<LI>Call Chain = Process_RMC &rArr; GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<P><STRONG><a name="[2fb]"></a>RouteRail_Judge</STRONG> (Thumb, 354 bytes, Stack size 72 bytes, protocol_808.o(i.RouteRail_Judge))
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 308<LI>Call Chain = RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
+Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 556<LI>Call Chain = rt_thread_entry_gps &rArr; GPS_Rx_Process &rArr; Process_RMC &rArr; GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number

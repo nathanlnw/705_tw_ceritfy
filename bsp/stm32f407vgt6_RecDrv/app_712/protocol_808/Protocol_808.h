@@ -861,6 +861,7 @@ typedef struct _POINT                               //  name:  turn_point
   u8   KeepDur;         //  超速持续时间  
 }POINT; 
 //----------  路线设置  -------
+#define   ROUTE_POINTS_NUM        20
 typedef  struct _ROUTE                              // name: route_line
 {
  //--------------------------
@@ -870,7 +871,7 @@ typedef  struct _ROUTE                              // name: route_line
   u8   Effective_flag;  //  有效状态
   u8   StartTimeBCD[6]; //  开始时间
   u8   EndTimeBCD[6];   //  结束时间
-  POINT RoutePoints[3];  //  拐点信息 
+  POINT RoutePoints[ROUTE_POINTS_NUM];  //  拐点信息 
  //--------------------------
 }ROUTE;
 
@@ -1464,7 +1465,6 @@ extern void  open_com(u8 *intstr);
 extern void  Exact_Test_time(void);      
 extern u8    Reg_save_gps(u8 *instr); 
 extern void  App_mq_Read_Process(void); 
-extern  void  RouteLineWarn_judge(u8* LatiStr,u8* LongiStr);   
 extern  void  App_mq_NoAck_counter(void);  
 extern  u8    App_mq_Resend(void);     // 启动Queue 重发
 extern  void  App_mq_SendTimer(void);

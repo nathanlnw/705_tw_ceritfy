@@ -16,6 +16,8 @@
 #include  <stdlib.h>
 #include  <stdarg.h>
 #include "App_moduleConfig.h" 
+#include "math.h"
+
 
 
 #define GSM_GPIO			GPIOC
@@ -1165,7 +1167,6 @@ void  Data_Send(u8* DataStr, u16  Datalen,u8  Link_Num)
 
       if(DispContent==2)
 	    OutPrint_HEX("GsmSend",DataStr,GPRS_infoWr_Tx);   
-	 
 	 rt_hw_gsm_output_Data(DataStr,GPRS_infoWr_Tx);	 
 	// rt_hw_gsm_putc (0x1A);  
 	 WatchDog_Feed();
@@ -1267,6 +1268,7 @@ void  ISP_Timer(void)
  
 u8  GPRS_GSM_PowerON(void)
 {	
+    
 	/*
               EM310开关机流程
               powerkey 拉低 50ms 开机  然后再拉低50ms关机
@@ -1323,6 +1325,7 @@ u8  GPRS_GSM_PowerON(void)
 			    GPIO_ResetBits(GPIOD,GPRS_GSM_Power);    // 关电
 			    GPIO_ResetBits(GPIOD,GPRS_GSM_PWKEY);      //  PWK 低 
 			    rt_kprintf(" step 1\r\n");   
+
 			 }	
 			 if((GSM_PWR.GSM_powerCounter>=300)&&(GSM_PWR.GSM_powerCounter<400))
 			 {
@@ -2381,6 +2384,13 @@ void Rx_in(u8* instr)
            OutPrint_HEX("模拟1", GSM_HEX, GSM_HEX_len); 
 
 	 }
+	  else
+	  if(strncmp(instr,"line",4)==0)	
+	  	{
+		  Get_GSM_HexData("7E8606013401360206900294D7000000640033130101100303150101102447001000000010000000100260887F06EA05051E000000000F0000000F0260C92806EA05051E000000000E0000000E026109D106EA05051E000000000D0000000D02614A7906EA05051E000000000C0000000C02618B2206EA050A1E000000000B0000000B0261CBCB06EA05051E000000000A0000000A0261D83706EA05041E0000000009000000090261E4A206EA05041E0000000008000000080261F10E06EA05021E0000000007000000070261FD7906EA050A1E000000000600000006026209E506EA05001E000000000500000005026219EA06EA05001E000000000400000004026229F006EA05051E000000000300000003026239F006EA05001E000000000200000002026249FB06EA05051E00000000010000000102625A0006EA05001E00137E",646,0);
+		  OutPrint_HEX("模拟2", GSM_HEX, GSM_HEX_len); 
+
+	  	}
         else
       	{
 		     inlen=strlen((const char*)instr);

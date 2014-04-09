@@ -24,6 +24,20 @@
 #define   BLIND_NUM        10100  
 #define   MQ_PKNUM 20
 
+
+//  Nathan     线路计算相关
+#define   Radius_of_Earth   6371    //  平均半径长度  6371 Km     赤道半径6378.2   极半径 6356.8
+#define   PI_lnw            3.141592653589793238462643
+#define   Dis_per_degree    111.3    //   赤道上或(1 纬度) 的 距离 111.3 KM 
+
+#define   Out_Segment           2      //    没有在当前线段内
+#define   In_line               0      //    在线段内容 
+#define   Out_Line_Enable       1      //    线路偏移触发
+u8      Line_warn_state=0;   // 线路报警状态   0: 内 1: 线路外 
+
+
+
+
 //----   多媒体发送状态 -------
 _Media_SD_state Photo_sdState;      //  图片发送状态
 _Media_SD_state Sound_sdState;      //声音发送
@@ -71,62 +85,6 @@ u8	Latiude_hex[420];
 
 u8  _700H_buffer[700]; 
 
-
-/*
-   //------------------ 定位精度process    --------------------------------------------
-   u16 spd_dex[420]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,17,26,35,
-                  44,53,62,71,80,89,98,107,116,125,134,143,152,161,170,179,188,197,206,
-                  215,224,233,242,252,261,270,279,288,297,306,315,324,333,342,351,360,
-                  369,378,387,396,405,414,423,432,441,450,459,468,477,486,495,504,513,
-                  522,531,540,549,558,567,576,585,594,603,612,621,630,639,648,657,666,
-                  675,684,693,702,711,720,729,738,747,756,765,774,783,792,801,810,819,
-                  828,837,846,855,864,873,882,891,900,909,918,927,936,945,954,963,972,
-                  981,990,999,1008,1017,1026,1035,1044,1053,1062,1071,1080,1080,1080,1080
-                  ,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,1080,
-                  1080,1080,1080,1080,1080,1071,1062,1053,1044,1035,1026,1017,1008,999,990,
-                  981,972,963,954,945,936,927,918,909,900,891,882,873,864,855,846,837,828,819,
-                  810,801,792,783,774,765,756,747,738,729,720,711,702,693,684,675,666,657,648,
-                  639,630,621,612,603,594,585,576,567,558,549,540,531,522,513,504,495,486,477,
-                  468,459,450,441,432,423,414,405,396,387,378,369,360,351,342,333,324,315,306,
-                  297,288,279,270,261,252,243,233,224,215,206,197,188,179,170,161,152,143,134,
-                  125,116,107,98,89,80,71,62,53,44,35,26,17,8};
-   u32 Latiude_hex[420]={0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,
-   0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,
-   0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,
-   0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x2625A00,0x26259FF,0x26259FC,
-   0x26259F6,0x26259EE,0x26259E4,0x26259D8,0x26259C9,0x26259B8,0x26259A5,0x2625990,0x2625978,0x262595E,0x2625942,0x2625924,0x2625903,0x26258E0,0x26258BB,0x2625894,0x262586A,0x262583E,
-   0x2625810,0x26257E0,0x26257AD,0x2625778,0x2625741,0x2625707,0x26256CC,0x262568E,0x262564E,0x262560B,0x26255C7,0x2625580,0x2625537,0x26254EB,0x262549D,0x262544E,0x26253FB,0x26253A7,
-   0x2625350,0x26252F7,0x262529C,0x262523F,0x26251DF,0x262517D,0x2625119,0x26250B3,0x262504A,0x2624FDF,0x2624F72,0x2624F02,0x2624E91,0x2624E1D,0x2624DA6,0x2624D2E,0x2624CB3,0x2624C36,
-   0x2624BB7,0x2624B36,0x2624AB2,0x2624A2C,0x26249A4,0x2624919,0x262488D,0x26247FE,0x262476C,0x26246D9,0x2624643,0x26245AB,0x2624511,0x2624474,0x26243D6,0x2624335,0x2624291,0x26241EC,
-   0x2624144,0x262409A,0x2623FEE,0x2623F3F,0x2623E8F,0x2623DDC,0x2623D26,0x2623C6F,0x2623BB5,0x2623AF9,0x2623A3B,0x262397A,0x26238B8,0x26237F3,0x262372B,0x2623662,0x2623596,0x26234C8,
-   0x26233F8,0x2623325,0x2623250,0x2623179,0x26230A0,0x2622FC5,0x2622EE7,0x2622E07,0x2622D24,0x2622C40,0x2622B59,0x2622A70,0x2622985,0x2622897,0x26227A7,0x26226B5,0x26225C1,0x26224CA,
-   0x26223D2,0x26222D7,0x26221D9,0x26220DA,0x2621FD8,0x2621ED4,0x2621DCD,0x2621CC5,0x2621BBA,0x2621AAD,0x262199F,0x2621891,0x2621782,0x2621674,0x2621566,0x2621458,0x262134A,0x262123B,
-   0x262112D,0x262101F,0x2620F11,0x2620E03,0x2620CF5,0x2620BE6,0x2620AD8,0x26209CA,0x26208BC,0x26207AE,0x262069F,0x2620591,0x2620483,0x2620375,0x2620267,0x2620159,0x262004A,0x261FF3C,
-   0x261FE2E,0x261FD20,0x261FC12,0x261FB03,0x261F9F5,0x261F8E7,0x261F7D9,0x261F6CB,0x261F5BC,0x261F4AE,0x261F3A0,0x261F292,0x261F184,0x261F076,0x261EF67,0x261EE59,0x261ED4B,0x261EC3D,
-   0x261EB2F,0x261EA20,0x261E912,0x261E804,0x261E6F6,0x261E5E8,0x261E4DA,0x261E3CB,0x261E2BD,0x261E1AF,0x261E0A1,0x261DF93,0x261DE84,0x261DD76,0x261DC68,0x261DB5A,0x261DA4C,0x261D93D,
-   0x261D82F,0x261D721,0x261D613,0x261D505,0x261D3F7,0x261D2E8,0x261D1DA,0x261D0CC,0x261CFBE,0x261CEB0,0x261CDA1,0x261CC93,0x261CB85,0x261CA77,0x261C969,0x261C85B,0x261C74C,0x261C63E,
-   0x261C530,0x261C422,0x261C314,0x261C205,0x261C0F7,0x261BFE9,0x261BEDB,0x261BDCD,0x261BCBE,0x261BBB0,0x261BAA2,0x261B994,0x261B886,0x261B778,0x261B669,0x261B55B,0x261B44D,0x261B33F,
-   0x261B231,0x261B122,0x261B014,0x261AF06,0x261ADF8,0x261ACEA,0x261ABDB,0x261AACD,0x261A9BF,0x261A8B1,0x261A7A3,0x261A695,0x261A586,0x261A478,0x261A36A,0x261A25C,0x261A14E,0x261A03F,
-   0x2619F31,0x2619E23,0x2619D15,0x2619C07,0x2619AFA,0x26199EF,0x26198E6,0x26197E0,0x26196DC,0x26195DA,0x26194DA,0x26193DD,0x26192E2,0x26191E9,0x26190F3,0x2618FFE,0x2618F0C,0x2618E1C,
-   0x2618D2F,0x2618C44,0x2618B5B,0x2618A74,0x261898F,0x26188AD,0x26187CD,0x26186EF,0x2618614,0x261853A,0x2618463,0x261838E,0x26182BC,0x26181EC,0x261811E,0x2618052,0x2617F88,0x2617EC1,
-   0x2617DFC,0x2617D39,0x2617C79,0x2617BBA,0x2617AFE,0x2617A45,0x261798D,0x26178D8,0x2617825,0x2617774,0x26176C6,0x2617619,0x261756F,0x26174C8,0x2617422,0x261737F,0x26172DE,0x261723F,
-   0x26171A3,0x2617108,0x2617070,0x2616FDB,0x2616F47,0x2616EB6,0x2616E27,0x2616D9A,0x2616D10,0x2616C88,0x2616C02,0x2616B7E,0x2616AFC,0x2616A7D,0x2616A00,0x2616986,0x261690D,0x2616897,
-   0x2616823,0x26167B1,0x2616742,0x26166D5,0x261666A,0x2616601,0x261659B,0x2616536,0x26164D4,0x2616475,0x2616417,0x26163BC,0x2616363,0x261630D,0x26162B8,0x2616266,0x2616216,0x26161C8,
-   0x261617D,0x2616134,0x26160ED,0x26160A8,0x2616066,0x2616026,0x2615FE8,0x2615FAC,0x2615F73,0x2615F3C,0x2615F07,0x2615ED4,0x2615EA4,0x2615E75,0x2615E4A,0x2615E20,0x2615DF9,0x2615DD3,
-   0x2615DB1,0x2615D90,0x2615D72,0x2615D55,0x2615D3C,0x2615D24,0x2615D0F,0x2615CFB,0x2615CEB,0x2615CDC,0x2615CD0,0x2615CC5,0x2615CBE,0x2615CB8,0x2615CB5};
-
-
-
-
- */
 
 //----------- 行车记录仪相关  -----------------
 Avrg_MintSpeed	Avrgspd_Mint;
@@ -325,9 +283,6 @@ u8   Longi_Get=0;                              //  精度 GGA  接收 过
 
 
 
-
-
-
 u8				A_time[6];                              // 定位时刻的时间
 
 u8				ReadPhotoPageTotal	= 0;
@@ -467,7 +422,7 @@ void Spd_ExpInit( void );
 void AvrgSpd_MintProcess( u8 hour, u8 min, u8 sec );
 
 
-u32 Distance_Point2Line( u32 Cur_Lat, u32 Cur_Longi, u32 P1_Lat, u32 P1_Longi, u32 P2_Lat, u32 P2_Longi );
+u32 outline_judge( u32 Half_width,u32 Cur_Lat, u32 Cur_Longi, u32 P1_Lat, u32 P1_Longi, u32 P2_Lat, u32 P2_Longi );
 
 
 void RouteRail_Judge( u8* LatiStr, u8* LongiStr );
@@ -1825,20 +1780,26 @@ void  GPS_Delta_DurPro( void )  //告GPS 触发上报处理函数
 	//rt_kprintf("\r\n -----判断矩形电子围栏");
 	//    }
 
-	if( line_warn_enable == 1 )
+	
+  //-------------------------------------------------------------------------
+  //   线路判断  
+	if((line_warn_enable==1 )&&(UDP_dataPacket_flag ==0X02))
 	{
-		RouteLineWarn_judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
+	   // rt_kprintf("\r\n -----判断线路\r\n");
+	   /* Temp_Gps_Gprs.Latitude[0]=0x02;
+	    Temp_Gps_Gprs.Latitude[1]=0x60;
+	    Temp_Gps_Gprs.Latitude[2]=0xC9;
+	    Temp_Gps_Gprs.Latitude[3]=0x84;
+	    
+	    Temp_Gps_Gprs.Longitude[0]=0x06;	    
+	   Temp_Gps_Gprs.Longitude[1]=0xEA;
+	   Temp_Gps_Gprs.Longitude[2]=0x05;	   
+	   Temp_Gps_Gprs.Longitude[3]=0x05; 
+	   */
+	    
+		RouteRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
 	}
-
-	/*
-	     if((Temp_Gps_Gprs.Time[2]%3)==0) //     路线判断
-	   {
-	         // printf("\r\n --- 判断圆形电子围栏");
-	          RouteRail_Judge(Temp_Gps_Gprs.Latitude,Temp_Gps_Gprs.Longitude);
-	   }
-	 */
-	//rt_kprintf("\r\n Delta_seconds %d \r\n",delta_time_seconds);
-
+  //------------------------------------------------------------------------
 	
     EverySecond_Time_Get=0; // clear
     Longi_Get=0;
@@ -3898,7 +3859,7 @@ u8  Stuff_Current_Data_0200H( void )   //  发送即时数据不存储到存储器中
 		rt_kprintf( "\r\n ----- 0x0200 current 附加信息 \r\n" );
 	}
 
-	if( Warn_Status[1] & 0x80 )                     // 出 路线报警
+	if( Warn_Status[1]&0x80 )                     // 出 路线报警
 	{
 		//  附加信息 ID
 		Original_info[Original_info_Wr++] = 0x12;   //  进出区域/路线报警
@@ -8193,7 +8154,14 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 						rt_kprintf( "\r\n进出--- 区域----报警清除!\r\n" );
 					}
 
-#ifndef   NEW_8203
+					      if( Warn_Status[1]&0x80 )      //进出路线报警
+					 {
+		                   Warn_Status[1]&=~0x80;
+					       rt_kprintf( "\r\n进出-----路线----报警清除!\r\n");
+					 }  
+                    
+
+              
 					//--------------------------------
 					if( Warn_Status[3] & 0x01 )         //紧急报警
 					{
@@ -8220,14 +8188,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					}
 
 
-					/* if(Warn_Status[1]&0x20)// 进出路线报警
-					                                {
-					                   InOut_Object.TYPE=0;//圆形区域
-					                   InOut_Object.ID=0; //  ID
-					                   InOut_Object.InOutState=0;//  进报警
-					                   Warn_Status[1]&=~0x20;
-					       rt_kprintf( "\r\n进出-----路线----报警清除!\r\n");
-					                                } */
+				
+					
 					if( Warn_Status[1] & 0x40 )         // 路段行驶时间不足、过长
 					{
 						Warn_Status[1] &= ~0x40;
@@ -8249,7 +8211,6 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 					{
 						Warn_Status[0] &= ~0x60;        // 2 个bit    碰撞和侧翻
 					}
-#endif
 					//------------------------------------
 					rt_kprintf( "\r\nCentre ACK!\r\n" );
 					
@@ -9199,10 +9160,10 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 				line_warn_enable = 1;
 				rt_kprintf( "\r\n  line_enable start \r\n" );
 
-				break;
+				//break;
 			}
 			reg_u32 = 33;
-			for( i = 0; i < 6; i++ ) // 拐点数目
+			for( i = 0; i < ROUTE_Obj.Points_Num; i++ ) // 拐点数目
 			{
 				// if((infolen+32)<reg_u32)
 				//	 break;
@@ -9244,7 +9205,8 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 				ROUTE_Obj.Route_ID = 1;
 			}
 			ROUTE_Obj.Effective_flag = 1;
-			Api_RecordNum_Write( route_line, ROUTE_Obj.Route_ID, (u8*)&ROUTE_Obj, sizeof( ROUTE_Obj ) ); // 删除对应的围栏
+			
+			//  过检不存储 线路Api_RecordNum_Write( route_line, ROUTE_Obj.Route_ID, (u8*)&ROUTE_Obj, sizeof( ROUTE_Obj ) ); // 删除对应的围栏
 
 			//----------------
 			// if(SD_ACKflag.f_CentreCMDack_0001H==0)
@@ -11310,54 +11272,12 @@ void RectangleRail_Judge( u8* LatiStr, u8* LongiStr )
 * Return:
 * Others:
 ***********************************************************/
-void RouteLineWarn_judge( u8* LatiStr, u8* LongiStr )
-{
-	//  u32 Latitude=0,Longitude=0;
-
-	//  1. get value
-	// Latitude=(LatiStr[0]<<24)+(LatiStr[1]<<16)+(LatiStr[2]<<8)+LatiStr[3];
-	// Longitude=(LongiStr[0]<<24)+(LongiStr[1]<<16)+(LongiStr[2]<<8)+LongiStr[3];
-
-	//13 03 05 10 15 32 A 39587815N116000189E   内-> 外
-	if( ( Temp_Gps_Gprs.Date[0] == 13 ) && ( Temp_Gps_Gprs.Date[1] == 3 ) && ( Temp_Gps_Gprs.Date[2] == 5 ) && \
-	    ( Temp_Gps_Gprs.Time[0] == 18 ) && ( Temp_Gps_Gprs.Time[1] == 15 ) && \
-	    ( ( Temp_Gps_Gprs.Time[2] == 32 ) || ( Temp_Gps_Gprs.Time[2] == 33 ) ) )
-	{
-		if( ( Warn_Status[1] & 0x80 ) == 0 )    //  如果以前没触发，那么及时上报
-		{
-			PositionSD_Enable( );
-			Current_UDP_sd = 1;
-			rt_kprintf( "\r\n     出线路 !\r\n" );
-		}
-		Warn_Status[1] |= 0x80;                 // 路线偏航报警
-	}
-
-	//13 03 05 10 21 32 A 39578028N116000001E	   外-> 内
-	if( ( Temp_Gps_Gprs.Date[0] == 13 ) && ( Temp_Gps_Gprs.Date[1] == 3 ) && ( Temp_Gps_Gprs.Date[2] == 5 ) && \
-	    ( Temp_Gps_Gprs.Time[0] == 18 ) && ( Temp_Gps_Gprs.Time[1] == 21 ) && \
-	    ( ( Temp_Gps_Gprs.Time[2] == 32 ) || ( Temp_Gps_Gprs.Time[2] == 33 ) ) )
-	{
-		if( Warn_Status[1] & 0x80 ) //  如果以前没触发，那么及时上报
-		{
-			PositionSD_Enable( );
-			Current_UDP_sd = 1;
-			rt_kprintf( "\r\n     进 线路 !\r\n" );
-		}
-		Warn_Status[1] &= ~0x80;    // 路线偏航报警
-	}
-}
-
-/***********************************************************
-* Function:
-* Description:
-* Input:
-* Input:
-* Output:
-* Return:
-* Others:
-***********************************************************/
 void RouteRail_Judge( u8* LatiStr, u8* LongiStr )
 {
+    /*
+              Note:    输入信息为百万分之一度，1x10^(-6)          1 单位 =0.11米(赤道距离)
+      */
+
 	/*
 	    纬度没有差值    1纬度  111km
 	    40度纬度上 1经度为  85.3km   (北京地区)
@@ -11368,14 +11288,415 @@ void RouteRail_Judge( u8* LatiStr, u8* LongiStr )
 	// u32 DeltaLatiDis=0,DeltaLongiDis=0,CacuDist=0;
 	// u8  InOutState=0;   //   0 表示 in   1  表示Out
 	u32 Route_Status	= 0;    // 每个bit 表示 一个路线 偏航状态默认为0
-	u32 Segment_Status	= 0;    //  当前线路中，对应端的偏航情况， 默认为0
 	u32 Distance		= 0;
 //     u8    InAreaJudge=0; //  判断是否在判断区域 bit 0 经度范围 bit  1 纬度范围
-	u32 Distance_Array[6];      //存储当条线路的最小距离，默认是个大数值
+	u32 Segment_Resault[ROUTE_POINTS_NUM-1];      //存储当前是否在当前线路的状态
 
-	//  1. get value
+
+	//  Later
+	u32 Line_width=0, Line_half_width=0;  //道路宽度     
+    u32 multiple_res=1;  //   乘积结果
+    u8  out_flag=0;  // 返回结果为1 的状态位
+
+
+	//  1. get value  convert to  u32 value
 	Latitude	= ( LatiStr[0] << 24 ) + ( LatiStr[1] << 16 ) + ( LatiStr[2] << 8 ) + LatiStr[3];
 	Longitude	= ( LongiStr[0] << 24 ) + ( LongiStr[1] << 16 ) + ( LongiStr[2] << 8 ) + LongiStr[3];
+
+	
+	// rt_kprintf("\r\n 当前---->  Latitude:   %d     Longitude: %d\r\n",Latitude,Longitude);
+
+	//  2.  Judge
+	for( route_cout = 0; route_cout < 1; route_cout++ )                 // 读取路线
+	{
+		// 2.1  --------   读取路线-----------
+	#if 0  
+		  // 过检不存储DF 
+		memset( (u8*)&ROUTE_Obj, 0, sizeof( ROUTE_Obj ) );                      //  clear all  first
+		DF_ReadFlash( DF_Route_Page + route_cout, 0, (u8*)&ROUTE_Obj, sizeof( ROUTE_Obj ) );
+		DF_delay_us( 20 );
+	#endif
+		//rt_kprintf("\r\n -----> ROUTE_Obj.RouteID:   %d \r\n",ROUTE_Obj.Route_ID);
+		// 2.2  -----  判断是否有效  -------
+		if( ( ROUTE_Obj.Effective_flag == 1 ) && ( ROUTE_Obj.Points_Num > 1 ) ) //  判断是否有效且有拐点，若无效不处理
+		{
+            // 2.2.-1   检查路线的属性 
+		#if 0 
+			 /*
+			      bit 0:  根据时间
+			      bit 4:  出线路报给驾驶员 
+			      bit 5:  出线路报警给平台
+			 */
+		#endif 
+		
+			// 2.2.1  初始化时   赋给线段结果都是在线段 外  
+			for( i = 0; i < (ROUTE_POINTS_NUM-1); i++ )
+			{
+				Segment_Resault[i] = Out_Segment;   
+			}
+			// 2.2.2      计算段数
+			seg_num = ROUTE_Obj.Points_Num - 1; // 线路段数目
+			//  2.2.3   开始判断线路每个节点间的关系
+			// rt_kprintf("\r\n --------------\r\n"); // debug
+			for( seg_count = 0; seg_count < seg_num; seg_count++ )
+			{  
+			     //  2.2.3.0     读取拐点 属性信息    ，一般属性为0 没有以后的选项设置
+			     //  ROUTE_Obj.RoutePoints[seg_count].Atribute
+                 // 2.2.3.1    获取拐点 宽度
+                 Line_width=ROUTE_Obj.RoutePoints[seg_count].Width;
+				 Line_half_width=Line_width/2; 
+
+				// 2.2.3.3    判断是否在线路内 
+				//----- 开始做距离计算, 在没在区域在函数里边做了判断
+				Segment_Resault[seg_count] = outline_judge(Line_half_width, Latitude, Longitude, ROUTE_Obj.RoutePoints[seg_count].POINT_Latitude, ROUTE_Obj.RoutePoints[seg_count].POINT_Longitude, ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Latitude, ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Longitude );
+                
+				//rt_kprintf("\r\n segmentnum:%d    resault=%d\r\n",seg_count+1,Segment_Resault[seg_count] );
+			}
+			
+			//rt_kprintf("\r\n --------------\r\n"); // debug
+			//=========================================================
+			//  2.3   判断结果
+			     /*  
+                                   如果点在线路内那么    Distance_Point2Line_judge  返回值为 0 ，
+                                   判断所有线段的乘积是否为0，只要有点在一个线段内那么，就算没有偏离
+                                   如果线段乘积不为0 ，那么判断其中是否有某一项的结果是1 ，
+                                   如果有表示线路偏离。 如果没有那么表示当前点在所有线段外。不算偏离
+                                   
+			        */
+			  // 2.3.1  get   multiple_res      
+			  multiple_res=1;  
+			  out_flag=0;  // 检查其中是否有返回结果为1  的标志位
+  	          for( i = 0; i < seg_num; i++ )
+			  {
+			    multiple_res=multiple_res*Segment_Resault[i];
+				if(Segment_Resault[i]==Out_Line_Enable)
+					out_flag=1;
+			  }			  
+			  // rt_kprintf("\r\n  multipleres=%d \r\n",multiple_res);
+			  // 2.3.2  judge res
+              if(multiple_res)
+              {  
+                 if(out_flag==1)   
+				 {  // 使能线路偏离状态				   
+				    Route_Status |= ( 1 << route_cout );    //  把相应的bit	置位				   
+				   // rt_kprintf( "\r\n 路线偏离\r\n" );
+                 }
+                 // else   为0  表都在线段外   ，在线段外是否认为是偏离?
+
+              }
+              // else      为0  表示在区域内，这里没有动作执行
+		}
+	}
+	// 3.  Result
+	if( Route_Status )
+	{
+		 if(Line_warn_state==0)
+		 {
+			if( ( Warn_Status[1] & 0x80 ) == 0 )        //  如果以前没触发，那么及时上报
+			{
+				PositionSD_Enable( );
+				Current_UDP_sd = 1;
+			}
+
+			Warn_Status[1] |= 0x80;                     // 路线偏航报警
+			Line_warn_state=1;
+			rt_kprintf( "\r\n    路径偏航触发 !\r\n" );
+		 }
+	}
+	else
+	{
+	  if(Line_warn_state)
+	  {
+		  	if( Warn_Status[1] & 0x80 )                 //  如果以前没触发，那么及时上报
+			{
+				PositionSD_Enable( );
+				Current_UDP_sd = 1;
+			}
+			Warn_Status[1] &= ~0x80;                    // 路线偏航报警  
+			rt_kprintf( "\r\n    路径恢复正常!\r\n" ); 
+			
+			if((multiple_res)&&(out_flag==0))
+				rt_kprintf( "\r\n	 因为在所有segments 外!\r\n" ); 
+	  }
+	  Line_warn_state=0;  
+
+	  if(DispContent==2)
+	  	{	  	  
+		  rt_kprintf( "\r\n    路径正常!\r\n" ); 
+		  
+		  if((multiple_res)&&(out_flag==0))
+			  rt_kprintf( "\r\n    因为在所有segments 外2!\r\n" ); 
+	  	}
+	}
+
+}
+
+//--------  线路偏离计算------
+/*
+Part1  :   
+
+     已知两点选择纬度小的做为原点，A (longiA,latiA)<=>    P1(0,0)      B (longiB,laitiB)<=> P2(x1,y1)  ,  在latiB>latiA 的前提下把A 点作为原点
+      则x1=longiB-longiA； y1=latiB-latiA >0 
+      
+     
+     (       
+	  Note:    输入信息为百万分之一度，1x10^(-6)		  1 单位 =0.11米(赤道距离)
+                     前提:  y1>0   ,很重要x=cose(Angle_Laiti)  所有 数值都转换成米   
+     )
+
+     那么两点P1，P2 确定的直线方程(两点式)为:
+             (x-x1)/x1 =(y-y1)/y1                          (1)         (x1!=0)
+
+    注:  标准式直线方程为 AX+BY+C=0;
+             那么平面上任意一点P(x0,y0) 到直线的距离表示为
+             d=abs(Ax0+By0+C)/sqrt(A^2+B^2)
+
+    其中把方程式(1) 转换成标准式为:
+           格式为:   Ax+By+C=0           
+                y1x-x1y=0   
+    所以   A=y1 ,  B=-x1, C=0
+    那么 直线的方程:
+                  y1x-x1y=0         (2)
+                  
+         在已知直线方程(2)    的前提下，平面上与直线(2)  距离为d ( 注:道路宽度的1/2) 的
+         的两个直线即为道路的两边的直线方程。
+
+         //----------------------------------------------------------------------
+         另外根据平行线间的距离公式:
+                         d=|deltaC|/sqrt(A^2+B^2)      =>      |deltaC|=d*sqrt(A^2+B^2)     (3)
+                         
+            把   A=y1 ,  B=-x1, C=0 代入  (3)    得出 
+
+               |deltaC|=d* sqrt(y1^2+x1^2)      (4)
+
+         那么与直线(2)  平行且与之距离为d 的两条直线
+        方程为:    
+
+       Line1:       y1x-x1y-|deltaC|=0       ==>     y1x-x1y-d*sqrt(y1^2+x1^2) =0       (5)
+       Line2:       y1x-x1y+|deltaC|=0      ==>     y1x-x1y+d*sqrt(y1^2+x1^2) =0       (6)  
+
+
+      Note:    ******  在x1<0   的大前提下 *********
+      
+        Line1     在 Line 2  的上方  ，满足线路未偏移的条件是 将平面中任意一点P(Xa,Ya)
+         代入方程(5)  (6)   得出line1_Value_5     line2_Value_6
+
+         点在要求线路内容的条件是 点在line1    上方方       line2 下方
+
+                 line1_Value_5<=0    且     line2_Value_6>=0               (7)
+
+          不满足 (7)   的条件即可判断为 偏离出规定的距离d       
+
+          
+   
+	Note:	 ******  在x1>0   的大前提下 *********
+
+	  Line1 	在 Line 2  的上方  ，满足线路未偏移的条件是 将平面中任意一点P(Xa,Ya)
+	   代入方程(5)	(6)   得出line1_Value_5 	line2_Value_6
+
+	   点在要求线路内容的条件是 点在line2	 下方		line1 上方
+
+			   line1_Value_6<=0    且	  line2_Value_5>=0				 (8)
+
+		不满足 (8)	 的条件即可判断为 偏离出规定的距离d 	  
+
+                
+Part2:         
+
+           根据(2) 可以求出  过 P1(0,0) , P2(x1,y1) 点与已知直线垂直的两条直线方程
+              P1(0,0) :     
+                                  y1y+x1x=0       (9)
+              P2(x1,y1) :    
+                                 y1y+x1x-(x1^2+y1^2)=0        (10)
+
+         因为 y1 >=0      直线(10)    在直线(9)  的上边
+          那么 点在线段区域内的判断方法是
+                       (10) <=  0    且  (9)  >=0
+   //------------------------------------------------------------------------------------------
+
+       纬度没有差值    1纬度  111km
+
+       X 轴为 经度(longitude) 差值*cos(Lati)
+       Y 轴为纬度 (latitude)  差值
+
+
+   //------------------------------------------------------------------------------------------
+ */
+//Distance_Point2Line_judge
+u32  outline_judge(u32 Half_width,u32 Cur_Lat, u32 Cur_Longi, u32 P1_Lat, u32 P1_Longi, u32 P2_Lat, u32 P2_Longi )
+{                                                                           //   输入当前点 ，返回点到既有直线的距离
+	//------------------------------------------------------------------------
+	double   dis_x1=0,dis_y1=0;
+	double   dis_current_x=0,dis_current_y=0;    
+	double   value=0;
+	double	 value_5=0,value_6=0, value_8=0,value_9=0,value_10=0,value_11=0,value_7=0, deltaC=0;
+	s32   reg1=0,reg2=0,reg3=0,reg4=0,reg5=0,reg6=0;
+
+	// 0.   获取x1 和y1   一定要保证y1 >=0
+	
+	   // 0.1  获取cos 数值   取两点纬度的平均数值
+	   /*
+	           Lati  单位是百万分之一 度      
+                    cos((P1_Lat+P2_Lat)/2/1000000/180*PI )==>
+	      */
+          value=(double)(((double)P1_Lat+(double)P2_Lat)/2000000);
+	      value=(value/180)*PI_lnw;
+		  value=(double)cos(value);
+
+		
+		if(P1_Lat>=P2_Lat)
+	     {   //Longi2 , Lat2,  是原点
+	        dis_x1=(double)(((double)P1_Longi-(double)P2_Longi)*(double)value*0.11); // 1 百万分之一相当于0.11米
+			dis_y1=(double)(((double)P1_Lat-(double)P2_Lat)*0.11);
+			
+            dis_current_x=(double)(((double)Cur_Longi-(double)P2_Longi)*value*0.11);  
+			dis_current_y=(double)(((double)Cur_Lat-(double)P2_Lat)*0.11); 
+			
+		 }
+		else
+		 {  //  long1,lat1 是原点
+			dis_x1=(double)(((double)P2_Longi-(double)P1_Longi)*(double)value*0.11);
+			dis_y1=(double)(((double)P2_Lat-(double)P1_Lat)*0.11);
+			
+            dis_current_x=(double)(((double)Cur_Longi-(double)P1_Longi)*value*0.11);
+			dis_current_y=(double)(((double)Cur_Lat-(double)P1_Lat)*0.11); 
+		 }
+
+        //    |deltaC|=d* sqrt(y1^2+x1^2)      (4)
+		deltaC=(double)Half_width*sqrt(dis_y1*dis_y1+dis_x1*dis_x1); // 算出deltaC  
+
+
+          reg1=(s32)dis_x1;
+		  reg2=(s32)dis_y1;
+		  reg3=(s32)dis_current_x;
+		  reg4=(s32)dis_current_y;
+		 reg5=(s32)deltaC;  
+		 reg6=(s32)(value*1000);
+
+		//rt_kprintf("\r\n x1=%d   y1=%d    x=%d   y=%d  deltaC=%d  %d\r\n",reg1,reg2,reg3,reg4,reg5,reg6); 
+	
+	// 1.  先判断是否在线段内,   如果不在线段范围内直接返回  
+       // 1.1  
+          
+			value_9= dis_y1*dis_current_y+dis_x1*dis_current_x; //  y1y+x1x=0       (9)
+			value_10=dis_y1*dis_current_y+dis_x1*dis_current_x-dis_x1*dis_x1-dis_y1*dis_y1;  //y1y+x1x-(x1^2+y1^2)=0        (10)
+
+			  
+			  // reg1=(s32)value_9;
+			  // reg2=(s32)value_10;
+			  //rt_kprintf("\r\n value_8=%d	value_9=%d	",reg1,reg2);
+               /*
+                                    那么 点在线段区域内的判断方法是
+                                                    (10) <=  0    且  (9)  >=0
+                         */
+
+			   if(value_10>0)
+			   	{
+			   	   // rt_kprintf("\r\n  Out_Segment -1\r\n");  
+			   	    return  Out_Segment;     // 在线段外
+			   	}
+			   if(value_9<0)
+                {
+                  //rt_kprintf("\r\n  Out_Segment-2 \r\n");
+                  return  Out_Segment;    // 在线段外
+			   	}
+
+      // 2.  判断 是否在线路内，能运行到此说明当前点已经在线段范围内
+
+          // 2.1     x1<0   
+          if(dis_x1<0)
+          	{
+				value_5=dis_y1*dis_current_x-dis_x1*dis_current_y-deltaC;  //   y1x-x1y-d*sqrt(y1^2+x1^2) =0		 (5)
+				value_6=dis_y1*dis_current_x-dis_x1*dis_current_y+deltaC;  //  y1x-x1y+d*sqrt(y1^2+x1^2) =0		(6)  
+	            /*
+	                           line1_Value_5<=0    且	  line2_Value_6>=0			
+	                   */
+					if(value_5>0)
+						{
+							//rt_kprintf("\r\n  Out_line_enable-1 \r\n");
+							return	  Out_Line_Enable;	  //   线路偏移触发
+						}
+					if(value_6<0)
+						{
+						// rt_kprintf("\r\n  Out_line_enable-2 \r\n"); 
+						 return    Out_Line_Enable; 	//	 线路偏移触发
+						}
+	                    
+          	}
+		  else
+		  if(dis_x1>0) 
+		  	{
+                  
+				  value_7=dis_x1*dis_current_y-dis_y1*dis_current_x+deltaC;  //  x1y- y1x+d*sqrt(y1^2+x1^2) =0		   (7)
+				  value_8=dis_x1*dis_current_y-dis_y1*dis_current_x-deltaC;  //  x1y-y1x-d*sqrt(y1^2+x1^2) =0	  (8)  
+				  /*
+	                           line1_Value_8<=0    且	  line2_Value_7>=0				
+	                        */
+                 	if(value_8>0)
+						{
+							//rt_kprintf("\r\n  Out_line_enable-3 \r\n");
+							return	  Out_Line_Enable;	  //   线路偏移触发
+						}
+					if(value_7<0)
+						{
+						// rt_kprintf("\r\n  Out_line_enable-4 \r\n");
+						 return    Out_Line_Enable; 	//	 线路偏移触发
+						}
+	                    
+
+		  	}
+		  else
+		   {//(dis_x1==0) 	
+		         /*
+	                           dis_current_y>=0    且	  dis_current_y<=dis_y1			且 -d<=dis_current_x<=d		
+	                        */   
+	                   reg1=(double)Half_width;
+                  if( (dis_current_y>=0)&&(dis_current_y<=dis_y1)&&((dis_current_x+reg1)>=0)&&(dis_current_x<=reg1))
+                  	{                        
+						//rt_kprintf("\r\n  In_Line-1 \r\n");  
+						return	In_line;  //  在线路内
+                  	}
+
+					//rt_kprintf("\r\n  Out_line_enable-5 \r\n");
+					return	  Out_Line_Enable;	  //   线路偏移触发
+
+		   }
+      // rt_kprintf("\r\n  In_Line-2 \r\n");  
+	   return  In_line;  //  在线路内
+
+}     
+FINSH_FUNCTION_EXPORT( outline_judge, (u32 Half_width,u32 Cur_Lat, u32 Cur_Longi, u32 P1_Lat, u32 P1_Longi, u32 P2_Lat, u32 P2_Longi ) );
+
+void rail_judge2( u32 Lati, u32 Longi)
+{
+    /*
+              Note:    输入信息为百万分之一度，1x10^(-6)          1 单位 =0.11米(赤道距离)
+      */
+
+	/*
+	    纬度没有差值    1纬度  111km
+	    40度纬度上 1经度为  85.3km   (北京地区)
+	 */
+	u8	i			= 0;
+	u8	route_cout	= 0, seg_count = 0, seg_num = 0;
+	u32 Latitude	= 0, Longitude = 0;
+	// u32 DeltaLatiDis=0,DeltaLongiDis=0,CacuDist=0;
+	// u8  InOutState=0;   //   0 表示 in   1  表示Out
+	u32 Route_Status	= 0;    // 每个bit 表示 一个路线 偏航状态默认为0
+	u32 Distance		= 0;
+//     u8    InAreaJudge=0; //  判断是否在判断区域 bit 0 经度范围 bit  1 纬度范围
+	u32 Segment_Resault[ROUTE_POINTS_NUM-1];      //存储当前是否在当前线路的状态
+
+
+	//  Later
+	u32 Line_width=0, Line_half_width=0;  //道路宽度     
+    u32 multiple_res=1;  //   乘积结果
+    u8  out_flag=0;  // 返回结果为1 的状态位
+
+
+	//  1. get value  convert to  u32 value
+	Latitude	= Lati;
+	Longitude	= Longi;
 
 	// rt_kprintf("\r\n 当前---->  Latitude:   %d     Longitude: %d\r\n",Latitude,Longitude);
 
@@ -11383,269 +11704,121 @@ void RouteRail_Judge( u8* LatiStr, u8* LongiStr )
 	for( route_cout = 0; route_cout < Route_Mum; route_cout++ )                 // 读取路线
 	{
 		// 2.1  --------   读取路线-----------
+		#if 0  
+		  // 过检不存储DF 
 		memset( (u8*)&ROUTE_Obj, 0, sizeof( ROUTE_Obj ) );                      //  clear all  first
 		DF_ReadFlash( DF_Route_Page + route_cout, 0, (u8*)&ROUTE_Obj, sizeof( ROUTE_Obj ) );
 		DF_delay_us( 20 );
+		#endif
 		//rt_kprintf("\r\n -----> ROUTE_Obj.RouteID:   %d \r\n",ROUTE_Obj.Route_ID);
 		// 2.2  -----  判断是否有效  -------
 		if( ( ROUTE_Obj.Effective_flag == 1 ) && ( ROUTE_Obj.Points_Num > 1 ) ) //  判断是否有效且有拐点，若无效不处理
 		{
-			// 2.2.0    当前段距离付给一个大的数值
-			for( i = 0; i < 6; i++ )
+            // 2.2.-1   检查路线的属性 
+            #if 0 
+			 /*
+			      bit 0:  根据时间
+			      bit 4:  出线路报给驾驶员 
+			      bit 5:  出线路报警给平台
+			 */
+			#endif 
+		
+			// 2.2.1  初始化时   赋给线段结果都是在线段 外  
+			for( i = 0; i < (ROUTE_POINTS_NUM-1); i++ )
 			{
-				Distance_Array[i] = ROUTE_DIS_Default;
+				Segment_Resault[i] = Out_Segment;   
 			}
-			// 2.2.1      计算段数
+			// 2.2.2      计算段数
 			seg_num = ROUTE_Obj.Points_Num - 1; // 线路段数目
-			//  2.2.2    判断路线中每一段的状态
-			Segment_Status = 0;                 // 清除段判断状态，每个线路重新开始一次
+			//  2.2.3   开始判断线路每个节点间的关系
+			 rt_kprintf("\r\n --------------\r\n"); // debug
 			for( seg_count = 0; seg_count < seg_num; seg_count++ )
-			{
-				if( ( ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Latitude == 0 ) && ( ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Longitude == 0 ) )
-				{
-					rt_kprintf( "\r\n  该点为0 ，jump\r\n" );
-					continue;
-				}
+			{  
+			     //  2.2.3.0     读取拐点 属性信息    ，一般属性为0 没有以后的选项设置
+			     //  ROUTE_Obj.RoutePoints[seg_count].Atribute
+                 // 2.2.3.1    获取拐点 宽度
+                 Line_width=ROUTE_Obj.RoutePoints[seg_count].Width;
+				 Line_half_width=Line_width/2; 
+
+				// 2.2.3.3    判断是否在线路内 
 				//----- 开始做距离计算, 在没在区域在函数里边做了判断
-				Distance_Array[seg_count] = Distance_Point2Line( Latitude, Longitude, ROUTE_Obj.RoutePoints[seg_count].POINT_Latitude, ROUTE_Obj.RoutePoints[seg_count].POINT_Longitude, ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Latitude, ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Longitude );
+				Segment_Resault[seg_count] = outline_judge(Line_half_width, Latitude, Longitude, ROUTE_Obj.RoutePoints[seg_count].POINT_Latitude, ROUTE_Obj.RoutePoints[seg_count].POINT_Longitude, ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Latitude, ROUTE_Obj.RoutePoints[seg_count + 1].POINT_Longitude );
+                
+				rt_kprintf("\r\n segmentnum:%d    resault=%d\r\n",seg_count+1,Segment_Resault[seg_count] );
 			}
+			
+			rt_kprintf("\r\n --------------\r\n"); // debug
 			//=========================================================
-			//  2.4 ------  打印显示距离，找出最小数值----
-			Distance = Distance_Array[0]; // 最小距离
-			for( i = 0; i < 6; i++ )
-			{
-				if( Distance >= Distance_Array[i] )
-				{
-					Distance = Distance_Array[i];
-				}
-				// rt_kprintf("\r\n  Distance[%d]=%d",i,Distance_Array[i]);
-			}
-			rt_kprintf( "\r\n MinDistance =%d  Width=%d \r\n", Distance, ( ROUTE_Obj.RoutePoints[seg_num].Width >> 1 ) ); //
+			//  2.3   判断结果
+			     /*  
+                                   如果点在线路内那么    Distance_Point2Line_judge  返回值为 0 ，
+                                   判断所有线段的乘积是否为0，只要有点在一个线段内那么，就算没有偏离
+                                   如果线段乘积不为0 ，那么判断其中是否有某一项的结果是1 ，
+                                   如果有表示线路偏离。 如果没有那么表示当前点在所有线段外。不算偏离
+                                   
+			        */
+			  // 2.3.1  get   multiple_res      
+			  multiple_res=1;  
+			  out_flag=0;  // 检查其中是否有返回结果为1  的标志位
+  	          for( i = 0; i < seg_num; i++ )
+			  {
+			    multiple_res=multiple_res*Segment_Resault[i];
+				if(Segment_Resault[i]==Out_Line_Enable)
+					out_flag=1;
+			  }			  
+			   rt_kprintf("\r\n  multipleres=%d \r\n",multiple_res);
+			  // 2.3.2  judge res
+              if(multiple_res)
+              {  
+                 if(out_flag==1)   
+				 {  // 使能线路偏离状态				   
+				    Route_Status |= ( 1 << route_cout );    //  把相应的bit	置位				   
+				    rt_kprintf( "\r\n 路线偏离\r\n" );
+                 }
+                 // else   为0  表都在线段外   ，在线段外是否认为是偏离?
 
-			if( Distance < ROUTE_DIS_Default )
-			{
-				//  ---- 和路段宽度做对比
-				if( Distance > ( ROUTE_Obj.RoutePoints[seg_num].Width >> 1 ) )
-				{
-					rt_kprintf( "\r\n 路线偏离\r\n" );
-					Segment_Status |= ( 1 << seg_num ); //  把相应的bit  置位
-				}
-			}
-
-			//
-		}
-		// 2.4  根据 2.2 结果判断当期路线状态
-		if( Segment_Status )
-		{
-			Route_Status |= ( 1 << route_cout );    //  把相应的bit  置位
+              }
+              // else      为0  表示在区域内，这里没有动作执行
 		}
 	}
 	// 3.  Result
 	if( Route_Status )
 	{
-		if( ( Warn_Status[1] & 0x80 ) == 0 )        //  如果以前没触发，那么及时上报
-		{
-			PositionSD_Enable( );
-			Current_UDP_sd = 1;
-		}
+		 if(Line_warn_state==0)
+		 {
+			if( ( Warn_Status[1] & 0x80 ) == 0 )        //  如果以前没触发，那么及时上报
+			{
+				PositionSD_Enable( );
+				Current_UDP_sd = 1;
+			}
 
-		Warn_Status[1] |= 0x80;                     // 路线偏航报警
-		rt_kprintf( "\r\n    路径偏航触发 !\r\n" );
-	}else
+			Warn_Status[1] |= 0x80;                     // 路线偏航报警
+			Line_warn_state=1;
+			rt_kprintf( "\r\n    路径偏航触发 !\r\n" );
+		 }
+	}
+	else
 	{
-		if( Warn_Status[1] & 0x80 )                 //  如果以前没触发，那么及时上报
-		{
-			PositionSD_Enable( );
-			Current_UDP_sd = 1;
-		}
-
-		Warn_Status[1] &= ~0x80;                    // 路线偏航报警
+	  if(Line_warn_state)
+	  {
+		  	if( Warn_Status[1] & 0x80 )                 //  如果以前没触发，那么及时上报
+			{
+				PositionSD_Enable( );
+				Current_UDP_sd = 1;
+			}
+			Warn_Status[1] &= ~0x80;                    // 路线偏航报警  
+			rt_kprintf( "\r\n    路径正常!\r\n" ); 
+			
+			if((multiple_res)&&(out_flag==0))
+				rt_kprintf( "\r\n	 因为在所有segments 外!\r\n" );
+	  }
+	  Line_warn_state=0;  
 	}
 }
-
-//--------  D点到直线距离计算-------
-
-
-/*
-     P1(x1,y1)   P2(x2,y2)  ,把点P(x1,y2)作为坐标原点，即x1=0，y2=0；
-
-     那么两点P1，P2 确定的直线方程(两点式)为:
-             (x-x1)/(x2-x1) =(y-y1)/(y2-y1)                          (1)
-
-    注:  标准式直线方程为 AX+BY+C=0;
-             那么平面上任意一点P(x0,y0) 到直线的距离表示为
-             d=abs(Ax0+By0+C)/sqrt(A^2+B^2)
-
-    其中把方程式(1) 转换成标准式为:
-            (y2-y1)x+(x1-x2)y+x1(y1-y2)+y1(x2-x1)=0;
-
-   由于点(x1,y2)为原点  即x1=0，y2=0；  P1(0,y1) , P2(x2,0)
-    所以   A=-y1 ,  B=-x2, C=y1x2
-    那么 直线的方程:
-                  -y1x-x2y+y1x2=0;  (2)
-
-   =>     d=abs(-y1x0-x2y0+y1x2)/sqrt(y1^2+x2^2)       (3)
-
-         其中 (3)  为最终应用的公式
-
-        注:  先根据经纬度折合计算出 x0，y0，x1,y1,x2,y2  的数值单位为: 米
-   =>  区域判断:
-           根据(2) 可以求出  过 P1(0,y1) , P2(x2,0) 点与已知直线垂直的两条直线方程
-              P1(0,y1) :      x2x-y1y+y1^2=0  (4)
-              P2(x2,0) :      x2x-y1y-x2^2=0  (5)
-
-          如果 y1 >=0      直线(4)    在直线(5)  的上边
-          那么 点在线段区域内的判断方法是
-                       (4) <=  0    且  (5)  >=0
-       另
-           如果 y1 <=0      直线(5)    在直线(4)  的上边
-          那么 点在线段区域内的判断方法是
-                       (4) >=  0    且  (5)  <=0
-   //------------------------------------------------------------------------------------------
-
-       纬度没有差值    1纬度  111km
-       40度纬度上 1经度为  85.3km   (北京地区)
-
-       X 轴为 经度(longitude) 差值
-       Y 轴为纬度 (latitude)  差值
+FINSH_FUNCTION_EXPORT(  rail_judge2,(u32 Lati, u32 Longi)); 
 
 
-   //------------------------------------------------------------------------------------------
- */
 
-u32   Distance_Point2Line( u32 Cur_Lat, u32 Cur_Longi, u32 P1_Lat, u32 P1_Longi, u32 P2_Lat, u32 P2_Longi )
-{                                                                           //   输入当前点 ，返回点到既有直线的距离
-	long	x0			= 0, y0 = 0, Line4_Resualt = 0, Line5_Resualt = 0;  // 单位: 米
-	long	y1			= 0;
-	long	x2			= 0;
-	long	distance	= 0;
-	// long  Rabs=0;
-//      long  Rsqrt=0;
-	long	DeltaA1 = 0, DeltaA2 = 0, DeltaO1 = 0, DeltaO2 = 0;             //  DeltaA : Latitude     DeltaO:  Longitude
-	// u32   Line4_Resualt2=0,Line5_Resualt2=0;
-	double	fx0				= 0, fy0 = 0, fy1 = 0, fx2 = 0;
-	double	FLine4_Resualt2 = 0, FLine5_Resualt2 = 0, fRabs = 0, fRsqrt = 0;
-
-	// 0.   先粗略的判断
-	DeltaA1 = abs( Cur_Lat - P1_Lat );
-	DeltaA2 = abs( Cur_Lat - P2_Lat );
-	DeltaO1 = abs( Cur_Lat - P1_Longi );
-	DeltaO2 = abs( Cur_Lat - P2_Longi );
-
-
-	/* if((DeltaA1>1000000) &&(DeltaA2>1000000))
-	        {
-	            rt_kprintf("\r\n  Latitude 差太大\r\n");
-	            return   ROUTE_DIS_Default;
-	   }
-	   if((DeltaO1>1000000) &&(DeltaO2>1000000))
-	        {
-	            rt_kprintf("\r\n  Longitude 差太大\r\n");
-	            return   ROUTE_DIS_Default;
-	   }
-	 */
-	// 1.  获取  P1(0,y1)   P2(x2,0) ,和P(x0,y0)    P(x1,y2)为原点  即x1=0，y2=0；  P1(0,y1) , P2(x2,0)
-	x2 = abs( P2_Longi - P1_Longi ); // a/1000000*85300=a 853/10000 m =a x 0.0853
-	if( P2_Longi < P1_Longi )
-	{
-		x2 = 0 - x2;
-	}
-	fx2 = (double)( (double)x2 / 1000 );
-	//rt_kprintf("\r\n P2_L=%d,P1_L=%d   delta=%d \r\n",P2_Longi,P1_Longi,(P2_Longi-P1_Longi));
-	// if(P2_Longi
-	y1 = abs( P2_Lat - P1_Lat ); //  a/1000000*111000=a/9.009	除以一百万得到度数 再乘以 111000 米得到实际距离
-	if( P2_Lat < P1_Lat )
-	{
-		y1 = 0 - y1;
-	}
-	fy1 = (double)( (double)y1 / 1000 );
-	//rt_kprintf("\r\n P2_LA=%d,P1_LA=%d   delta=%d \r\n",P2_Lat,P1_Lat,(P2_Lat-P1_Lat));
-
-	//   rt_kprintf("\r\n 已知两点坐标: P1(0,%d)   P2(%d,0) \r\n", y1,x2);
-	//    当前点
-	x0 = abs( Cur_Longi - P1_Longi );
-	if( Cur_Longi < P1_Longi )
-	{
-		x0 = 0 - x0;
-	}
-	fx0 = (double)( (double)x0 / 1000 );
-	//rt_kprintf("\r\n Cur_L=%d,P1_L=%d   delta=%d \r\n",Cur_Longi,P1_Longi,(Cur_Longi-P1_Longi));
-
-	y0 = abs( Cur_Lat - P2_Lat ); //  a/1000000*111000=a/9.009
-	if( Cur_Lat < P2_Lat )
-	{
-		y0 = 0 - y0;
-	}
-	fy0 = (double)( (double)y0 / 1000 );
-	// rt_kprintf("\r\n Cur_La=%d,P2_La=%d   delta=%d \r\n",Cur_Lat,P2_Lat,(Cur_Lat-P2_Lat));
-	//   rt_kprintf("\r\n当前点坐标: P0(%d,%d)    \r\n", x0,y0);
-	// 2. 判断y1  的大小， 求出过 P1(0,y1)   P2(x2,0) ,和已知直线的方程，并判断
-	//     当前点是否在路段垂直范围内
-
-	//  2.1   将当前点带入， 过 P1(0,y1)   的 直线方程(4)  求出结果
-	Line4_Resualt	= ( x2 * x0 ) - ( y1 * y0 ) + ( y1 * y1 );
-	FLine4_Resualt2 = fx2 * fx0 - fy1 * fy0 + fy1 * fy1;
-	//     rt_kprintf("\r\n Line4=x2*x0-y1*y0+y1*y1=(%d)*(%d)-(%d)*(%d)+(%d)*(%d)=%ld     x2*x0=%d    y1*y0=%d   y1*y1=%d  \r\n",x2,x0,y1,y0,y1,y1,Line4_Resualt,x2*x0,y1*y0,y1*y1);
-	//     rt_kprintf("\r\n FLine4=fx2*fx0-fy1*fy0+fy1*fy1=(%f)*(%f)-(%f)*(%f)+(%f)*(%f)=%f      fx2*fx0=%f    fy1*fy0=%f   fy1*fy1=%f  \r\n",fx2,fx0,fy1,fy0,fy1,fy1,FLine4_Resualt2,fx2*fx0,fy1*fy0,fy1*fy1);
-
-	//   2.2   将当前点带入， 过P2(x2,0) 的 直线方程(5)  求出结果
-	Line5_Resualt	= ( x2 * x0 ) - y1 * y0 - x2 * x2;
-	FLine5_Resualt2 = fx2 * fx0 - fy1 * fy0 - fx2 * fx2;
-	//rt_kprintf("\r\n Line5=x2*x0-y1*y0-x2*x2=(%d)*(%d)-(%d)*(%d)-(%d)*(%d)=%ld     Se : %ld   \r\n",x2,x0,y1,y0,x2,x2,Line5_Resualt,Line5_Resualt2);
-	//    rt_kprintf("\r\n FLine5=fx2*fx0-fy1*fy0-fx2*fx2=(%f)*(%f)-(%f)*(%f)-(%f)*(%f)=%f      fx2*fx0=%f    fy1*fy0=%f   fx2*fx2=%f  \r\n",fx2,fx0,fy1,fy0,fx2,fx2,FLine5_Resualt2,fx2*fx0,fy1*fy0,fx2*fx2);
-	// rt_kprintf("\r\n  Line4_Resualt=%d     Line5_Resualt=%d  \r\n",Line4_Resualt,Line5_Resualt);
-
-	if( fy1 >= 0 )                      //  直线(4) 在上发
-	{
-		//   2.3   判断区域    (4) <=  0    且  (5)  >=0     // 判断条件取反
-		if( ( FLine4_Resualt2 > 0 ) || ( FLine5_Resualt2 < 0 ) )
-		{
-			return ROUTE_DIS_Default;   //  不满足条件返回最大数值
-		}
-	} else
-	{                                   //  直线(5)
-		//   2.4   判断区域     (4) >=  0    且  (5)  <=0     // 判断条件取反
-		if( ( FLine4_Resualt2 < 0 ) || ( FLine5_Resualt2 > 0 ) )
-		{
-			return ROUTE_DIS_Default;   //  不满足条件返回最大数值
-		}
-	}
-
-	rt_kprintf( "\r\n In judge area \r\n" );
-	//rt_kprintf("\r\n   Current== Latitude:   %d     Longitude: %d     Point1== Latitude:   %d     Longitude: %d     Point2== Latitude:   %d     Longitude: %d\r\n",Cur_Lat,Cur_Longi,P1_Lat,P1_Longi,P2_Lat,P2_Longi);
-
-	//  3. 将差值差算成实际距离
-#if 0
-	x2	= x2 * 0.0853;  // a/1000000*85300=a 853/10000 m =a x 0.0853
-	y1	= y1 / 9;       //  a/1000000*111000=a/9.009	除以一百万得到度数 再乘以 111000 米得到实际距离
-	x0	= x0 * 0.0853;
-	y0	= y0 / 9;       //  a/1000000*111000=a/9.009
-#else
-	fx2 = fx2 * 0.0853; // a/1000000*85300=a 853/10000 m =a x 0.0853
-	fy1 = fy1 / 9;      //  a/1000000*111000=a/9.009	除以一百万得到度数 再乘以 111000 米得到实际距离
-	fx0 = fx0 * 0.0853;
-	fy0 = fy0 / 9;      //  a/1000000*111000=a/9.009
-#endif
-
-	//  4. 计算距离
-	//Rabs=0-y1*x0-x2*y0+y1*x2;
-	// rt_kprintf("\r\n Test -y1*x0=%d -y0*x2=%d  y1*x2=%d   Rabs=%d  \r\n",0-y1*x0,0-y0*x2,0-y1*x2,Rabs);
-#if 0
-	Rabs	= abs( -y1 * x0 - x2 * y0 + y1 * x2 );
-	Rsqrt	= sqrt( y1 * y1 + x2 * x2 );
-	// distance=abs(-y1*x0-x2*y0-y1*x2)/sqrt(y1*y1+x2*x2);
-	distance = Rabs / Rsqrt;
-	// rt_kprintf("\r\n Rabs=%d    Rsqrt=%d   d=%d",Rabs,Rsqrt,distance);
-#else
-	fRabs	= abs( -fy1 * fx0 - fx2 * fy0 + fy1 * fx2 );
-	fRsqrt	= sqrt( fy1 * fy1 + fx2 * fx2 );
-	// distance=abs(-y1*x0-x2*y0-y1*x2)/sqrt(y1*y1+x2*x2);
-	distance = (long)( ( fRabs / fRsqrt ) * 1000 );
-	// rt_kprintf("\r\n Rabs=%d    Rsqrt=%d   d=%d",Rabs,Rsqrt,distance);
-#endif
-
-	return distance;
-}
 
 /***********************************************************
 * Function:
@@ -11880,7 +12053,7 @@ void OutPrint_HEX( u8 * Descrip, u8 *instr, u16 inlen )
 	rt_kprintf( "\r\n %s:", Descrip );
 	for( i = 0; i < inlen; i++ )
 	{
-		rt_kprintf( "%2X ", instr[i] );
+		rt_kprintf( "%02X ", instr[i] );
 	}
 	rt_kprintf( "\r\n" );
 }
@@ -13083,5 +13256,23 @@ void out(void)
    rt_kprintf("\r\n  Area  Out \r\n");
 }
 FINSH_FUNCTION_EXPORT(out,1); 
+
+void linejudge_enable(u8 value)
+{
+    if(value)
+    	{
+               line_warn_enable=1;
+			   
+			   rt_kprintf("\r\n  线路判断使能\r\n");
+    	}
+	else
+		{
+		    line_warn_enable=0;  
+			Warn_Status[1] &= ~0x80;    
+             rt_kprintf("\r\n  线路判断屏蔽\r\n"); 
+		}
+
+}
+FINSH_FUNCTION_EXPORT(linejudge_enable,1); 
 
 // C.  Module

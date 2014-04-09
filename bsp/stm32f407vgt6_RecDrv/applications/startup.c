@@ -18,6 +18,7 @@
 
 #include "stm32f4xx.h"
 #include "board.h"
+#include "math.h"
 #include "App_moduleConfig.h"/**
  * @addtogroup STM32
  */
@@ -64,6 +65,8 @@ void assert_failed(u8* file, u32 line)
  */
 void rtthread_startup(void)
 {
+
+
 	/* init board */
 	rt_hw_board_init(); 
 	
@@ -98,6 +101,7 @@ void rtthread_startup(void)
 	 
     #endif 	 
          rt_kprintf("\n\r   TCB 北斗车载终端 认证版本TW703-BD--13-1-24 - Version 1.0 !\r\n ");    
+
 	/* show version */
 	rt_show_version();
 
