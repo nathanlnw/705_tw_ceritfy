@@ -1452,11 +1452,11 @@ uint8_t get_10h( uint8_t *pout )
 
 	// 替换经纬度
 	buf[224]=0x04;  // longi
-	buf[225]=0x28; 
+	buf[225]=0x24+(rt_tick_get()%6); 
 	buf[226]=buf[226]+(rt_tick_get()%3)*3;
 
 	buf[228]=0x01;  //lati
-	buf[229]=0x6D; 
+	buf[229]=0x6D+rt_tick_get()%3;  
 	buf[230]=buf[230]+3*(rt_tick_get()%5); 
 
 	buf[232]=0x00;  // height
@@ -1551,11 +1551,11 @@ uint8_t get_11h( uint8_t *pout,u16 packet_in )
 
 	// 开始longi
     buf[30]=0x04;  
-	buf[31]=0x27; 
+	buf[31]=0x25+(rt_tick_get()%2);   
 
 	// 开始 laiti
     buf[34]=0x01;  
-	buf[35]=0x6D; 
+	buf[35]=0x6D-(rt_tick_get()%3); 
 
 	//  开始高程
     buf[38]=0x00;
