@@ -9806,42 +9806,70 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			   switch(UDP_HEX_Rx[13]) //根据中心下发的流水号判断
 			   {
 				   case 0x80:
+				   	         if(Recode_Obj.CMD!=0x08) 
+				   	         	{
+				   	         	   rt_kprintf( "\r\n 下发列表不是当前ID =%02X\r\n",Recode_Obj.CMD );
+                                    return;
+				   	         	}
 				   	         Recode_Obj.CMD=0x08;
 							 Recode_Obj.Total_pkt_num	= 720;
 							Recode_Obj.Devide_Flag				= 1;
 							MediaObj.Media_Type		= 3; //行驶记录仪 只是利用类型填充ID 时候有用
 							  break;
 				   case 0x90: 
+				   	         if(Recode_Obj.CMD!=0x09)
+				   	         	{
+				   	         	   rt_kprintf( "\r\n 下发列表不是当前ID =%02X\r\n",Recode_Obj.CMD );
+                                    return;
+				   	         	}
 				   	        Recode_Obj.CMD=0x09;
-							Recode_Obj.Total_pkt_num	= 720;
+							Recode_Obj.Total_pkt_num	= 360;   
 							Recode_Obj.Devide_Flag				= 1;					
 							MediaObj.Media_Type		= 3; //行驶记录仪
 							  break;
 				   case 0xA0:
+				   	         if(Recode_Obj.CMD!=0x10)
+				   	         	{
+				   	         	   rt_kprintf( "\r\n 下发列表不是当前ID =%02X\r\n",Recode_Obj.CMD );
+                                    return;
+				   	         	}
 				   	        Recode_Obj.CMD=0x10;
 							Recode_Obj.Total_pkt_num	= 100;
 							Recode_Obj.Devide_Flag				= 1;					
 							MediaObj.Media_Type		= 3; //行驶记录仪
 							  break;
 				   case 0xB0:
+				   	       if(Recode_Obj.CMD!=0x11)
+				   	           	{
+				   	         	   rt_kprintf( "\r\n 下发列表不是当前ID =%02X\r\n",Recode_Obj.CMD );
+                                    return;
+				   	         	}
 				   	         Recode_Obj.CMD=0x11;
 							 Recode_Obj.Total_pkt_num	= 100;
 					        Recode_Obj.Devide_Flag				= 1;					
 							MediaObj.Media_Type		= 3; //行驶记录仪
 							  break;
 				   case 0xC0:
+				   	         if(Recode_Obj.CMD!=0x12)
+				   	         	{
+				   	         	   rt_kprintf( "\r\n 下发列表不是当前ID =%02X\r\n",Recode_Obj.CMD );
+                                    return;
+				   	         	}
 				   	        Recode_Obj.CMD=0x12;
 							Recode_Obj.Total_pkt_num	= 10;						
 					        Recode_Obj.Devide_Flag				= 1;					
 							MediaObj.Media_Type		= 3; //行驶记录仪
 							  break;
-							  break;
 				   case  0xD0:
+				   	         if(Recode_Obj.CMD!=0x15)
+				   	         	{
+				   	         	   rt_kprintf( "\r\n 下发列表不是当前ID =%02X\r\n",Recode_Obj.CMD );
+                                    return;
+				   	         	}  
 				   	        Recode_Obj.CMD=0x15;
 							Recode_Obj.Total_pkt_num	= 10;						
 					        Recode_Obj.Devide_Flag				= 1;					
 							MediaObj.Media_Type		= 3; //行驶记录仪
-							  break;
 							  break;  
 				   default:
                               devide_value=1; // 多媒体分包处理方式

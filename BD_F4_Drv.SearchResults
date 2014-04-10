@@ -1,17 +1,53 @@
----- RouteRail_Judge Matches (17 in 2 files) ----
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void RouteRail_Judge( u8* LatiStr, u8* LongiStr );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		RouteRail_Judge( Temp_Gps_Gprs.Latitude, Temp_Gps_Gprs.Longitude );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void RouteRail_Judge( u8* LatiStr, u8* LongiStr )
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR>[Called By]<UL><LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 324<LI>Call Chain = GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 556<LI>Call Chain = GPS_Rx_Process &rArr; Process_RMC &rArr; GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 380<LI>Call Chain = Process_RMC &rArr; GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<P><STRONG><a name="[2fb]"></a>RouteRail_Judge</STRONG> (Thumb, 354 bytes, Stack size 72 bytes, protocol_808.o(i.RouteRail_Judge))
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 308<LI>Call Chain = RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<LI><a href="#[2fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;RouteRail_Judge
-Rt_stm32f4_drv.htm (bsp\stm32f407vgt6_recdrv):<BR><BR>[Stack]<UL><LI>Max Depth = 556<LI>Call Chain = rt_thread_entry_gps &rArr; GPS_Rx_Process &rArr; Process_RMC &rArr; GPS_Delta_DurPro &rArr; RouteRail_Judge &rArr; Distance_Point2Line &rArr; rt_kprintf &rArr; vsnprintf &rArr; print_number
+---- Recode_Obj.CMD Matches (52 in 2 files) ----
+App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):  Recode_Obj.CMD=0;     //  Êý¾Ý²É¼¯ 
+App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	Recode_Obj.CMD=Recode_Obj.Bak_CMD;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		switch( Recode_Obj.CMD ) 
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		rt_kprintf( "\r\n ¼ÇÂ¼ÒÇ CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			   Recode_Obj.Bak_CMD=Recode_Obj.CMD;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		switch( Recode_Obj.CMD )
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x01;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x02;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x03;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x04;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x05;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x06;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x07;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			rt_kprintf( "\r\n ¼ÇÂ¼ÒÇÁÐ±íÖØ´« CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n ¼ÇÂ¼ÒÇÁÐ±íÖØ´«½áÊø!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):    switch(Recode_Obj.CMD)
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	switch( Recode_Obj.CMD )
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;   // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;                   // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;                   // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			//Recode_Obj.CMD=UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				case 0x00: Recode_Obj.CMD	= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD				= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD				= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD				= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Recode_Obj.CMD			= UDP_HEX_Rx[13];
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			CenterSet_subService_8701H( Recode_Obj.CMD, UDP_HEX_Rx + 14 );  //Ìø¹ý2B³¤¶ÈºÍ1 ±£Áô×Ö
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	         Recode_Obj.CMD=0x08;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x09;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x10;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	         Recode_Obj.CMD=0x11;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x12;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x15;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	Recode_Obj.CMD			= cmd;
