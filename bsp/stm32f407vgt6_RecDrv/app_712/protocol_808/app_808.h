@@ -82,5 +82,6 @@ extern  void  MainPower_Recover_process(void);
 extern  void  MainPower_cut_process(void); 
 extern  void  Recorder_init(u8 value); 
 extern  void  Rcorder_Recover(void);
+extern  void Recorder_JudgeOK(void);
 
 #endif

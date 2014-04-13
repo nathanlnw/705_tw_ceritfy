@@ -121,7 +121,7 @@ static uint8_t		fvdr_debug = 1;
  */
 static uint8_t file_rec[32];
 
-
+#if 0
 /***********************************************************
 * Function:
 * Description:
@@ -141,7 +141,7 @@ static void  SST25V_BufferRead( u8* pBuffer, u32 ReadAddr, u16 NumByteToRead )
 	}
 	DF_delay_ms( 5 );
 }
-
+#endif  
 /***********************************************************
 * Function:
 * Description:

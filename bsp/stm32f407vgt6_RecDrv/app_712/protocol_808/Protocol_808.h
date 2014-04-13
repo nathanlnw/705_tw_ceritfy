@@ -499,6 +499,7 @@ typedef struct  _RECODER
   u16  Total_pkt_num;   // 分包总包数
   u16  Current_pkt_num; // 当前发送包数 从 1  开始
   u8	fcs;
+  u8    Send_state;  // 发送状态     0: idle   1 : send  over 
 
   
   //-----记录仪列表重传
@@ -1474,6 +1475,7 @@ extern  void  MangquSave_GPS(void);
 extern  void  CAN_Send_judge(void); 
 extern  void  MangQu_Timer(void);
 extern void   buzzer_onoff(u8 in); 
+extern void   dur( u8 *content ); 
 
 //---------------------盲区真正执行-----------------------------------
 extern  void MangQU_true_create(T_GPS_Info_GPRS Gps_Gprs);  

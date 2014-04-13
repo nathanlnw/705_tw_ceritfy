@@ -363,7 +363,7 @@ void  Recorder_sd_timer(void)
 {
     // 行车记录仪数据发送
     Recode_Obj.timer++;     
-    if((Recode_Obj.CountStep==2)&&(Recode_Obj.timer>=4))   
+    if((Recode_Obj.CountStep==2)&&(Recode_Obj.timer>=2))   
        {    
     	 Recode_Obj.CountStep=1; 
  		 Recode_Obj.timer=0;
@@ -534,6 +534,7 @@ void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
   //--------- add on  5-4 
   Recode_Obj.Current_pkt_num=0; // 当前发送包数 从 1  开始
   Recode_Obj.fcs=0;
+  Recode_Obj.Send_state=0;
 
   
   //-------  记录仪列表重传---  
@@ -552,6 +553,7 @@ void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 	  Recode_Obj.Transmit_running=0; 
 	  Recode_Obj.Bak_CMD=0;
 	  Recode_Obj.Bak_fcs=0;
+	  dur("30");
 	  
 	}
 
@@ -566,6 +568,46 @@ void Rcorder_Recover(void)
 	Recode_Obj.CountStep	= 1;
 	MediaObj.Media_Type		= 3; //行驶记录仪 只是利用类型填充ID 时候有用
 }
+
+void Recorder_JudgeOK(void)
+{
+  if(Recode_Obj.Send_state==1)
+  	{
+      // 1
+	  if(( Recode_Obj.Devide_Flag == 1 )&&((Recode_Obj.RSD_State==0)||(Recode_Obj.RSD_State==3)))	// 不给应答 ,非列表重传状态下进行
+	  {
+		  if( Recode_Obj.Current_pkt_num >= Recode_Obj.Total_pkt_num )
+		  {
+			// 检查是否有过列表重传
+			if(Recode_Obj.RSD_State==3)
+			   Recode_Obj.RSD_State=1;	// enable	
+			else
+			   Recorder_init(1);		   //  clear
+		  }else
+		  {
+			  Recode_Obj.Current_pkt_num++;
+		  }
+	  }
+	  //  2
+	  #if 1
+	  if( ( 1 == Recode_Obj.RSD_State ) )
+	  {
+			//-----  重传列表 递增 -----------
+			Recode_Obj.RSD_Reader++;
+			// rt_kprintf("\r\n	  MediaObj.RSD_Reader++  =%d\r\n",MediaObj.RSD_Reader);
+	  }
+      #endif
+      Recode_Obj.Send_state=0;
+  	}
+    else
+	if(Recode_Obj.Send_state&0x80)	
+	{
+        Recode_Obj.Send_state&=~0x80;  // clear 
+	}
+    
+}
+
+	
 
 
  ALIGN(RT_ALIGN_SIZE)

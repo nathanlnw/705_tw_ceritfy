@@ -1,53 +1,17 @@
----- Recode_Obj.CMD Matches (52 in 2 files) ----
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):  Recode_Obj.CMD=0;     //  Êý¾Ý²É¼¯ 
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	Recode_Obj.CMD=Recode_Obj.Bak_CMD;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		switch( Recode_Obj.CMD ) 
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		rt_kprintf( "\r\n ¼ÇÂ¼ÒÇ CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			   Recode_Obj.Bak_CMD=Recode_Obj.CMD;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		switch( Recode_Obj.CMD )
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x01;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x02;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x03;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x04;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x05;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x06;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Recode_Obj.CMD						= 0x07;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			rt_kprintf( "\r\n ¼ÇÂ¼ÒÇÁÐ±íÖØ´« CMD_ID =0x%2X \r\n", Recode_Obj.CMD );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n ¼ÇÂ¼ÒÇÁÐ±íÖØ´«½áÊø!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):    switch(Recode_Obj.CMD)
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	switch( Recode_Obj.CMD )
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;   // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;                   // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;                   // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;               // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;           // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				Original_info[Original_info_Wr++]	= Recode_Obj.CMD;       // ÃüÁî×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			//Recode_Obj.CMD=UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				case 0x00: Recode_Obj.CMD	= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD				= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD				= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD			= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					Recode_Obj.CMD				= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			Recode_Obj.CMD			= UDP_HEX_Rx[13];
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			CenterSet_subService_8701H( Recode_Obj.CMD, UDP_HEX_Rx + 14 );  //Ìø¹ý2B³¤¶ÈºÍ1 ±£Áô×Ö
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	         Recode_Obj.CMD=0x08;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x09;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x10;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	         Recode_Obj.CMD=0x11;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x12;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				   	        Recode_Obj.CMD=0x15;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	Recode_Obj.CMD			= cmd;
+---- dur Matches (16 in 6 files) ----
+App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):{     //  100ms  =Dur 
+App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	  dur("30");
+App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	         // 5.1. create  timer     100ms=Dur
+App_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):	         // 1. create  timer     100ms=Dur
+Device_485.c (bsp\stm32f407vgt6_recdrv\app_712\u4_485):{     //  100ms  =Dur 
+Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):void record_voice(u16 dur)
+Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):   rt_kprintf("\r\n ÊÖ¶¯Â¼Òô: %d s\r\n",dur);      
+Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):   Voice_Rec_Duartion=dur;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n ÖÐÐÄÉèÖÃCAN2 : 0x%08X   Dur: %d s\r\n", BD_EXT.CAN_2_ID, BD_EXT.CAN_2_TransDuration );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n ÖÐÐÄÉèÖÃCAN1 : 0x%08X   Dur: %d s\r\n", BD_EXT.CAN_1_ID, BD_EXT.CAN_1_TransDuration );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			     dur("30000");
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					    dur("30000"); 
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n rx=%d  dur=%ds   CAN send trigger ,no data \r\n", CAN_trans.canid_1_RxWr, CAN_trans.can1_trans_dur );
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void  dur( u8 *content )
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):FINSH_FUNCTION_EXPORT( dur, Set APN_String );
+Protocol_808.h (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):  u8  Dur;  // ·¢ËÍ³¬Ê±ÅÐ¶Ï

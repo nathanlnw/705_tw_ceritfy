@@ -112,7 +112,7 @@ u8   Get_voicedata_delay=0;
 u8   GEt_voice_Counter=0;    
 u8	AT_str[50]; 	
 u8  Rx_Error_counter=0;  // 连续错误计数器，连续错误3次以上认为有问题，挂断重播链路
-
+u8  send_fail_counter=0;
                                                                                                  
 //-------  struct  variables -------------
 static GSM_POWER   GSM_PWR;   
@@ -178,6 +178,8 @@ VOC_REC       VocREC;    // 录音上传相关
 
 static void GSM_Process(u8 *instr, u16 len);
 u32 GSM_HextoAscii_Convert(u8*SourceHex,u16 SouceHexlen,u8 *Dest);   
+void  redial(void);
+
 
 //   VOICE  RECORD   
 void  VOC_REC_Init(void)
@@ -761,7 +763,7 @@ void  DataLink_DNSR2_Set(u8* Dns_str,u8 DebugOUT)
 
 }
 
- void Gsm_RegisterInit(void)
+ void gsm_init(void)
 {  
      //--------   Power  Related   ---------
      GSM_PWR.GSM_PowerEnable=1;  // 开始使能
@@ -786,69 +788,14 @@ void  DataLink_DNSR2_Set(u8* Dns_str,u8 DebugOUT)
   DataLink_MainSocket_set(RemoteIP_main, RemotePort_main,1); 
   DataLink_AuxSocket_set(RemoteIP_aux, RemotePort_aux,1);
 
- 
-  #if 0
-   GsmRxBuf_Wr=0;
-   GsmRxBuf_Rd=0;
+  DataLink_Online=0;  
   
-   GSM_rx_Wr=-1;
-  
-   GsmTxLen=0;
-   GsmTxIndex=0;
-   pGsmTx=NULL;
-   GsmTxActive=OS_FALSE;
-  
-  
-  //------- GPPRS 功能相关 ----------------
-  GSM_PWR.GSM_powerCounter=0;
-  quick_flag=0;
-  GSM_PWR.GSM_power_over=0;  
-  Datalink_close=0;	//挂断后不再登陆
-  
-  //-------  蜂鸣器状体 ------------------------
-  buz_on_Flag=0;
-  buz_on_Counter=0;  
-  
-  DataLink_Online=0;    // GPRS 在线标志
-  
-  EM310_StartFLAG=0;// EM310 模块开启标志位
-  COPS_Couter=0;    // COPS  返回次数
-  
-  CSQ_counter=0;
-  CSQ_Duration=32;	//查询CSQ 的定时间隔
-  CSQ_flag=1;
-  ModuleSQ=0;       //GSM 模块信号强度数值
-  ModuleStatus=0;   //网络状态  
-  
-  
-  
-  
-  //-----  1 s timer  related below   ------
-  one_second_couner=0;
-  Enable_UDP_sdFlag=0;
-  Timercounter=0;
-    
-  //------ WatchDog --
-   WatchDog_Feed();  //  Task Idle Hook 相关
-      
-  //-----  AT -----------
-  memset(&AT,0,sizeof(AT));
-  gsm_rx_infolen=0;
-  DataLink_EndFlag=0;  
-  DataLink_end_counter=0;
-  DataConnect_counter=0;		 //  在没有登网前重拨次数限制计数器    11-3-4 补加的 ERROR 20 
-     
-    
-  //----- UDP ------------
-  UDP_sdFlag=0;		  //定时发送GPS位置信息标志
-  UDP_sdDuration=10; 
-  UDP_Connect=0; 	  
-#endif
 }
+ FINSH_FUNCTION_EXPORT(gsm_init, gsm_init); 
 
  void  Total_Satus_Initial(void)
 {
-     Gsm_RegisterInit();   
+     gsm_init();   
 } 
 
 
@@ -1163,7 +1110,7 @@ void  Data_Send(u8* DataStr, u16  Datalen,u8  Link_Num)
 	  
 	  rt_kprintf(AT_send_str);
 	  rt_hw_gsm_output(AT_send_str);  
-	  delay_ms(180);// 给模块返回输出时间  
+	  delay_ms(100);// 给模块返回输出时间   
 
       if(DispContent==2)
 	    OutPrint_HEX("GsmSend",DataStr,GPRS_infoWr_Tx);   
@@ -1807,7 +1754,24 @@ static void GSM_Process(u8 *instr, u16 len)
           {
               Mainlink_send_over=0;     
 	   	  }
+        Recorder_JudgeOK();
+		send_fail_counter=0;
+
+	   
 	} 
+	else
+	if(strncmp((char*)GSM_rx, "SEND FAIL",9)==0) //SEND FAIL	
+    {
+        send_fail_counter++;
+		if(send_fail_counter>=3)
+			{
+			   send_fail_counter=0;
+			   rt_kprintf("\r\n  发送错误 需要新建立GPRS \r\n");
+			   redial();
+        	}
+            
+
+	}
 	else
      //   voice  file  size  get
     //+QFLST: "voice.amr",4192  VOICEREC_GET_FILESIZE

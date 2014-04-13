@@ -48,7 +48,7 @@ extern void SST25V_Init(void);
 extern u8   SST25V_ByteRead(u32 ReadAddr);
 extern void SST25V_strWrite(u8 *p, u32 WriteAddr,u16 length);    
 
-void SST25V_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead);
+extern void SST25V_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead);
 void SST25V_HighSpeedBufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead);
 u8 SST25V_HighSpeedRead(u32 ReadAddr);
 
