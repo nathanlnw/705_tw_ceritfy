@@ -351,7 +351,7 @@ static void HMI_thread_entry(void* parameter)
 		#ifdef BITTER
 		Cent_To_Disp();
 		#endif
-	       KeyCheckFun();
+	      
               pMenuItem->timetick( 10 ); 
 	 	pMenuItem->keypress( 10 );  
 		if(print_rec_flag==1)

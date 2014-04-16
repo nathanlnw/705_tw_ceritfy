@@ -527,7 +527,6 @@ u8    Udisk_Find(void)
 void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 {
   Recode_Obj.Float_ID=0;     //  命令流水号
-  Recode_Obj.CMD=0;     //  数据采集 
   Recode_Obj.SD_Data_Flag=0; //  发送返回数返回标志
   Recode_Obj.CountStep=0;  //  发送数据需要一步一步发送 
   Recode_Obj.timer=0;
@@ -544,7 +543,7 @@ void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 	  Recode_Obj.RSD_total=0;     //  重传选项数目    
 	  Recode_Obj.RSD_end=0; // clear 
 
-	if(value==1)
+	if(value)
 	{
 	  
 	  Recode_Obj.Devide_Flag=0;//  需要分包上传标志位
@@ -552,8 +551,11 @@ void  Recorder_init(u8 value)   // value    1  clear all  0 : clear  nesssary
 	  Recode_Obj.Bak_current_num=0;
 	  Recode_Obj.Transmit_running=0; 
 	  Recode_Obj.Bak_CMD=0;
-	  Recode_Obj.Bak_fcs=0;
-	  dur("30");
+	  Recode_Obj.Bak_fcs=0;	  
+	  
+	  if(value==2)
+	       Recode_Obj.CMD=0; 	//	数据采集 
+	 // dur("30");
 	  
 	}
 
@@ -665,8 +667,6 @@ static void App808_thread_entry(void* parameter)
 	
 	while (1)
 	{
-
-  
 		//--------------------------------------------------	
          if(Receive_DataFlag==1)
 		 {

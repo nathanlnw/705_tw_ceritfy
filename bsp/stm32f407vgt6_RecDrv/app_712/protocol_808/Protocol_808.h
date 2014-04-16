@@ -1408,7 +1408,6 @@ extern u16    AsciiToGb(u8 *dec,u8 InstrLen,u8 *scr);
 extern void  Time2BCD(u8 *dest);     
 extern void   local_time(void);  
 extern void  CAN_struct_init(void);
-extern void  CAN_send_timer(void);
 
 
 extern u8     DrvRecoder_send_start(void);

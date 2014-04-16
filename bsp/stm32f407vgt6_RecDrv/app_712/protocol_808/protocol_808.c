@@ -9900,7 +9900,7 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 						 {
 						    rt_kprintf( "\r\n 之前列表项为0  ，现在不予处理了。\r\n" );
 							Recorder_init(1);// clear all state
-							Recode_Obj.RSD_end=1; 
+							Recode_Obj.RSD_end=1;  
 							break;
 						 }	
                          if(Recode_Obj.RSD_State)
@@ -9965,14 +9965,13 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 			         }
 		           }
 			//==================================================================
-           /*      列表重传不要应答 
-                     if(Recode_Obj.RSD_total)  // 重传列表项为0 不返回 
+               //列表重传不要应答 
+            if(Recode_Obj.RSD_total==0)  // 重传列表项为0 不返回 
 			{
 				SD_ACKflag.f_CentreCMDack_0001H		= 1;
 				Ack_Resualt							= 0;
-				SD_ACKflag.f_CentreCMDack_resualt	= Ack_Resualt;
+				SD_ACKflag.f_CentreCMDack_resualt	= Ack_Resualt; 
 			}
-			*/
 
 			break;
 		//--------  BD  add  Over  --------------------------------
@@ -12221,49 +12220,6 @@ void CAN_struct_init( void )
 	CAN_trans.BAK_WR = 0;
 }
 
-/***********************************************************
-* Function:
-* Description:
-* Input:
-* Input:
-* Output:
-* Return:
-* Others:
-***********************************************************/
-void  CAN_send_timer( void )
-{
-	u16 i = 0, datanum = 0;;
-	if( CAN_trans.can1_trans_dur > 0 )
-	{
-		CAN_trans.canid_timer++;
-		// if( CAN_trans.canid_timer>=CAN_trans.can1_trans_dur)
-		if( CAN_trans.canid_timer >= 4 )
-		{
-			CAN_trans.canid_timer = 0;
-			//------  判断有没有数据项
-			if( CAN_trans.canid_1_RxWr )
-			{
-				datanum = ( CAN_trans.canid_1_RxWr >> 3 );
-				memcpy( CAN_trans.canid_1_Sdbuf, CAN_trans.canid_1_Rxbuf, CAN_trans.canid_1_RxWr );
-				CAN_trans.canid_1_SdWr = CAN_trans.canid_1_RxWr;
-				for( i = 0; i < datanum; i++ )
-				{
-					CAN_trans.canid_1_ID_SdBUF[i] = CAN_trans.canid_1_ID_RxBUF[i];
-				}
-
-				CAN_trans.canid_1_RxWr		= 0; // clear
-				CAN_trans.canid_0705_sdFlag = 1;
-			}else
-			{
-				rt_kprintf( "\r\n rx=%d  dur=%ds   CAN send trigger ,no data \r\n", CAN_trans.canid_1_RxWr, CAN_trans.can1_trans_dur );
-			}
-		}
-	}else
-	{
-		CAN_trans.canid_0705_sdFlag = 0;
-		CAN_trans.canid_timer		= 0;
-	}
-}
 
 /***********************************************************
 * Function:

@@ -288,15 +288,16 @@ void TIM3_IRQHandler(void)
 			     {
 			            CAN_trans.canid_ID_enableGet=1;	 
 			     } 
-		            TIM1_Timer_Counter=0; 		  
+		       TIM1_Timer_Counter=0; 		  
             	}
 			
             //-----------------------10ms--------------------
               TIM3_Timer_10ms_counter++;
-              if(TIM1_Timer_Counter==10)  //  10ms
+              if(TIM3_Timer_10ms_counter==10)  //  10ms
               {
                  U3_rx_timeout();
-                 TIM1_Timer_Counter=0;
+				 KeyCheckFun();
+                 TIM3_Timer_10ms_counter=0;
               }
 
 

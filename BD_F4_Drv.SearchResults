@@ -1,17 +1,7 @@
----- dur Matches (16 in 6 files) ----
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):{     //  100ms  =Dur 
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	  dur("30");
-App_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	         // 5.1. create  timer     100ms=Dur
-App_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):	         // 1. create  timer     100ms=Dur
-Device_485.c (bsp\stm32f407vgt6_recdrv\app_712\u4_485):{     //  100ms  =Dur 
-Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):void record_voice(u16 dur)
-Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):   rt_kprintf("\r\n 手动录音: %d s\r\n",dur);      
-Device_gsm.c (bsp\stm32f407vgt6_recdrv\app_712\gsm):   Voice_Rec_Duartion=dur;
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n 中心设置CAN2 : 0x%08X   Dur: %d s\r\n", BD_EXT.CAN_2_ID, BD_EXT.CAN_2_TransDuration );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n 中心设置CAN1 : 0x%08X   Dur: %d s\r\n", BD_EXT.CAN_1_ID, BD_EXT.CAN_1_TransDuration );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			     dur("30000");
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):					    dur("30000"); 
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):				rt_kprintf( "\r\n rx=%d  dur=%ds   CAN send trigger ,no data \r\n", CAN_trans.canid_1_RxWr, CAN_trans.can1_trans_dur );
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):void  dur( u8 *content )
-Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):FINSH_FUNCTION_EXPORT( dur, Set APN_String );
-Protocol_808.h (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):  u8  Dur;  // 发送超时判断
+---- CAN_trans.canid_0705_sdFlag Matches (6 in 1 files) ----
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	if( CAN_trans.canid_0705_sdFlag )
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		CAN_trans.canid_0705_sdFlag = 0;    // clear
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):			CAN_trans.canid_0705_sdFlag = 0;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	CAN_trans.canid_0705_sdFlag = 0;        // 发送标志位
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):		CAN_trans.canid_0705_sdFlag = 1;
+Protocol_808.c (bsp\stm32f407vgt6_recdrv\app_712\protocol_808):	CAN_trans.canid_0705_sdFlag = 1;

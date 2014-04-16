@@ -1759,7 +1759,7 @@ static void GSM_Process(u8 *instr, u16 len)
 
 	   
 	} 
-	else
+/*	else
 	if(strncmp((char*)GSM_rx, "SEND FAIL",9)==0) //SEND FAIL	
     {
         send_fail_counter++;
@@ -1771,7 +1771,7 @@ static void GSM_Process(u8 *instr, u16 len)
         	}
             
 
-	}
+	}*/
 	else
      //   voice  file  size  get
     //+QFLST: "voice.amr",4192  VOICEREC_GET_FILESIZE
