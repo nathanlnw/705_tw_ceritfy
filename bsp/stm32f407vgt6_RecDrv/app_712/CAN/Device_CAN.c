@@ -237,8 +237,6 @@ TestStatus CAN_RX(void)
 
 u8  CAN1_Rx_Process(void)
 {
-    //u8 iRX=0;
-    // rt_kprintf("    Nathan BDEXT_ID=%08X",RxMessageData.ExtId);	
        if(CAN_trans.canid_2_NotGetID==RxMessageData.ExtId)     
 			{  Can_same++;	return PASSED;}     
 	   

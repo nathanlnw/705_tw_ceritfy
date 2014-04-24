@@ -788,31 +788,34 @@ u8  Do_SendGPSReport_GPRS( void )
 			{
 				rt_kprintf( "\r\n             current =%d  RsendTotal: %d  CurrentRsd=%d\r\n", Recode_Obj.Current_pkt_num, Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
 			}
-			Stuff_RecoderACK_0700H( packet_type ); //	行车记录仪数据上传
-
-            if( Recode_Obj.RSD_Reader == Recode_Obj.RSD_total )
+			if(Recode_Obj.RSD_total)
 			{
-			   if( Recode_Obj.RSD_end==1)
-				{ 				
-				   Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
-				   Recode_Obj.RSD_end=1;
-				   rt_kprintf( "\r\n 之前收到过列表重传为0 \r\n ");
-			   	}
-			   else
-			   	{
-				  Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
-			   	}  
-				
-				rt_kprintf( "\r\n 记录仪列表重传结束!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
-                /*
-                          if(Recode_Obj.Transmit_running==1)
-	                	{
-	                	  Rcorder_Recover(); 
-	                      rt_kprintf( "\r\n 顺序执行尚未完成  current=%d  total=%d\r\n",Recode_Obj.Current_pkt_num,Recode_Obj.Total_pkt_num);
-						  return true;
-	                	}
-				*/
-			}			
+					   Stuff_RecoderACK_0700H( packet_type ); //	行车记录仪数据上传
+
+		            if( Recode_Obj.RSD_Reader == Recode_Obj.RSD_total )
+					{
+					   if( Recode_Obj.RSD_end==1)
+						{ 				
+						   Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
+						   Recode_Obj.RSD_end=1;
+						   rt_kprintf( "\r\n 之前收到过列表重传为0 \r\n "); 
+					   	}
+					   else
+					   	{
+						   Recorder_init(1); //  置位等待状态，等待着中心再发重传指令
+					   	}  
+						
+						rt_kprintf( "\r\n 记录仪列表重传结束!  CMD_ID =0x%2X  RsendTotal:%d CurrentRsd=%d\r\n", Recode_Obj.CMD,Recode_Obj.RSD_total,Recode_Obj.RSD_Reader);
+		                /*
+		                          if(Recode_Obj.Transmit_running==1)
+			                	{
+			                	  Rcorder_Recover(); 
+			                      rt_kprintf( "\r\n 顺序执行尚未完成  current=%d  total=%d\r\n",Recode_Obj.Current_pkt_num,Recode_Obj.Total_pkt_num);
+								  return true;
+			                	}
+						*/
+				}	
+			}	
 			Recode_Obj.SD_Data_Flag=0;// clear   
 			return true;
 
@@ -9936,8 +9939,9 @@ void  TCP_RX_Process( u8 LinkNum )  //  ---- 808  标准协议
 							}
 							rt_kprintf( "\r\n" );
 
-                         if(Recode_Obj.RSD_total==0)
-						 	  Recode_Obj.RSD_end=1;//enable
+                         if(Recode_Obj.RSD_total==0)						 	
+						      Recorder_init(1);// clear all state	
+						 	
 				  	}
                    else
 		            {  //  多媒体分包  
@@ -11474,7 +11478,97 @@ void RouteRail_Judge( u8* LatiStr, u8* LongiStr )
 
 }
 
+//--------  线路偏离计算------
+/*
+Part1  :   
 
+     已知两点选择纬度小的做为原点，A (longiA,latiA)<=>    P1(0,0)      B (longiB,laitiB)<=> P2(x1,y1)  ,  在latiB>latiA 的前提下把A 点作为原点
+      则x1=longiB-longiA； y1=latiB-latiA >0 
+      
+     
+     (       
+	  Note:    输入信息为百万分之一度，1x10^(-6)		  1 单位 =0.11米(赤道距离)
+                     前提:  y1>0   ,很重要x=cose(Angle_Laiti)  所有 数值都转换成米   
+     )
+
+     那么两点P1，P2 确定的直线方程(两点式)为:
+             (x-x1)/x1 =(y-y1)/y1                          (1)         (x1!=0)
+
+    注:  标准式直线方程为 AX+BY+C=0;
+             那么平面上任意一点P(x0,y0) 到直线的距离表示为
+             d=abs(Ax0+By0+C)/sqrt(A^2+B^2)
+
+    其中把方程式(1) 转换成标准式为:
+           格式为:   Ax+By+C=0           
+                y1x-x1y=0   
+    所以   A=y1 ,  B=-x1, C=0
+    那么 直线的方程:
+                  y1x-x1y=0         (2)
+                  
+         在已知直线方程(2)    的前提下，平面上与直线(2)  距离为d ( 注:道路宽度的1/2) 的
+         的两个直线即为道路的两边的直线方程。
+
+         //----------------------------------------------------------------------
+         另外根据平行线间的距离公式:
+                         d=|deltaC|/sqrt(A^2+B^2)      =>      |deltaC|=d*sqrt(A^2+B^2)     (3)
+                         
+            把   A=y1 ,  B=-x1, C=0 代入  (3)    得出 
+
+               |deltaC|=d* sqrt(y1^2+x1^2)      (4)
+
+         那么与直线(2)  平行且与之距离为d 的两条直线
+        方程为:    
+
+       Line1:       y1x-x1y-|deltaC|=0       ==>     y1x-x1y-d*sqrt(y1^2+x1^2) =0       (5)
+       Line2:       y1x-x1y+|deltaC|=0      ==>     y1x-x1y+d*sqrt(y1^2+x1^2) =0       (6)  
+
+
+      Note:    ******  在x1<0   的大前提下 *********
+      
+        Line1     在 Line 2  的上方  ，满足线路未偏移的条件是 将平面中任意一点P(Xa,Ya)
+         代入方程(5)  (6)   得出line1_Value_5     line2_Value_6
+
+         点在要求线路内容的条件是 点在line1    上方方       line2 下方
+
+                 line1_Value_5<=0    且     line2_Value_6>=0               (7)
+
+          不满足 (7)   的条件即可判断为 偏离出规定的距离d       
+
+          
+   
+	Note:	 ******  在x1>0   的大前提下 *********
+
+	  Line1 	在 Line 2  的上方  ，满足线路未偏移的条件是 将平面中任意一点P(Xa,Ya)
+	   代入方程(5)	(6)   得出line1_Value_5 	line2_Value_6
+
+	   点在要求线路内容的条件是 点在line2	 下方		line1 上方
+
+			   line1_Value_6<=0    且	  line2_Value_5>=0				 (8)
+
+		不满足 (8)	 的条件即可判断为 偏离出规定的距离d 	  
+
+                
+Part2:         
+
+           根据(2) 可以求出  过 P1(0,0) , P2(x1,y1) 点与已知直线垂直的两条直线方程
+              P1(0,0) :     
+                                  y1y+x1x=0       (9)
+              P2(x1,y1) :    
+                                 y1y+x1x-(x1^2+y1^2)=0        (10)
+
+         因为 y1 >=0      直线(10)    在直线(9)  的上边
+          那么 点在线段区域内的判断方法是
+                       (10) <=  0    且  (9)  >=0
+   //------------------------------------------------------------------------------------------
+
+       纬度没有差值    1纬度  111km
+
+       X 轴为 经度(longitude) 差值*cos(Lati)
+       Y 轴为纬度 (latitude)  差值
+
+
+   //------------------------------------------------------------------------------------------
+ */
 //Distance_Point2Line_judge
 u32  outline_judge(u32 Half_width,u32 Cur_Lat, u32 Cur_Longi, u32 P1_Lat, u32 P1_Longi, u32 P2_Lat, u32 P2_Longi )
 {                                                                           //   输入当前点 ，返回点到既有直线的距离

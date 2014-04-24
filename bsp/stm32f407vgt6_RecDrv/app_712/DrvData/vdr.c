@@ -1283,7 +1283,7 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 	uint8_t			*p = RT_NULL;
 	int				i, j, k;
 	 //  39.906678 =           116.192092   +
-	u32 lati_ini=0x16D5B47,longi_ini=0x427C537;
+	u32 lati_ini=0x16D5B47,longi_ini=0x424C537;  
 	u32 lati=0,longi=0;
 	u8  count=0; 
 #ifdef DBG_VDR
@@ -1359,19 +1359,26 @@ uint8_t get_09h( uint8_t *pout,u16 packet_in )
 		  #if 1
 		     //  longitude
 		    if(packet_in%2)
+		     { 
 		        longi=longi_ini+count*6000;  // 每分钟走100米<=>    500 个单位
+		        
+				lati=lati_ini+count*6000;// lati 
+		     }
 		    else
-				longi=longi_ini+(62-count)*6000;   
+			 {
+			    longi=longi_ini+(62-count)*6000;   
+				lati=lati_ini+(62-count)*6000;  // lati       
+		     }
 		     
              *p++ = (u8)(longi>>24);
 		     *p++ = (u8)(longi>>16);
 			 *p++ =(u8)(longi>>8);
 		     *p++ =(u8)(longi); 
 			   //  lati
-             *p++ = (u8)(lati_ini>>24); 
-		     *p++ = (u8)(lati_ini>>16);
-			 *p++ = (u8)(lati_ini>>8); 
-		     *p++ = (u8)(lati_ini);
+             *p++ = (u8)(lati>>24);  
+		     *p++ = (u8)(lati>>16);
+			 *p++ = (u8)(lati>>8); 
+		     *p++ = (u8)(lati);
 		        //  Height
              *p++ =0x00;
 		     *p++ =30+(rt_tick_get()%5); 

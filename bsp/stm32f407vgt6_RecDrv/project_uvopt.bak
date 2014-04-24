@@ -1674,10 +1674,10 @@
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>0</ColumnNumber>
+      <ColumnNumber>29</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>1</TopLine>
-      <CurrentLine>1</CurrentLine>
+      <TopLine>14</TopLine>
+      <CurrentLine>15</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\app_712\protocol_808\protocol_808.c</PathWithFileName>
       <FilenameWithoutPath>protocol_808.c</FilenameWithoutPath>
@@ -3236,7 +3236,7 @@
       <Focus>0</Focus>
       <ColumnNumber>1</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>901</TopLine>
+      <TopLine>904</TopLine>
       <CurrentLine>917</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\app_712\lcd\SED1520.c</PathWithFileName>
